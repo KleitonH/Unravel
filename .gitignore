@@ -1,0 +1,33 @@
+# Environment — nunca versionar
+.env
+.env.*
+
+# .NET build artifacts
+**/bin/
+**/obj/
+**/*.user
+**/*.suo
+.vs/
+*.exe
+*.dll
+*.pdb
+*.nupkg
+backend/**/appsettings.*.json
+!backend/**/appsettings.Development.json
+
+# EF Core Migrations (optional - remove if you want to track migrations)
+# backend/**/Migrations/
+
+# Node / Angular
+frontend/node_modules/
+frontend/.angular/
+frontend/dist/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.idea/
+.vscode/settings.json
+*.swp
