@@ -1,1 +1,88 @@
 # Unravel
+
+Full-stack application built with ASP.NET Core 8 (Hexagonal Architecture) + Angular 20.
+
+## Tech Stack
+
+- **Backend:** ASP.NET Core 8, EF Core 8, PostgreSQL (Docker)
+- **Architecture:** Hexagonal (Ports & Adapters)
+- **Auth:** JWT + Refresh Tokens, BCrypt
+- **Frontend:** Angular 20 (standalone components, signals)
+
+---
+
+## Getting Started
+
+### Prerequisites
+
+- [Docker](https://www.docker.com/)
+- [.NET 8 SDK](https://dotnet.microsoft.com/download/dotnet/8.0)
+- [Node.js 20+](https://nodejs.org/) and [Angular CLI 20](https://angular.io/cli)
+
+### 1. Configure environment variables
+
+Copy `.env` and adjust values as needed (the defaults work out of the box for local development):
+
+```
+POSTGRES_DB=unravel_db
+POSTGRES_USER=unravel_user
+POSTGRES_PASSWORD=unravel_pass
+POSTGRES_PORT=5432
+
+JWT_KEY=your-super-secret-key-with-at-least-32-characters-here
+JWT_ISSUER=unravel-api
+JWT_AUDIENCE=unravel-client
+JWT_EXPIRES_IN_MINUTES=60
+```
+
+### 2. Start the database
+
+```bash
+docker-compose up postgres -d
+```
+
+### 3. Create the initial migration
+
+```bash
+cd backend
+dotnet ef migrations add InitialCreate -p src/Unravel.Infrastructure -s src/Unravel.API
+```
+
+### 4. Run the API
+
+```bash
+dotnet run --project src/Unravel.API
+```
+
+> Migrations are applied automatically on startup. Swagger is available at `http://localhost:5000/swagger`.
+
+### 5. Run the frontend
+
+```bash
+cd frontend
+npm install
+ng serve
+```
+
+Frontend runs at `http://localhost:4200`.
+
+---
+
+## API Endpoints
+
+| Method | Endpoint             | Auth     | Description              |
+|--------|----------------------|----------|--------------------------|
+| POST   | /api/users           | No       | Register a new user      |
+| POST   | /api/auth/login      | No       | Login, returns JWT       |
+| POST   | /api/auth/refresh    | No       | Refresh access token     |
+| GET    | /api/users/me        | Bearer   | Get authenticated user   |
+
+---
+
+## Running with Docker (full stack)
+
+```bash
+docker-compose up --build
+```
+
+This starts both the PostgreSQL database and the API container.
