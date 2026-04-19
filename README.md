@@ -21,9 +21,18 @@ Full-stack application built with ASP.NET Core 8 (Hexagonal Architecture) + Angu
 
 ### 1. Configure environment variables
 
-Crie um arquivo `.env` na raiz do projeto com as variáveis exigidas pelo `docker-compose.yml` (credenciais do PostgreSQL e configurações do JWT).
+Copie os arquivos de exemplo e preencha com seus valores — **nunca versione os arquivos reais**:
 
-> O arquivo `.env` não é versionado.
+```bash
+# Docker (banco + api container)
+cp .env.example .env
+
+# API local (desenvolvimento sem Docker)
+cp backend/src/Unravel.API/appsettings.Development.json.example \
+   backend/src/Unravel.API/appsettings.Development.json
+```
+
+> `.env` e `appsettings.Development.json` estão no `.gitignore` e nunca serão commitados.
 
 ### 2. Start the database
 
