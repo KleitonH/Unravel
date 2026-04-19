@@ -8,6 +8,10 @@ using Unravel.Infrastructure;
 using Unravel.Infrastructure.Persistence;
 
 var builder = WebApplication.CreateBuilder(args);
+Console.WriteLine($"ENV: {builder.Environment.EnvironmentName}");
+Console.WriteLine($"JWT Key: '{builder.Configuration["Jwt:Key"]}'");
+Console.WriteLine($"ConnStr: '{builder.Configuration.GetConnectionString("DefaultConnection")}'");
+
 
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
@@ -74,7 +78,9 @@ var app = builder.Build();
 using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-    await db.Database.MigrateAsync();
+    var connStr = app.Configuration.GetConnectionString("DefaultConnection");
+    if (!string.IsNullOrWhiteSpace(connStr))
+        await db.Database.MigrateAsync();
 }
 
 if (app.Environment.IsDevelopment())
