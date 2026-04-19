@@ -1,0 +1,168 @@
+<div class="unravel-root">
+  <div class="glow glow--purple"></div>
+  <div class="glow glow--pink"></div>
+
+  <!-- Header -->
+  <header class="page-header">
+    <a class="back-btn" routerLink="/auth/login">← Voltar</a>
+  </header>
+
+  <!-- Top -->
+  <div class="top-section">
+    <div class="mascot" aria-hidden="true">
+      <span class="mascot__emoji">🐱</span>
+      <span class="mascot__label">NAVI</span>
+    </div>
+    <h1 class="page-title">Criar conta</h1>
+    <p class="page-sub">Escolha sua área de interesse</p>
+
+    <!-- Interest pills -->
+    <div class="pills" role="group" aria-label="Áreas de interesse">
+      @for (pill of interestPills; track pill.key) {
+        <button
+          class="pill"
+          [class.pill--active]="selectedInterest() === pill.key"
+          type="button"
+          (click)="selectedInterest.set(pill.key)"
+        >
+          {{ pill.emoji }} {{ pill.label }}
+        </button>
+      }
+    </div>
+  </div>
+
+  <!-- Card -->
+  <div class="card">
+    <div class="card__handle" aria-hidden="true"></div>
+
+    @if (errorMessage()) {
+      <div class="error-banner" role="alert">
+        <span>⚠</span> {{ errorMessage() }}
+      </div>
+    }
+
+    <form [formGroup]="form" (ngSubmit)="onSubmit()" novalidate>
+
+      <div class="field">
+        <label class="field__label" for="name">Nome completo</label>
+        <input
+          id="name"
+          class="field__input"
+          [class.field__input--error]="showError('name')"
+          type="text"
+          formControlName="name"
+          placeholder="João Silva"
+          autocomplete="name"
+        />
+        @if (showError('name')) {
+          <span class="field__error">⚠ Nome obrigatório</span>
+        }
+      </div>
+
+      <div class="field">
+        <label class="field__label" for="email">E-mail</label>
+        <input
+          id="email"
+          class="field__input"
+          [class.field__input--error]="showError('email')"
+          type="email"
+          formControlName="email"
+          placeholder="seu@email.com"
+          autocomplete="email"
+        />
+        @if (showError('email')) {
+          <span class="field__error">⚠ E-mail inválido</span>
+        }
+      </div>
+
+      <div class="field">
+        <label class="field__label" for="password">Senha</label>
+        <input
+          id="password"
+          class="field__input"
+          [class.field__input--error]="showError('password')"
+          type="password"
+          formControlName="password"
+          placeholder="mínimo 8 caracteres"
+          autocomplete="new-password"
+          (input)="updateStrength()"
+        />
+        @if (showError('password')) {
+          <span class="field__error">⚠ Mínimo 8 caracteres</span>
+        }
+        @if (form.get('password')?.value) {
+          <div class="strength">
+            <div class="strength__bar">
+              <div
+                class="strength__fill"
+                [style.width.%]="passwordStrength().pct"
+                [style.background]="passwordStrength().color"
+              ></div>
+            </div>
+            <span class="strength__label" [style.color]="passwordStrength().color">
+              {{ passwordStrength().label }}
+            </span>
+          </div>
+        }
+      </div>
+
+      <div class="field">
+        <label class="field__label" for="confirmPassword">Confirmar senha</label>
+        <input
+          id="confirmPassword"
+          class="field__input"
+          [class.field__input--error]="showError('confirmPassword') || passwordMismatch()"
+          type="password"
+          formControlName="confirmPassword"
+          placeholder="repita a senha"
+          autocomplete="new-password"
+        />
+        @if (passwordMismatch()) {
+          <span class="field__error">⚠ As senhas não coincidem</span>
+        }
+      </div>
+
+      <!-- Terms -->
+      <label class="terms">
+        <input
+          class="terms__checkbox"
+          type="checkbox"
+          formControlName="terms"
+        />
+        <span class="terms__custom"></span>
+        <span class="terms__text">
+          Aceito os <a class="link" href="#">Termos de Uso</a> e
+          <a class="link" href="#">Privacidade</a>
+        </span>
+      </label>
+
+      <button
+        class="btn btn--primary"
+        type="submit"
+        [disabled]="loading() || form.invalid"
+      >
+        @if (loading()) {
+          <span class="btn__spinner"></span> Criando conta...
+        } @else {
+          Criar minha conta
+        }
+      </button>
+    </form>
+
+    <div class="divider">
+      <span class="divider__line"></span>
+      <span class="divider__text">ou</span>
+      <span class="divider__line"></span>
+    </div>
+
+    <button class="btn btn--google" type="button">
+      <span class="btn__google-icon">G</span>
+      Continuar com Google
+    </button>
+
+    <p class="switch-text">
+      Já tem conta?
+      <a class="link" routerLink="/auth/login">Entrar</a>
+    </p>
+  </div>
+</div>

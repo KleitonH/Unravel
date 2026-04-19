@@ -1,4 +1,4 @@
-import { Component, inject } from '@angular/core';
+import { Component, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { AuthService } from '../../core/services/auth.service';
 
@@ -6,24 +6,16 @@ import { AuthService } from '../../core/services/auth.service';
   selector: 'app-dashboard',
   standalone: true,
   imports: [CommonModule],
-  template: `
-    <div class="dashboard">
-      <header>
-        <h1>Dashboard</h1>
-        <button (click)="authService.logout()">Sign Out</button>
-      </header>
-      @if (authService.currentUser(); as user) {
-        <p>Welcome, <strong>{{ user.name }}</strong>!</p>
-        <p>{{ user.email }}</p>
-      }
-    </div>
-  `,
-  styles: [`
-    .dashboard { padding: 2rem; max-width: 1200px; margin: 0 auto; }
-    header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; }
-    button { padding: 0.5rem 1rem; background: #ef4444; color: white; border: none; border-radius: 4px; cursor: pointer; }
-  `]
+  templateUrl: './dashboard.component.html',
+  styleUrl: './dashboard.component.scss'
 })
 export class DashboardComponent {
   readonly authService = inject(AuthService);
+  readonly activeNav = signal('home');
+
+  readonly trails = [
+    { key: 'bd',  emoji: '🗄️', name: 'Banco de Dados',      meta: '12 módulos · Iniciante',      color: '#2CE086' },
+    { key: 'sec', emoji: '🔒',  name: 'Segurança da Info',   meta: '10 módulos · Intermediário',  color: '#E144F5' },
+    { key: 'ai',  emoji: '🤖',  name: 'Inteligência Artif.', meta: '15 módulos · Avançado',        color: '#FFCC00' },
+  ];
 }

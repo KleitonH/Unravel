@@ -1,0 +1,18 @@
+{
+  "Logging": {
+    "LogLevel": {
+      "Default": "Debug",
+      "Microsoft.AspNetCore": "Information",
+      "Microsoft.EntityFrameworkCore.Database.Command": "Information"
+    }
+  },
+  "ConnectionStrings": {
+    "DefaultConnection": "Host=127.0.0.1;Port=5432;Database=unravel_db;Username=unravel_user;Password=unravel_pass"
+  },
+  "Jwt": {
+    "Key": "REPLACE_WITH_SECRET_KEY_AT_LEAST_32_CHARS",
+    "Issuer": "unravel-api",
+    "Audience": "unravel-client",
+    "ExpiresInMinutes": 60
+  }
+}

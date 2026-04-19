@@ -12,7 +12,8 @@
 *.dll
 *.pdb
 *.nupkg
-backend/**/appsettings.*.json
+backend/**/appsettings.Development.json
+backend/**/appsettings.Local.json
 
 # EF Core Migrations (optional - remove if you want to track migrations)
 # backend/**/Migrations/
