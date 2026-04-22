@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Unravel.Application.Ports;
+using Unravel.Application.Services;
 using Unravel.Application.UseCases;
 using Unravel.Domain.Ports;
 using Unravel.Infrastructure.Persistence;
@@ -25,6 +26,9 @@ public static class DependencyInjection
         services.AddScoped<CreateUserUseCase>();
         services.AddScoped<AuthenticateUserUseCase>();
         services.AddScoped<GetUserUseCase>();
+
+        services.AddScoped<ITrailService,   TrailService>();
+        services.AddScoped<IContentService, ContentService>();
 
         return services;
     }

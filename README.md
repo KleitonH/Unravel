@@ -69,12 +69,12 @@ Frontend runs at `http://localhost:4200`.
 
 ## API Endpoints
 
-| Method | Endpoint             | Auth     | Description              |
-|--------|----------------------|----------|--------------------------|
-| POST   | /api/users           | No       | Register a new user      |
-| POST   | /api/auth/login      | No       | Login, returns JWT       |
-| POST   | /api/auth/refresh    | No       | Refresh access token     |
-| GET    | /api/users/me        | Bearer   | Get authenticated user   |
+| Method | Endpoint          | Auth   | Description            |
+| ------ | ----------------- | ------ | ---------------------- |
+| POST   | /api/users        | No     | Register a new user    |
+| POST   | /api/auth/login   | No     | Login, returns JWT     |
+| POST   | /api/auth/refresh | No     | Refresh access token   |
+| GET    | /api/users/me     | Bearer | Get authenticated user |
 
 ---
 

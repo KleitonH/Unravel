@@ -80,7 +80,10 @@ using (var scope = app.Services.CreateScope())
     var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
     var connStr = app.Configuration.GetConnectionString("DefaultConnection");
     if (!string.IsNullOrWhiteSpace(connStr))
+    {
         await db.Database.MigrateAsync();
+        await TrailSeeder.SeedAsync(db);
+    }
 }
 
 if (app.Environment.IsDevelopment())
