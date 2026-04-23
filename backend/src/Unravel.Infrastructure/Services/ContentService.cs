@@ -29,12 +29,12 @@ public class ContentService : IContentService
 
     public async Task<IEnumerable<ContentResponse>> GetByTrailAsync(int trailId, Guid userId)
     {
-        var contents = await _db.Contents
+        var contents = await _db.Content
             .Where(c => c.TrailId == trailId && c.IsActive)
             .OrderBy(c => c.Level).ThenBy(c => c.Order)
             .ToListAsync();
 
-        var completedIds = (await _db.UserContents
+        var completedIds = (await _db.UserContent
             .Where(uc => uc.UserId == userId && uc.Content.TrailId == trailId && uc.IsCompleted)
             .Select(uc => uc.ContentId)
             .ToListAsync()).ToHashSet();
@@ -48,10 +48,10 @@ public class ContentService : IContentService
 
     public async Task<ContentResponse?> GetByIdAsync(int id, Guid userId)
     {
-        var c = await _db.Contents.FirstOrDefaultAsync(c => c.Id == id && c.IsActive);
+        var c = await _db.Content.FirstOrDefaultAsync(c => c.Id == id && c.IsActive);
         if (c is null) return null;
 
-        var isCompleted = await _db.UserContents
+        var isCompleted = await _db.UserContent
             .AnyAsync(uc => uc.UserId == userId && uc.ContentId == id && uc.IsCompleted);
 
         return new ContentResponse(c.Id, c.TrailId, c.Title, c.Body, c.ExternalUrl,
@@ -70,7 +70,7 @@ public class ContentService : IContentService
             Level       = (DifficultyLevel)dto.Level,
             Order       = dto.Order
         };
-        _db.Contents.Add(content);
+        _db.Content.Add(content);
         await _db.SaveChangesAsync();
         return new ContentResponse(content.Id, content.TrailId, content.Title, content.Body,
             content.ExternalUrl, TypeLabel(content.Type), LevelLabel(content.Level), content.Order, false);
@@ -78,7 +78,7 @@ public class ContentService : IContentService
 
     public async Task<ContentResponse?> UpdateAsync(int id, UpdateContentRequest dto, Guid userId)
     {
-        var content = await _db.Contents.FindAsync(id);
+        var content = await _db.Content.FindAsync(id);
         if (content is null) return null;
 
         if (dto.Title       is not null) content.Title       = dto.Title;
@@ -94,7 +94,7 @@ public class ContentService : IContentService
 
     public async Task<bool> DeleteAsync(int id)
     {
-        var content = await _db.Contents.FindAsync(id);
+        var content = await _db.Content.FindAsync(id);
         if (content is null) return false;
         content.IsActive = false;
         await _db.SaveChangesAsync();

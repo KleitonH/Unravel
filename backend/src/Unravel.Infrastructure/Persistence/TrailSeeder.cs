@@ -7,7 +7,7 @@ public static class TrailSeeder
 {
     public static async Task SeedAsync(ApplicationDbContext db)
     {
-        if (await db.Trails.AnyAsync()) return;
+        if (await db.Trail.AnyAsync()) return;
 
         var trails = new List<Trail>
         {
@@ -82,7 +82,7 @@ public static class TrailSeeder
             },
         };
 
-        db.Trails.AddRange(trails);
+        db.Trail.AddRange(trails);
         await db.SaveChangesAsync();
     }
 }

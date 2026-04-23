@@ -5,13 +5,13 @@ namespace Unravel.Infrastructure.Persistence;
 
 public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options) : DbContext(options)
 {
-    public DbSet<User>         Users         => Set<User>();
-    public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
+    public DbSet<User>         User         => Set<User>();
+    public DbSet<RefreshToken> RefreshToken => Set<RefreshToken>();
 
-    public DbSet<Trail>       Trails       => Set<Trail>();
-    public DbSet<Content>     Contents     => Set<Content>();
-    public DbSet<UserTrail>   UserTrails   => Set<UserTrail>();
-    public DbSet<UserContent> UserContents => Set<UserContent>();
+    public DbSet<Trail>       Trail       => Set<Trail>();
+    public DbSet<Content>     Content     => Set<Content>();
+    public DbSet<UserTrail>   UserTrail   => Set<UserTrail>();
+    public DbSet<UserContent> UserContent => Set<UserContent>();
 
     protected override void OnModelCreating(ModelBuilder mb)
     {

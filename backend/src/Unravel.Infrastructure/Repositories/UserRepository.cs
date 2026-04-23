@@ -9,27 +9,27 @@ namespace Unravel.Infrastructure.Repositories;
 public class UserRepository(ApplicationDbContext context) : IUserRepository
 {
     public async Task<User?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default) =>
-        await context.Users
+        await context.User
             .Include(u => u.RefreshTokens)
             .FirstOrDefaultAsync(u => u.Id == id, cancellationToken);
 
     public async Task<User?> GetByEmailAsync(Email email, CancellationToken cancellationToken = default) =>
-        await context.Users
+        await context.User
             .Include(u => u.RefreshTokens)
             .FirstOrDefaultAsync(u => u.Email.Value == email.Value, cancellationToken);
 
     public async Task<bool> ExistsByEmailAsync(Email email, CancellationToken cancellationToken = default) =>
-        await context.Users.AnyAsync(u => u.Email.Value == email.Value, cancellationToken);
+        await context.User.AnyAsync(u => u.Email.Value == email.Value, cancellationToken);
 
     public async Task AddAsync(User user, CancellationToken cancellationToken = default)
     {
-        await context.Users.AddAsync(user, cancellationToken);
+        await context.User.AddAsync(user, cancellationToken);
         await context.SaveChangesAsync(cancellationToken);
     }
 
     public async Task UpdateAsync(User user, CancellationToken cancellationToken = default)
     {
-        context.Users.Update(user);
+        context.User.Update(user);
         await context.SaveChangesAsync(cancellationToken);
     }
 }
