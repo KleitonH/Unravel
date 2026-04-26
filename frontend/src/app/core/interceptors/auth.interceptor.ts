@@ -1,7 +1,7 @@
-import { HttpInterceptorFn, HttpErrorResponse } from '@angular/common/http';
-import { inject } from '@angular/core';
-import { catchError, switchMap, throwError } from 'rxjs';
-import { AuthService } from '../services/auth.service';
+import { HttpInterceptorFn, HttpErrorResponse } from "@angular/common/http";
+import { inject } from "@angular/core";
+import { catchError, switchMap, throwError } from "rxjs";
+import { AuthService } from "../services/auth.service";
 
 export const authInterceptor: HttpInterceptorFn = (req, next) => {
   const authService = inject(AuthService);
@@ -13,21 +13,21 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
 
   return next(authReq).pipe(
     catchError((error: HttpErrorResponse) => {
-      if (error.status === 401 && !req.url.includes('/auth/')) {
+      if (error.status === 401 && !req.url.includes("/auth/")) {
         return authService.refresh().pipe(
-          switchMap(response => {
+          switchMap((response) => {
             const retryReq = req.clone({
-              setHeaders: { Authorization: `Bearer ${response.accessToken}` }
+              setHeaders: { Authorization: `Bearer ${response.accessToken}` },
             });
             return next(retryReq);
           }),
-          catchError(refreshError => {
+          catchError((refreshError) => {
             authService.logout();
             return throwError(() => refreshError);
-          })
+          }),
         );
       }
       return throwError(() => error);
-    })
+    }),
   );
 };

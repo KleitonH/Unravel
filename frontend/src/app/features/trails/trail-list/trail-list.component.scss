@@ -1,0 +1,240 @@
+:host {
+  display: block;
+  height: 100vh;
+  overflow: hidden;
+}
+
+.page {
+  --bg: #120d1f;
+  --card: #1f1733;
+  --border: #59428c;
+  --purple: #7038f2;
+  --purple-l: #9461fa;
+  --dim: #bfb8d9;
+  --white: #fff;
+
+  background: var(--bg);
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  font-family: "DM Sans", sans-serif;
+  position: relative;
+}
+
+.glow {
+  position: absolute;
+  border-radius: 50%;
+  pointer-events: none;
+  filter: blur(80px);
+  z-index: 0;
+}
+.glow--purple {
+  width: 400px;
+  height: 320px;
+  background: rgba(112, 56, 242, 0.18);
+  top: -140px;
+  left: -100px;
+}
+
+.header {
+  position: relative;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 48px 20px 16px;
+  flex-shrink: 0;
+}
+.back-btn {
+  background: none;
+  border: none;
+  color: var(--purple-l);
+  font-size: 28px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 4px 8px;
+}
+.header__title {
+  font-family: "Syne", sans-serif;
+  font-weight: 700;
+  font-size: 17px;
+  color: var(--white);
+}
+
+.filter-bar {
+  display: flex;
+  gap: 8px;
+  padding: 0 20px 16px;
+  flex-shrink: 0;
+  position: relative;
+  z-index: 1;
+}
+.filter-pill {
+  padding: 7px 16px;
+  border-radius: 20px;
+  border: 1px solid var(--border);
+  background: rgba(112, 56, 242, 0.1);
+  color: var(--purple-l);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+  font-family: "DM Sans", sans-serif;
+}
+.filter-pill--active {
+  background: var(--purple);
+  border-color: var(--purple);
+  color: var(--white);
+  box-shadow: 0 4px 12px rgba(112, 56, 242, 0.4);
+}
+
+.cards-list {
+  flex: 1;
+  overflow-y: auto;
+  scrollbar-width: none;
+  padding: 0 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  position: relative;
+  z-index: 1;
+}
+.cards-list::-webkit-scrollbar {
+  display: none;
+}
+
+.state-msg {
+  text-align: center;
+  padding: 40px 20px;
+  font-size: 14px;
+  color: var(--dim);
+}
+.state-msg--error {
+  color: #f87171;
+}
+
+.trail-card {
+  position: relative;
+  background: var(--card);
+  border: 1.5px solid var(--border);
+  border-radius: 20px;
+  padding: 16px 16px 0 22px;
+  overflow: hidden;
+  cursor: pointer;
+  transition:
+    border-color 0.15s,
+    transform 0.12s;
+}
+.trail-card:hover {
+  border-color: var(--accent, var(--purple));
+  transform: translateX(2px);
+}
+.trail-card__bar {
+  position: absolute;
+  left: 0;
+  top: 14px;
+  bottom: 14px;
+  width: 4px;
+  background: var(--accent, var(--purple));
+  border-radius: 0 3px 3px 0;
+}
+.trail-card__row {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding-bottom: 14px;
+}
+.trail-card__icon-wrap {
+  width: 44px;
+  height: 44px;
+  flex-shrink: 0;
+  border: 1.5px solid;
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+}
+.trail-card__body {
+  flex: 1;
+}
+.trail-card__top {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
+  flex-wrap: wrap;
+}
+.trail-card__name {
+  font-weight: 700;
+  font-size: 14px;
+  color: var(--white);
+}
+.trail-card__badge {
+  font-size: 10px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 8px;
+  border: 1px solid;
+  white-space: nowrap;
+}
+.trail-card__desc {
+  font-size: 12px;
+  color: var(--dim);
+  margin: 0 0 4px;
+}
+.trail-card__meta {
+  font-size: 11px;
+  color: var(--dim);
+  margin: 0;
+}
+.trail-card__status {
+  flex-shrink: 0;
+  text-align: right;
+}
+.pct {
+  font-size: 12px;
+  font-weight: 700;
+  color: #38db8c;
+  line-height: 1.3;
+}
+.pct small {
+  font-size: 10px;
+  font-weight: 500;
+}
+.start {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--purple-l);
+}
+
+.trail-card__progress-wrap {
+  padding-bottom: 12px;
+}
+.progress-bar {
+  height: 6px;
+  background: #291f42;
+  border-radius: 3px;
+  overflow: hidden;
+}
+.progress-bar__fill {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 0.4s;
+}
+
+@media (min-width: 768px) {
+  .header {
+    padding: 20px 32px 16px;
+  }
+  .filter-bar {
+    padding: 0 32px 16px;
+  }
+  .cards-list {
+    padding: 0 32px;
+    max-width: 680px;
+    margin: 0 auto;
+    width: 100%;
+  }
+}

@@ -1,0 +1,96 @@
+<div class="page">
+  <div class="glow glow--purple"></div>
+
+  <!-- Header -->
+  <header class="header">
+    <button class="back-btn" (click)="goBack()">&#8249;</button>
+    <span class="header__title">Trilhas</span>
+    <div style="width: 36px"></div>
+  </header>
+
+  <!-- Filter pills -->
+  <div class="filter-bar">
+    @for (f of filters; track f) {
+      <button
+        class="filter-pill"
+        [class.filter-pill--active]="filter() === f"
+        (click)="filter.set(f)"
+      >
+        {{ capitalize(f) }}
+      </button>
+    }
+  </div>
+
+  <!-- Cards -->
+  <div class="cards-list">
+    @if (loading()) {
+      <div class="state-msg">Carregando trilhas...</div>
+    } @else if (error()) {
+      <div class="state-msg state-msg--error">{{ error() }}</div>
+    } @else if (filteredTrails().length === 0) {
+      <div class="state-msg">Nenhuma trilha encontrada.</div>
+    } @else {
+      @for (trail of filteredTrails(); track trail.id) {
+        <div
+          class="trail-card"
+          [style.--accent]="trail.accentColor"
+          (click)="goToTrail(trail.id)"
+        >
+          <div class="trail-card__bar"></div>
+
+          <div class="trail-card__row">
+            <div
+              class="trail-card__icon-wrap"
+              [style.background]="trail.accentColor + '22'"
+              [style.border-color]="trail.accentColor + '55'"
+            >
+              {{ trail.icon }}
+            </div>
+
+            <div class="trail-card__body">
+              <div class="trail-card__top">
+                <span class="trail-card__name">{{ trail.name }}</span>
+                <span
+                  class="trail-card__badge"
+                  [style.color]="badgeColor(trail.level)"
+                  [style.border-color]="badgeColor(trail.level) + '55'"
+                  [style.background]="badgeColor(trail.level) + '22'"
+                  >{{ trail.level }}</span
+                >
+              </div>
+              <p class="trail-card__desc">{{ trail.description }}</p>
+              <p class="trail-card__meta">
+                {{ trail.totalContents }} conteúdos
+              </p>
+            </div>
+
+            <div class="trail-card__status">
+              @if (trail.userProgress >= 0) {
+                <span class="pct"
+                  >{{ trail.userProgress }}%<br /><small>concluído</small></span
+                >
+              } @else {
+                <span class="start">Começar</span>
+              }
+            </div>
+          </div>
+
+          @if (trail.userProgress >= 0) {
+            <div class="trail-card__progress-wrap">
+              <div class="progress-bar">
+                <div
+                  class="progress-bar__fill"
+                  [style.width.%]="trail.userProgress"
+                  [style.background]="trail.accentColor"
+                ></div>
+              </div>
+            </div>
+          }
+        </div>
+      }
+    }
+    <div style="height: 16px"></div>
+  </div>
+
+  <app-bottom-nav [active]="'trails'" />
+</div>

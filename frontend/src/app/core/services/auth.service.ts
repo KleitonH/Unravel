@@ -1,15 +1,20 @@
-import { Injectable, signal, computed, inject } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
-import { Router } from '@angular/router';
-import { tap } from 'rxjs/operators';
-import { Observable } from 'rxjs';
-import { environment } from '../../../environments/environment';
-import { AuthResponse, CreateUserRequest, LoginRequest, User } from '../models/user.model';
+import { Injectable, signal, computed, inject } from "@angular/core";
+import { HttpClient } from "@angular/common/http";
+import { Router } from "@angular/router";
+import { tap } from "rxjs/operators";
+import { Observable } from "rxjs";
+import { environment } from "../../../environments/environment";
+import {
+  AuthResponse,
+  CreateUserRequest,
+  LoginRequest,
+  User,
+} from "../models/user.model";
 
-const ACCESS_TOKEN_KEY = 'access_token';
-const REFRESH_TOKEN_KEY = 'refresh_token';
+const ACCESS_TOKEN_KEY = "access_token";
+const REFRESH_TOKEN_KEY = "refresh_token";
 
-@Injectable({ providedIn: 'root' })
+@Injectable({ providedIn: "root" })
 export class AuthService {
   private readonly http = inject(HttpClient);
   private readonly router = inject(Router);
@@ -28,9 +33,9 @@ export class AuthService {
   }
 
   login(request: LoginRequest): Observable<AuthResponse> {
-    return this.http.post<AuthResponse>(`${this.apiUrl}/auth/login`, request).pipe(
-      tap(response => this.handleAuthResponse(response))
-    );
+    return this.http
+      .post<AuthResponse>(`${this.apiUrl}/auth/login`, request)
+      .pipe(tap((response) => this.handleAuthResponse(response)));
   }
 
   register(request: CreateUserRequest): Observable<User> {
@@ -39,21 +44,21 @@ export class AuthService {
 
   refresh(): Observable<AuthResponse> {
     const refreshToken = this.getRefreshToken();
-    return this.http.post<AuthResponse>(`${this.apiUrl}/auth/refresh`, { refreshToken }).pipe(
-      tap(response => this.handleAuthResponse(response))
-    );
+    return this.http
+      .post<AuthResponse>(`${this.apiUrl}/auth/refresh`, { refreshToken })
+      .pipe(tap((response) => this.handleAuthResponse(response)));
   }
 
   loadCurrentUser(): Observable<User> {
-    return this.http.get<User>(`${this.apiUrl}/users/me`).pipe(
-      tap(user => this._currentUser.set(user))
-    );
+    return this.http
+      .get<User>(`${this.apiUrl}/users/me`)
+      .pipe(tap((user) => this._currentUser.set(user)));
   }
 
   logout(): void {
     this.clearTokens();
     this._currentUser.set(null);
-    this.router.navigate(['/auth/login']);
+    this.router.navigate(["/auth/login"]);
   }
 
   getAccessToken(): string | null {

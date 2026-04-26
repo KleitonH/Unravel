@@ -1,0 +1,174 @@
+<div class="page">
+  <div class="glow glow--purple"></div>
+
+  <!-- Header -->
+  <header class="header">
+    <button class="back-btn" (click)="goBack()">&#8249;</button>
+    <span class="header__title">{{ trail()?.name ?? "Trilha" }}</span>
+    <div style="width: 36px"></div>
+  </header>
+
+  @if (loading()) {
+    <div class="state-msg">Carregando...</div>
+  } @else if (trail(); as t) {
+    <div class="scroll-area">
+      <!-- Hero card -->
+      <div class="hero-card">
+        <div
+          class="hero-card__top-bar"
+          [style.background]="t.accentColor"
+        ></div>
+        <div class="hero-card__inner">
+          <div
+            class="hero-card__icon"
+            [style.background]="t.accentColor + '22'"
+            [style.border-color]="t.accentColor + '66'"
+          >
+            {{ t.icon }}
+          </div>
+          <div class="hero-card__body">
+            <h2 class="hero-card__name">{{ t.name }}</h2>
+            <p class="hero-card__desc">{{ t.description }}</p>
+            <div class="hero-card__tags">
+              <span
+                class="badge"
+                [style.color]="t.accentColor"
+                [style.border-color]="t.accentColor + '55'"
+                [style.background]="t.accentColor + '22'"
+                >{{ t.level }}</span
+              >
+              <span class="hero-card__meta"
+                >{{ t.totalContents }} conteúdos</span
+              >
+            </div>
+          </div>
+        </div>
+
+        <div class="progress-row">
+          <span class="progress-label">Progresso geral</span>
+          <span class="progress-pct" [style.color]="t.accentColor"
+            >{{ progress() }}%</span
+          >
+        </div>
+        <div class="progress-bar">
+          <div
+            class="progress-bar__fill"
+            [style.width.%]="progress()"
+            [style.background]="t.accentColor"
+          ></div>
+        </div>
+
+        @if (!isEnrolled()) {
+          <button
+            class="enroll-btn"
+            [disabled]="enrolling()"
+            (click)="enroll()"
+          >
+            {{ enrolling() ? "Inscrevendo..." : "🚀 Começar trilha" }}
+          </button>
+        }
+      </div>
+
+      <!-- Journey map -->
+      @for (group of groups(); track group.label) {
+        <div class="group">
+          <div class="group-header">
+            <div class="group-line"></div>
+            <span class="group-label">{{ group.label }}</span>
+            <div class="group-line"></div>
+          </div>
+
+          @for (node of group.nodes; track node.id; let last = $last) {
+            <div class="node">
+              <!-- Track (dot + vertical line) -->
+              <div class="node__track">
+                <div
+                  class="node__dot"
+                  [class.node__dot--done]="node.state === 'done'"
+                  [class.node__dot--current]="node.state === 'current'"
+                >
+                  @if (node.state === "done") {
+                    ✓
+                  } @else if (node.state === "current") {
+                    ▶
+                  } @else {
+                    🔒
+                  }
+                </div>
+                @if (!last) {
+                  <div
+                    class="node__line"
+                    [class.node__line--done]="node.state === 'done'"
+                  ></div>
+                }
+              </div>
+
+              <!-- Content area -->
+              <div class="node__content">
+                <div
+                  class="node__card"
+                  [class.node__card--expanded]="expandedId() === node.id"
+                  [class.node__card--done]="node.state === 'done'"
+                  [class.node__card--locked]="node.state === 'locked'"
+                  (click)="toggleExpand(node.id, node.state === 'locked')"
+                >
+                  <div class="node__card-row">
+                    <span
+                      class="node__title"
+                      [class.node__title--done]="node.state === 'done'"
+                    >
+                      {{ node.title }}
+                    </span>
+                    @if (node.state !== "locked") {
+                      <span
+                        class="node__chevron"
+                        [class.node__chevron--open]="expandedId() === node.id"
+                        >›</span
+                      >
+                    }
+                  </div>
+                  <span class="node__type">{{ node.type }}</span>
+                </div>
+
+                @if (expandedId() === node.id) {
+                  <div class="node__expanded">
+                    <p class="node__body">{{ node.body }}</p>
+                    @if (node.externalUrl) {
+                      <a
+                        [href]="node.externalUrl"
+                        target="_blank"
+                        rel="noopener"
+                        class="node__link"
+                      >
+                        🔗 Abrir recurso externo
+                      </a>
+                    }
+                    @if (node.state !== "done") {
+                      <button
+                        class="btn-complete"
+                        [disabled]="completing() === node.id"
+                        (click)="complete(node.id)"
+                      >
+                        {{
+                          completing() === node.id
+                            ? "Salvando..."
+                            : "Marcar como concluído ✓"
+                        }}
+                      </button>
+                    } @else {
+                      <p class="node__done-msg">✅ Conteúdo concluído</p>
+                    }
+                  </div>
+                }
+              </div>
+            </div>
+          }
+        </div>
+      }
+
+      <div style="height: 32px"></div>
+    </div>
+  } @else {
+    <div class="state-msg state-msg--error">Trilha não encontrada.</div>
+  }
+</div>

@@ -1,0 +1,117 @@
+<div class="page">
+  <div class="glow glow--purple"></div>
+
+  <!-- Header -->
+  <header class="header">
+    <button class="back-btn" (click)="goBack()">&#8249;</button>
+    <span class="header__title">Desafio do Dia</span>
+    <div class="xp-badge">⭐ {{ xp() }} XP</div>
+  </header>
+
+  @if (!finished()) {
+    <div class="scroll-area">
+      <!-- NAVI mood -->
+      <div
+        class="navi-card"
+        [class.navi-card--happy]="naviMood() === 'happy'"
+        [class.navi-card--sad]="naviMood() === 'sad'"
+      >
+        <span class="navi-card__emoji">{{ naviEmoji() }}</span>
+        <div class="navi-card__body">
+          <p class="navi-card__name">NAVI</p>
+          <p class="navi-card__msg">{{ naviMessage() }}</p>
+        </div>
+      </div>
+
+      <!-- Progress -->
+      <div class="progress-row">
+        <span class="progress-label"
+          >Questão {{ currentIndex() + 1 }} de {{ questions.length }}</span
+        >
+        <div class="progress-dots">
+          @for (q of questions; track q.id; let i = $index) {
+            <span
+              class="dot"
+              [class.dot--done]="i < currentIndex()"
+              [class.dot--current]="i === currentIndex()"
+            ></span>
+          }
+        </div>
+      </div>
+
+      <!-- Question card -->
+      <div class="question-card">
+        <p class="question-card__text">{{ currentQuestion().text }}</p>
+      </div>
+
+      <!-- Options -->
+      <div class="options">
+        @for (opt of currentQuestion().options; track opt; let i = $index) {
+          <button
+            class="option"
+            [class]="'option ' + optionClass(i)"
+            (click)="select(i)"
+          >
+            <span class="option__letter">{{ ["A", "B", "C", "D"][i] }}</span>
+            <span class="option__text">{{ opt }}</span>
+            @if (confirmed() && i === currentQuestion().correct) {
+              <span class="option__icon">✓</span>
+            } @else if (
+              confirmed() &&
+              i === selectedOption() &&
+              i !== currentQuestion().correct
+            ) {
+              <span class="option__icon">✗</span>
+            }
+          </button>
+        }
+      </div>
+
+      <!-- Action buttons -->
+      <div class="actions">
+        @if (!confirmed()) {
+          <button
+            class="btn-confirm"
+            [disabled]="selectedOption() === null"
+            (click)="confirm()"
+          >
+            Confirmar resposta
+          </button>
+        } @else {
+          <button class="btn-next" (click)="next()">
+            {{ isLast() ? "Ver resultado" : "Próxima questão →" }}
+          </button>
+        }
+      </div>
+
+      <div style="height: 32px"></div>
+    </div>
+  } @else {
+    <!-- Finish screen -->
+    <div class="finish-screen">
+      <span class="finish-screen__emoji">
+        {{
+          correctCount() === questions.length
+            ? "🏆"
+            : correctCount() >= 2
+              ? "🎉"
+              : "💪"
+        }}
+      </span>
+      <h2 class="finish-screen__title">
+        {{
+          correctCount() === questions.length
+            ? "Perfeito!"
+            : correctCount() >= 2
+              ? "Muito bem!"
+              : "Continue tentando!"
+        }}
+      </h2>
+      <p class="finish-screen__score">
+        {{ correctCount() }} / {{ questions.length }} corretas
+      </p>
+      <div class="finish-screen__xp">+{{ xp() }} XP ganhos</div>
+      <button class="btn-home" (click)="goBack()">Voltar ao início</button>
+    </div>
+  }
+</div>

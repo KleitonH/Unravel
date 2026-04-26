@@ -1,22 +1,24 @@
-:host { display: block; }
+:host {
+  display: block;
+}
 
 .unravel-root {
-  --bg:        #0E0A1E;
-  --card:      #181230;
-  --input:     #231B3E;
-  --purple:    #6E36F4;
-  --purple-m:  #935FFA;
-  --purple-l:  #BC9CFE;
-  --purple-d:  #481FB5;
-  --pink:      #E144F5;
-  --gold:      #FFCC00;
-  --green:     #2CE086;
-  --white:     #FFFFFF;
-  --dim:       #B0A7CC;
-  --border:    #4A387D;
-  --red:       #F44848;
+  --bg: #0e0a1e;
+  --card: #181230;
+  --input: #231b3e;
+  --purple: #6e36f4;
+  --purple-m: #935ffa;
+  --purple-l: #bc9cfe;
+  --purple-d: #481fb5;
+  --pink: #e144f5;
+  --gold: #ffcc00;
+  --green: #2ce086;
+  --white: #ffffff;
+  --dim: #b0a7cc;
+  --border: #4a387d;
+  --red: #f44848;
 
-  font-family: 'DM Sans', sans-serif;
+  font-family: "DM Sans", sans-serif;
   background: var(--bg);
   min-height: 100vh;
   display: flex;
@@ -34,14 +36,18 @@
   filter: blur(80px);
 }
 .glow--purple {
-  width: 480px; height: 400px;
-  background: rgba(110,54,244,0.22);
-  top: -140px; left: -120px;
+  width: 480px;
+  height: 400px;
+  background: rgba(110, 54, 244, 0.22);
+  top: -140px;
+  left: -120px;
 }
 .glow--pink {
-  width: 340px; height: 280px;
-  background: rgba(225,68,245,0.10);
-  bottom: -100px; right: -80px;
+  width: 340px;
+  height: 280px;
+  background: rgba(225, 68, 245, 0.1);
+  bottom: -100px;
+  right: -80px;
 }
 
 .top-section {
@@ -55,27 +61,31 @@
 }
 
 .mascot {
-  width: 96px; height: 96px;
-  background: rgba(110,54,244,0.22);
+  width: 96px;
+  height: 96px;
+  background: rgba(110, 54, 244, 0.22);
   border: 2.5px solid var(--purple-m);
   border-radius: 50%;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 0 28px rgba(110,54,244,0.30);
+  box-shadow: 0 0 28px rgba(110, 54, 244, 0.3);
   position: relative;
 }
 .mascot::before {
-  content: '';
+  content: "";
   position: absolute;
   inset: -6px;
   border-radius: 50%;
-  border: 1px solid rgba(147,95,250,0.20);
+  border: 1px solid rgba(147, 95, 250, 0.2);
 }
-.mascot__emoji { font-size: 36px; line-height: 1; }
+.mascot__emoji {
+  font-size: 36px;
+  line-height: 1;
+}
 .mascot__label {
-  font-family: 'DM Sans', sans-serif;
+  font-family: "DM Sans", sans-serif;
   font-size: 9px;
   font-weight: 500;
   color: var(--dim);
@@ -93,7 +103,7 @@
   color: var(--purple-m);
 }
 .logo__text {
-  font-family: 'Syne', sans-serif;
+  font-family: "Syne", sans-serif;
   font-weight: 800;
   font-size: 22px;
   color: var(--white);
@@ -111,25 +121,26 @@
   z-index: 1;
   width: 100%;
   max-width: 375px;
-  background: rgba(24,18,48,0.96);
+  background: rgba(24, 18, 48, 0.96);
   border-radius: 28px 28px 0 0;
   border: 1px solid var(--border);
   border-bottom: none;
   padding: 24px 28px 32px;
   margin-top: 20px;
   flex: 1;
-  box-shadow: 0 -8px 40px rgba(14,10,30,0.70);
+  box-shadow: 0 -8px 40px rgba(14, 10, 30, 0.7);
 }
 
 .card__handle {
-  width: 40px; height: 4px;
+  width: 40px;
+  height: 4px;
   background: var(--border);
   border-radius: 2px;
   margin: 0 auto 20px;
 }
 
 .card__title {
-  font-family: 'Syne', sans-serif;
+  font-family: "Syne", sans-serif;
   font-weight: 800;
   font-size: 22px;
   color: var(--white);
@@ -142,7 +153,7 @@
 }
 
 .error-banner {
-  background: rgba(244,72,72,0.12);
+  background: rgba(244, 72, 72, 0.12);
   border: 1px solid var(--red);
   border-radius: 10px;
   color: var(--red);
@@ -154,7 +165,9 @@
   align-items: center;
 }
 
-.field { margin-bottom: 14px; }
+.field {
+  margin-bottom: 14px;
+}
 .field__label {
   display: block;
   font-size: 11px;
@@ -171,21 +184,25 @@
   border: 1.5px solid var(--border);
   border-radius: 12px;
   color: var(--white);
-  font-family: 'DM Sans', sans-serif;
+  font-family: "DM Sans", sans-serif;
   font-size: 14px;
   padding: 0 14px;
   outline: none;
-  transition: border-color 0.2s, box-shadow 0.2s;
+  transition:
+    border-color 0.2s,
+    box-shadow 0.2s;
   box-sizing: border-box;
 }
-.field__input::placeholder { color: var(--dim); }
+.field__input::placeholder {
+  color: var(--dim);
+}
 .field__input:focus {
   border-color: var(--purple-m);
-  box-shadow: 0 0 0 3px rgba(110,54,244,0.18);
+  box-shadow: 0 0 0 3px rgba(110, 54, 244, 0.18);
 }
 .field__input--error {
   border-color: var(--red);
-  box-shadow: 0 0 0 3px rgba(244,72,72,0.12);
+  box-shadow: 0 0 0 3px rgba(244, 72, 72, 0.12);
 }
 .field__error {
   display: block;
@@ -194,15 +211,20 @@
   margin-top: 4px;
 }
 
-.form-row { display: flex; margin-bottom: 16px; }
-.form-row--right { justify-content: flex-end; }
+.form-row {
+  display: flex;
+  margin-bottom: 16px;
+}
+.form-row--right {
+  justify-content: flex-end;
+}
 
 .btn {
   width: 100%;
   height: 52px;
   border: none;
   border-radius: 14px;
-  font-family: 'DM Sans', sans-serif;
+  font-family: "DM Sans", sans-serif;
   font-size: 15px;
   font-weight: 700;
   cursor: pointer;
@@ -210,44 +232,60 @@
   align-items: center;
   justify-content: center;
   gap: 8px;
-  transition: transform 0.12s, box-shadow 0.12s, opacity 0.12s;
+  transition:
+    transform 0.12s,
+    box-shadow 0.12s,
+    opacity 0.12s;
 }
-.btn:active { transform: scale(0.98); }
-.btn:disabled { opacity: 0.55; cursor: not-allowed; transform: none; }
+.btn:active {
+  transform: scale(0.98);
+}
+.btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  transform: none;
+}
 
 .btn--primary {
   background: var(--purple);
   color: var(--white);
-  box-shadow: 0 6px 20px rgba(110,54,244,0.50);
+  box-shadow: 0 6px 20px rgba(110, 54, 244, 0.5);
 }
 .btn--primary:hover:not(:disabled) {
   background: var(--purple-m);
-  box-shadow: 0 8px 28px rgba(110,54,244,0.60);
+  box-shadow: 0 8px 28px rgba(110, 54, 244, 0.6);
 }
 
 .btn--google {
-  background: rgba(255,255,255,0.06);
+  background: rgba(255, 255, 255, 0.06);
   border: 1.5px solid var(--border);
   color: var(--white);
   font-weight: 500;
 }
-.btn--google:hover { background: rgba(255,255,255,0.10); }
+.btn--google:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
 
 .btn__google-icon {
-  font-family: 'Syne', sans-serif;
+  font-family: "Syne", sans-serif;
   font-weight: 800;
   font-size: 16px;
   color: var(--purple-l);
 }
 
 .btn__spinner {
-  width: 16px; height: 16px;
-  border: 2px solid rgba(255,255,255,0.3);
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
   border-top-color: white;
   border-radius: 50%;
   animation: spin 0.7s linear infinite;
 }
-@keyframes spin { to { transform: rotate(360deg); } }
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
 
 .divider {
   display: flex;
@@ -255,8 +293,15 @@
   gap: 12px;
   margin: 18px 0;
 }
-.divider__line { flex: 1; height: 1px; background: var(--border); }
-.divider__text { font-size: 12px; color: var(--dim); }
+.divider__line {
+  flex: 1;
+  height: 1px;
+  background: var(--border);
+}
+.divider__text {
+  font-size: 12px;
+  color: var(--dim);
+}
 
 .link {
   color: var(--purple-m);
@@ -264,8 +309,13 @@
   font-weight: 600;
   transition: color 0.15s;
 }
-.link:hover { color: var(--purple-l); }
-.link--small { font-size: 12px; font-weight: 500; }
+.link:hover {
+  color: var(--purple-l);
+}
+.link--small {
+  font-size: 12px;
+  font-weight: 500;
+}
 
 .switch-text {
   text-align: center;
@@ -285,7 +335,10 @@
     min-height: 100vh;
     padding: 0;
   }
-  .glow--purple { top: -200px; left: -100px; }
+  .glow--purple {
+    top: -200px;
+    left: -100px;
+  }
 
   .top-section {
     flex: 0 0 480px;
@@ -293,13 +346,25 @@
     padding: 60px;
     border-right: 1px solid var(--border);
   }
-  .logo__gem, .logo__text { font-size: 30px; }
-  .mascot { width: 140px; height: 140px; margin-bottom: 12px; }
-  .mascot__emoji { font-size: 54px; }
-  .tagline { font-size: 14px; margin-top: 8px; }
+  .logo__gem,
+  .logo__text {
+    font-size: 30px;
+  }
+  .mascot {
+    width: 140px;
+    height: 140px;
+    margin-bottom: 12px;
+  }
+  .mascot__emoji {
+    font-size: 54px;
+  }
+  .tagline {
+    font-size: 14px;
+    margin-top: 8px;
+  }
 
   .top-section::after {
-    content: 'Trilhas personalizadas, desafios diários\ne gamificação para você evoluir de verdade.';
+    content: "Trilhas personalizadas, desafios diários\ne gamificação para você evoluir de verdade.";
     white-space: pre-line;
     font-size: 14px;
     color: var(--dim);
@@ -321,6 +386,10 @@
     padding: 60px 64px;
     max-width: none;
   }
-  .card__handle { display: none; }
-  .card__title { font-size: 28px; }
+  .card__handle {
+    display: none;
+  }
+  .card__title {
+    font-size: 28px;
+  }
 }
