@@ -3,7 +3,7 @@ using Unravel.Domain.Entities;
 
 namespace Unravel.Infrastructure.Persistence;
 
-public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options) : DbContext(options)
+public partial class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options) : DbContext(options)
 {
     public DbSet<User>         User         => Set<User>();
     public DbSet<RefreshToken> RefreshToken => Set<RefreshToken>();
@@ -73,5 +73,7 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
              .HasForeignKey(uc => uc.ContentId)
              .OnDelete(DeleteBehavior.Cascade);
         });
+
+        ConfigureGamification(mb);
     }
 }

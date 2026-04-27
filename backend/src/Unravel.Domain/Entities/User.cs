@@ -2,7 +2,7 @@ using Unravel.Domain.ValueObjects;
 
 namespace Unravel.Domain.Entities;
 
-public class User
+public partial class User
 {
     public Guid Id { get; private set; }
     public string Name { get; private set; }

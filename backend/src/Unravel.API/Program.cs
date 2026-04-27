@@ -83,6 +83,7 @@ using (var scope = app.Services.CreateScope())
     {
         await db.Database.MigrateAsync();
         await TrailSeeder.SeedAsync(db);
+        await GamificationSeeder.SeedAsync(db);
     }
 }
 

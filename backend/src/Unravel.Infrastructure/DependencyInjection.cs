@@ -28,8 +28,9 @@ public static class DependencyInjection
         services.AddScoped<AuthenticateUserUseCase>();
         services.AddScoped<GetUserUseCase>();
 
-        services.AddScoped<ITrailService,   TrailService>();
-        services.AddScoped<IContentService, ContentService>();
+        services.AddScoped<ITrailService,     TrailService>();
+        services.AddScoped<IContentService,  ContentService>();
+        services.AddScoped<IChallengeService, ChallengeService>();
 
         return services;
     }
