@@ -6,7 +6,7 @@ const NAV_ITEMS = [
   { key: "trails", icon: "🗺️", label: "Trilhas", route: "/trails" },
   { key: "challenges", icon: "⚔️", label: "Desafios", route: "/desafio" },
   { key: "ranking", icon: "🏆", label: "Ranking", route: "/dashboard" },
-  { key: "profile", icon: "👤", label: "Perfil", route: "/dashboard" },
+  { key: "profile", icon: "👤", label: "Perfil", route: "/profile" },
 ];
 
 @Component({

@@ -1,0 +1,186 @@
+@if (loading()) {
+  <div class="loading-screen">
+    <span class="loading-spinner">⏳</span>
+    <p>Carregando perfil...</p>
+  </div>
+} @else if (error()) {
+  <div class="error-screen">
+    <p>{{ error() }}</p>
+    <button class="btn-retry" (click)="ngOnInit()">Tentar novamente</button>
+  </div>
+} @else if (studentProfile(); as sp) {
+  <div class="profile-screen">
+    <div class="profile-header">
+      <button class="btn-back" (click)="goBack()">←</button>
+      <h1 class="header-title">Meu Perfil</h1>
+      <button class="btn-logout" (click)="logout()">Sair</button>
+    </div>
+
+    <!-- Identity Card -->
+    <div class="identity-card">
+      <div class="avatar">{{ initials(sp.name) }}</div>
+      <div class="user-info">
+        <h2 class="user-name">{{ sp.name }}</h2>
+        <span class="role-badge">Estudante</span>
+        @if (sp.activeTitle) {
+          <span class="title-tag">✨ {{ sp.activeTitle }}</span>
+        }
+      </div>
+    </div>
+
+    <!-- XP Bar -->
+    <div class="xp-section">
+      <div class="xp-labels">
+        <span class="level-label">Nível {{ level() }}</span>
+        <span class="xp-text">{{ xpInLevel() }} / 500 XP</span>
+      </div>
+      <div class="xp-bar">
+        <div class="xp-fill" [style.width.%]="xpPercent()"></div>
+      </div>
+    </div>
+
+    <!-- Stats Grid -->
+    <div class="stats-grid">
+      <div class="stat-card">
+        <span class="stat-icon">⭐</span>
+        <span class="stat-value">{{ sp.xp }}</span>
+        <span class="stat-label">XP Total</span>
+      </div>
+      <div class="stat-card">
+        <span class="stat-icon">🔥</span>
+        <span class="stat-value">{{ sp.streakDays }}</span>
+        <span class="stat-label">Streak</span>
+      </div>
+      <div class="stat-card">
+        <span class="stat-icon">💰</span>
+        <span class="stat-value">{{ sp.coins }}</span>
+        <span class="stat-label">Moedas</span>
+      </div>
+      <div class="stat-card">
+        <span class="stat-icon">❤️</span>
+        <span class="stat-value">{{ sp.lives }}</span>
+        <span class="stat-label">Vidas</span>
+      </div>
+    </div>
+
+    <!-- Trail Progress -->
+    @if (sp.trailProgress.length > 0) {
+      <div class="section">
+        <h3 class="section-title">Trilhas</h3>
+        <div class="trail-list">
+          @for (trail of sp.trailProgress; track trail.trailId) {
+            <div class="trail-progress-card">
+              <div class="trail-top">
+                <span class="trail-name">{{ trail.trailName }}</span>
+                @if (trail.isCompleted) {
+                  <span class="badge badge--green">✓ Concluída</span>
+                } @else {
+                  <span class="progress-pct">{{ trail.progress }}%</span>
+                }
+              </div>
+              <div class="progress-bar">
+                <div
+                  class="progress-fill"
+                  [style.width.%]="trail.progress"
+                  [style.background]="progressColor(trail.progress)"
+                ></div>
+              </div>
+            </div>
+          }
+        </div>
+      </div>
+    }
+
+    <!-- Badges -->
+    @if (sp.badges.length > 0) {
+      <div class="section">
+        <h3 class="section-title">Conquistas</h3>
+        <div class="badges-list">
+          @for (badge of sp.badges; track badge.id) {
+            <div class="badge-card">
+              <span class="badge-icon">{{ badge.icon }}</span>
+              <div class="badge-details">
+                <span class="badge-name">{{ badge.name }}</span>
+                <span class="badge-desc">{{ badge.description }}</span>
+                <span class="badge-date">{{ badge.earnedAt }}</span>
+              </div>
+            </div>
+          }
+        </div>
+      </div>
+    }
+
+    <div class="bottom-spacer"></div>
+    <app-bottom-nav active="profile" />
+  </div>
+} @else if (moderatorProfile(); as mp) {
+  <div class="profile-screen">
+    <div class="profile-header">
+      <button class="btn-back" (click)="goBack()">←</button>
+      <h1 class="header-title">Meu Perfil</h1>
+      <button class="btn-logout" (click)="logout()">Sair</button>
+    </div>
+
+    <!-- Identity Card -->
+    <div class="identity-card identity-card--mod">
+      <div class="avatar avatar--mod">{{ initials(mp.name) }}</div>
+      <div class="user-info">
+        <h2 class="user-name">{{ mp.name }}</h2>
+        <span class="role-badge role-badge--mod">🛡️ Moderador</span>
+        <span class="user-email">{{ mp.email }}</span>
+      </div>
+    </div>
+
+    <!-- Platform Metrics -->
+    <div class="section">
+      <h3 class="section-title">Métricas da Plataforma</h3>
+      <div class="metrics-grid">
+        <div class="metric-card">
+          <span class="metric-value">{{ mp.metrics.totalStudents }}</span>
+          <span class="metric-label">Estudantes</span>
+        </div>
+        <div class="metric-card">
+          <span class="metric-value">{{ mp.metrics.totalTrails }}</span>
+          <span class="metric-label">Trilhas</span>
+        </div>
+        <div class="metric-card">
+          <span class="metric-value">{{ mp.metrics.totalContents }}</span>
+          <span class="metric-label">Conteúdos</span>
+        </div>
+        <div class="metric-card">
+          <span class="metric-value">{{ mp.metrics.totalChallenges }}</span>
+          <span class="metric-label">Desafios</span>
+        </div>
+        <div class="metric-card metric-card--wide">
+          <span class="metric-value">{{ mp.metrics.totalXpDistributed }}</span>
+          <span class="metric-label">XP Distribuído</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Trails Management -->
+    <div class="section">
+      <div class="section-header">
+        <h3 class="section-title">Trilhas Gerenciadas</h3>
+        <button class="btn-action" (click)="goToContents()">
+          Gerenciar Conteúdos →
+        </button>
+      </div>
+      <div class="trail-summary-list">
+        @for (trail of mp.trails; track trail.id) {
+          <div class="trail-summary-card">
+            <span class="trail-summary-name">{{ trail.name }}</span>
+            <div class="trail-summary-stats">
+              <span title="Conteúdos">📄 {{ trail.contentCount }}</span>
+              <span title="Desafios">⚔️ {{ trail.challengeCount }}</span>
+              <span title="Inscritos">👥 {{ trail.enrolledCount }}</span>
+            </div>
+          </div>
+        }
+      </div>
+    </div>
+
+    <div class="bottom-spacer"></div>
+    <app-bottom-nav active="profile" />
+  </div>
+}

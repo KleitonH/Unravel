@@ -1,0 +1,199 @@
+<div class="mod-screen">
+  <!-- Header -->
+  <div class="mod-header">
+    <button class="btn-back" (click)="goBack()">←</button>
+    <h1 class="header-title">Conteúdos</h1>
+    <button class="btn-add" (click)="openCreate()">+ Adicionar</button>
+  </div>
+
+  @if (loading()) {
+    <div class="loading-state">
+      <span>⏳</span>
+      <p>Carregando...</p>
+    </div>
+  } @else if (error()) {
+    <div class="error-state">
+      <p>{{ error() }}</p>
+    </div>
+  } @else {
+    <!-- Trail Filter Pills -->
+    <div class="filter-scroll">
+      <button
+        class="pill"
+        [class.pill--active]="selectedTrailId() === null"
+        (click)="selectTrail(null)"
+      >
+        Todas
+      </button>
+      @for (trail of trails(); track trail.id) {
+        <button
+          class="pill"
+          [class.pill--active]="selectedTrailId() === trail.id"
+          (click)="selectTrail(trail.id)"
+        >
+          {{ trail.name }}
+        </button>
+      }
+    </div>
+
+    <!-- Content Count -->
+    <p class="result-count">
+      {{ filteredContents().length }} conteúdo{{
+        filteredContents().length !== 1 ? "s" : ""
+      }}
+    </p>
+
+    <!-- Content List -->
+    <div class="content-list">
+      @for (content of filteredContents(); track content.id) {
+        <div class="content-card">
+          <div class="content-badges">
+            <span class="type-badge type-badge--{{ content.type.toLowerCase() }}">
+              {{ typeLabelFor(content.type) }}
+            </span>
+            <span class="level-badge">{{ levelLabelFor(content.level) }}</span>
+            <span class="trail-chip">{{ trailNameFor(content.trailId) }}</span>
+            <span class="order-chip">#{{ content.order }}</span>
+          </div>
+          <h3 class="content-title">{{ content.title }}</h3>
+          <p class="content-body">{{ content.body | slice: 0 : 100
+            }}{{ content.body.length > 100 ? "…" : "" }}</p>
+          @if (content.externalUrl) {
+            <a
+              class="content-link"
+              [href]="content.externalUrl"
+              target="_blank"
+              rel="noopener"
+              >🔗 Link externo</a
+            >
+          }
+          <div class="content-actions">
+            <button class="btn-edit" (click)="openEdit(content)">✏️ Editar</button>
+            <button class="btn-delete" (click)="confirmDelete(content.id)">
+              🗑️ Excluir
+            </button>
+          </div>
+        </div>
+      }
+
+      @if (filteredContents().length === 0) {
+        <div class="empty-state">
+          <span class="empty-icon">📭</span>
+          <p>Nenhum conteúdo encontrado.</p>
+          <button class="btn-create-first" (click)="openCreate()">
+            Criar primeiro conteúdo
+          </button>
+        </div>
+      }
+    </div>
+  }
+</div>
+
+<!-- Delete Confirmation Modal -->
+@if (deleteConfirmId() !== null) {
+  <div class="overlay" (click)="cancelDelete()">
+    <div class="confirm-modal" (click)="$event.stopPropagation()">
+      <p class="confirm-text">Excluir este conteúdo permanentemente?</p>
+      <div class="confirm-actions">
+        <button class="btn-cancel" (click)="cancelDelete()">Cancelar</button>
+        <button class="btn-confirm-delete" (click)="deleteContent(deleteConfirmId()!)">
+          Excluir
+        </button>
+      </div>
+    </div>
+  </div>
+}
+
+<!-- Drawer -->
+@if (drawerOpen()) {
+  <div class="overlay" (click)="closeDrawer()">
+    <div class="drawer" (click)="$event.stopPropagation()">
+      <div class="drawer-handle"></div>
+      <h2 class="drawer-title">
+        {{ drawerMode() === "create" ? "Novo Conteúdo" : "Editar Conteúdo" }}
+      </h2>
+
+      <div class="form-scroll">
+        <div class="field">
+          <label class="field-label">Trilha</label>
+          <select class="field-select" [(ngModel)]="form.trailId">
+            @for (trail of trails(); track trail.id) {
+              <option [ngValue]="trail.id">{{ trail.name }}</option>
+            }
+          </select>
+        </div>
+
+        <div class="field">
+          <label class="field-label">Título</label>
+          <input
+            class="field-input"
+            type="text"
+            [(ngModel)]="form.title"
+            placeholder="Título do conteúdo"
+          />
+        </div>
+
+        <div class="field">
+          <label class="field-label">Corpo</label>
+          <textarea
+            class="field-textarea"
+            [(ngModel)]="form.body"
+            placeholder="Texto do conteúdo..."
+            rows="4"
+          ></textarea>
+        </div>
+
+        <div class="field">
+          <label class="field-label">Link externo (opcional)</label>
+          <input
+            class="field-input"
+            type="url"
+            [(ngModel)]="form.externalUrl"
+            placeholder="https://..."
+          />
+        </div>
+
+        <div class="field-row">
+          <div class="field">
+            <label class="field-label">Tipo</label>
+            <select class="field-select" [(ngModel)]="form.type">
+              @for (opt of typeOptions; track opt.value) {
+                <option [ngValue]="opt.value">{{ opt.label }}</option>
+              }
+            </select>
+          </div>
+
+          <div class="field">
+            <label class="field-label">Nível</label>
+            <select class="field-select" [(ngModel)]="form.level">
+              @for (opt of levelOptions; track opt.value) {
+                <option [ngValue]="opt.value">{{ opt.label }}</option>
+              }
+            </select>
+          </div>
+        </div>
+
+        <div class="field field--sm">
+          <label class="field-label">Ordem</label>
+          <input
+            class="field-input"
+            type="number"
+            [(ngModel)]="form.order"
+            min="1"
+          />
+        </div>
+      </div>
+
+      <div class="drawer-footer">
+        <button class="btn-cancel-drawer" (click)="closeDrawer()">Cancelar</button>
+        <button
+          class="btn-save"
+          [disabled]="saving()"
+          (click)="saveContent()"
+        >
+          {{ saving() ? "Salvando..." : "Salvar" }}
+        </button>
+      </div>
+    </div>
+  </div>
+}

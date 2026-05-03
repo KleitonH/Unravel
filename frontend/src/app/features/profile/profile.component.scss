@@ -1,0 +1,463 @@
+$bg: #120d1f;
+$card: #1f1733;
+$card2: #2a1f47;
+$primary: #7038f2;
+$primary-light: #bc9cfe;
+$green: #38db8c;
+$text: #e8e0f7;
+$muted: #b0a7cc;
+$border: #4a387d;
+$mod-accent: #ed54f2;
+
+:host {
+  display: flex;
+  flex-direction: column;
+  height: 100dvh;
+  background: $bg;
+  color: $text;
+  font-family: "DM Sans", sans-serif;
+}
+
+.loading-screen,
+.error-screen {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  gap: 16px;
+  color: $muted;
+  font-size: 14px;
+}
+
+.loading-spinner {
+  font-size: 32px;
+  animation: spin 1.5s linear infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.btn-retry {
+  padding: 10px 24px;
+  background: $primary;
+  color: $text;
+  border: none;
+  border-radius: 12px;
+  cursor: pointer;
+  font-family: "DM Sans", sans-serif;
+  font-weight: 600;
+}
+
+.profile-screen {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow-y: auto;
+  scrollbar-width: none;
+
+  &::-webkit-scrollbar { display: none; }
+}
+
+.profile-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  flex-shrink: 0;
+}
+
+.header-title {
+  font-size: 17px;
+  font-weight: 700;
+  color: $text;
+  margin: 0;
+}
+
+.btn-back,
+.btn-logout {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-family: "DM Sans", sans-serif;
+  font-size: 14px;
+  font-weight: 600;
+  padding: 6px 10px;
+  border-radius: 10px;
+  transition: background 0.15s;
+}
+
+.btn-back {
+  color: $primary-light;
+  font-size: 20px;
+
+  &:hover { background: rgba($primary, 0.15); }
+}
+
+.btn-logout {
+  color: #f87171;
+
+  &:hover { background: rgba(248, 113, 113, 0.1); }
+}
+
+// ── Identity Card ─────────────────────────────────────────────────
+
+.identity-card {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin: 0 16px 16px;
+  padding: 20px;
+  background: $card;
+  border-radius: 20px;
+  border: 1px solid $border;
+
+  &--mod {
+    border-color: rgba($mod-accent, 0.4);
+    background: linear-gradient(135deg, $card 60%, rgba($mod-accent, 0.08));
+  }
+}
+
+.avatar {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, $primary, #5b21d4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+  font-weight: 700;
+  color: #fff;
+  flex-shrink: 0;
+
+  &--mod {
+    background: linear-gradient(135deg, $mod-accent, #a834c6);
+  }
+}
+
+.user-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.user-name {
+  font-size: 18px;
+  font-weight: 700;
+  color: $text;
+  margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.user-email {
+  font-size: 12px;
+  color: $muted;
+}
+
+.role-badge {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 10px;
+  border-radius: 20px;
+  background: rgba($primary, 0.2);
+  color: $primary-light;
+  width: fit-content;
+
+  &--mod {
+    background: rgba($mod-accent, 0.15);
+    color: $mod-accent;
+  }
+}
+
+.title-tag {
+  font-size: 11px;
+  color: $muted;
+  font-style: italic;
+}
+
+// ── XP Bar ────────────────────────────────────────────────────────
+
+.xp-section {
+  margin: 0 16px 16px;
+  padding: 16px;
+  background: $card;
+  border-radius: 16px;
+  border: 1px solid $border;
+}
+
+.xp-labels {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.level-label {
+  font-size: 13px;
+  font-weight: 700;
+  color: $primary-light;
+}
+
+.xp-text {
+  font-size: 12px;
+  color: $muted;
+}
+
+.xp-bar {
+  height: 8px;
+  background: rgba($primary, 0.2);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.xp-fill {
+  height: 100%;
+  background: linear-gradient(90deg, $primary, $primary-light);
+  border-radius: 8px;
+  transition: width 0.5s ease;
+}
+
+// ── Stats Grid ────────────────────────────────────────────────────
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+  margin: 0 16px 20px;
+}
+
+.stat-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 14px 8px;
+  background: $card;
+  border-radius: 16px;
+  border: 1px solid $border;
+  text-align: center;
+}
+
+.stat-icon { font-size: 20px; }
+
+.stat-value {
+  font-size: 18px;
+  font-weight: 700;
+  color: $text;
+}
+
+.stat-label {
+  font-size: 10px;
+  color: $muted;
+  font-weight: 500;
+}
+
+// ── Sections ──────────────────────────────────────────────────────
+
+.section {
+  margin: 0 16px 20px;
+}
+
+.section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.section-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: $text;
+  margin: 0 0 12px;
+}
+
+.section-header .section-title { margin-bottom: 0; }
+
+.btn-action {
+  background: rgba($primary, 0.2);
+  border: 1px solid $primary;
+  color: $primary-light;
+  padding: 6px 14px;
+  border-radius: 10px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: "DM Sans", sans-serif;
+  transition: background 0.15s;
+  white-space: nowrap;
+
+  &:hover { background: rgba($primary, 0.35); }
+}
+
+// ── Trail Progress ────────────────────────────────────────────────
+
+.trail-list { display: flex; flex-direction: column; gap: 10px; }
+
+.trail-progress-card {
+  padding: 14px 16px;
+  background: $card;
+  border-radius: 14px;
+  border: 1px solid $border;
+}
+
+.trail-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.trail-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: $text;
+}
+
+.progress-pct {
+  font-size: 12px;
+  font-weight: 700;
+  color: $primary-light;
+}
+
+.badge {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 20px;
+
+  &--green {
+    background: rgba($green, 0.15);
+    color: $green;
+  }
+}
+
+.progress-bar {
+  height: 6px;
+  background: rgba($primary, 0.15);
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  border-radius: 6px;
+  transition: width 0.4s ease;
+}
+
+// ── Badges ────────────────────────────────────────────────────────
+
+.badges-list { display: flex; flex-direction: column; gap: 10px; }
+
+.badge-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 14px 16px;
+  background: $card;
+  border-radius: 14px;
+  border: 1px solid $border;
+}
+
+.badge-icon { font-size: 28px; flex-shrink: 0; }
+
+.badge-details {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.badge-name {
+  font-size: 13px;
+  font-weight: 700;
+  color: $text;
+}
+
+.badge-desc {
+  font-size: 12px;
+  color: $muted;
+}
+
+.badge-date {
+  font-size: 11px;
+  color: darken($muted, 10%);
+}
+
+// ── Metrics Grid ──────────────────────────────────────────────────
+
+.metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+}
+
+.metric-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 16px 12px;
+  background: $card;
+  border-radius: 16px;
+  border: 1px solid $border;
+  text-align: center;
+
+  &--wide {
+    grid-column: span 2;
+    flex-direction: row;
+    justify-content: center;
+    gap: 12px;
+  }
+}
+
+.metric-value {
+  font-size: 22px;
+  font-weight: 700;
+  color: $primary-light;
+}
+
+.metric-label {
+  font-size: 11px;
+  color: $muted;
+  font-weight: 500;
+}
+
+// ── Trail Summary ─────────────────────────────────────────────────
+
+.trail-summary-list { display: flex; flex-direction: column; gap: 10px; }
+
+.trail-summary-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 16px;
+  background: $card;
+  border-radius: 14px;
+  border: 1px solid $border;
+}
+
+.trail-summary-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: $text;
+}
+
+.trail-summary-stats {
+  display: flex;
+  gap: 12px;
+  font-size: 12px;
+  color: $muted;
+
+  span { white-space: nowrap; }
+}
+
+// ── Bottom Spacer ─────────────────────────────────────────────────
+
+.bottom-spacer { flex: 1; min-height: 16px; }
