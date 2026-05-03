@@ -94,6 +94,7 @@ jobs:
 
       - name: Copy frontend to server
         run: |
+          [ -z "$(ls -A frontend-build/)" ] && echo "ERRO: artefato do frontend vazio" && exit 1
           rsync -avz --delete \
             frontend-build/ \
             "${{ secrets.SSH_USERNAME }}@${{ secrets.SSH_HOST }}:${{ secrets.PROJECT_PATH }}/frontend/"
