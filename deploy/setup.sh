@@ -24,7 +24,7 @@ echo ""
 # ── Dependências ────────────────────────────────────────────────
 echo "[1/6] Instalando dependências..."
 apt-get update -q
-apt-get install -y -q nginx postgresql
+apt-get install -y -q apache2 postgresql
 
 # .NET 8 ASP.NET Core Runtime
 if ! command -v dotnet &>/dev/null; then
@@ -73,38 +73,40 @@ EOF
 chmod 600 "$PROJECT_PATH/.env"
 chown "$DEPLOY_USER:$DEPLOY_USER" "$PROJECT_PATH/.env"
 
-# ── Nginx ───────────────────────────────────────────────────────
-echo "[5/6] Configurando nginx..."
-cat > /etc/nginx/sites-available/unravel <<EOF
-server {
-    listen 80;
-    server_name _;
+# ── Apache2 ─────────────────────────────────────────────────────
+echo "[5/6] Configurando Apache2..."
+a2enmod proxy proxy_http rewrite
 
-    root $PROJECT_PATH/frontend;
-    index index.html;
+cat > /etc/apache2/sites-available/unravel.conf <<EOF
+<VirtualHost *:80>
+    DocumentRoot $PROJECT_PATH/frontend
 
-    # Angular — roteamento client-side
-    location / {
-        try_files \$uri \$uri/ /index.html;
-    }
+    <Directory $PROJECT_PATH/frontend>
+        Options -Indexes +FollowSymLinks
+        AllowOverride None
+        Require all granted
+
+        # Angular — roteamento client-side
+        RewriteEngine On
+        RewriteBase /
+        RewriteRule ^index\.html$ - [L]
+        RewriteCond %{REQUEST_FILENAME} !-f
+        RewriteCond %{REQUEST_FILENAME} !-d
+        RewriteRule . /index.html [L]
+    </Directory>
 
     # Proxy para a API .NET
-    location /api/ {
-        proxy_pass http://localhost:$API_PORT/api/;
-        proxy_http_version 1.1;
-        proxy_set_header Host \$host;
-        proxy_set_header X-Real-IP \$remote_addr;
-        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto \$scheme;
-    }
-}
+    ProxyPreserveHost On
+    ProxyPass /api/ http://localhost:$API_PORT/api/
+    ProxyPassReverse /api/ http://localhost:$API_PORT/api/
+</VirtualHost>
 EOF
 
-ln -sf /etc/nginx/sites-available/unravel /etc/nginx/sites-enabled/unravel
-rm -f /etc/nginx/sites-enabled/default
-nginx -t
-systemctl enable nginx
-systemctl restart nginx
+a2ensite unravel
+a2dissite 000-default || true
+apache2ctl configtest
+systemctl enable apache2
+systemctl restart apache2
 
 # ── Sudoers ─────────────────────────────────────────────────────
 echo "[6/6] Configurando permissões sudo..."
@@ -112,7 +114,7 @@ cat > /etc/sudoers.d/unravel-deploy <<EOF
 $DEPLOY_USER ALL=(ALL) NOPASSWD: /bin/systemctl daemon-reload
 $DEPLOY_USER ALL=(ALL) NOPASSWD: /bin/systemctl enable unravel-api
 $DEPLOY_USER ALL=(ALL) NOPASSWD: /bin/systemctl restart unravel-api
-$DEPLOY_USER ALL=(ALL) NOPASSWD: /bin/systemctl reload nginx
+$DEPLOY_USER ALL=(ALL) NOPASSWD: /bin/systemctl reload apache2
 $DEPLOY_USER ALL=(ALL) NOPASSWD: /bin/mv /tmp/unravel-api.service /etc/systemd/system/unravel-api.service
 EOF
 chmod 440 /etc/sudoers.d/unravel-deploy
