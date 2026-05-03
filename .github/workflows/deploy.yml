@@ -64,6 +64,8 @@ jobs:
     runs-on: ubuntu-latest
     needs: [build-backend, build-frontend]
     steps:
+      - uses: actions/checkout@v4
+
       - name: Download backend artifact
         uses: actions/download-artifact@v4
         with:
@@ -96,19 +98,24 @@ jobs:
             frontend-build/ \
             "${{ secrets.SSH_USERNAME }}@${{ secrets.SSH_HOST }}:${{ secrets.PROJECT_PATH }}/frontend/"
 
-      - name: Restart services and clear caches
+      - name: Process and copy service file
+        run: |
+          sed "s|%%PROJECT_PATH%%|${{ secrets.PROJECT_PATH }}|g" \
+            deploy/unravel-api.service > /tmp/unravel-api.service
+          scp /tmp/unravel-api.service \
+            "${{ secrets.SSH_USERNAME }}@${{ secrets.SSH_HOST }}:/tmp/unravel-api.service"
+
+      - name: Install service and restart
         run: |
           ssh "${{ secrets.SSH_USERNAME }}@${{ secrets.SSH_HOST }}" << 'EOF'
-            # Reinicia o serviço .NET — limpa todos os caches em memória
+            sudo mv /tmp/unravel-api.service /etc/systemd/system/unravel-api.service
+            sudo systemctl daemon-reload
+            sudo systemctl enable unravel-api
             sudo systemctl restart unravel-api
 
-            # Aguarda o serviço subir
             sleep 3
             sudo systemctl is-active --quiet unravel-api || { echo "ERRO: unravel-api nao subiu"; exit 1; }
 
-            # Recarrega nginx sem interromper conexões ativas
             sudo systemctl reload nginx
-
-            # Remove temporários do .NET
             find /tmp -maxdepth 1 -name "dotnet-*" -delete 2>/dev/null || true
           EOF

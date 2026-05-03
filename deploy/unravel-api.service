@@ -1,0 +1,18 @@
+[Unit]
+Description=Unravel API
+After=network.target mysql.service
+
+[Service]
+Type=simple
+WorkingDirectory=%%PROJECT_PATH%%/api
+ExecStart=/usr/bin/env dotnet %%PROJECT_PATH%%/api/Unravel.API.dll
+Restart=always
+RestartSec=5
+EnvironmentFile=%%PROJECT_PATH%%/.env
+Environment=ASPNETCORE_ENVIRONMENT=Production
+SyslogIdentifier=unravel-api
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target
