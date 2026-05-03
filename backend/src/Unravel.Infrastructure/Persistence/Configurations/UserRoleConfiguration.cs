@@ -10,7 +10,6 @@ public class UserRoleConfiguration : IEntityTypeConfiguration<User>
     {
         builder.Property(u => u.Role)
             .HasColumnName("role")
-            .HasConversion<int>()
-            .HasDefaultValue(Role.Student);
+            .HasConversion<int>();
     }
 }
