@@ -2,6 +2,9 @@ namespace Unravel.Domain.Entities;
 
 public partial class User
 {
+    // Perfil de acesso
+    public Role Role { get; set; } = Role.Student;
+
     // Economia
     public int Xp    { get; set; } = 0;
     public int Coins { get; set; } = 0;
