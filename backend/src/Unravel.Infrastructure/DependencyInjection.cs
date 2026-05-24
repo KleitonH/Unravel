@@ -6,8 +6,11 @@ using Unravel.Application.Ports;
 using Unravel.Application.Services;
 using Unravel.Application.UseCases;
 using Unravel.Domain.Ports;
+using Unravel.Application.Forge.Ports;
 using Unravel.Application.Journey;
 using Unravel.Application.Journey.UseCases;
+using Unravel.Infrastructure.Forge;
+using Unravel.Infrastructure.Forge.Strategies;
 using Unravel.Infrastructure.Journey;
 using Unravel.Infrastructure.Knowledge;
 using Unravel.Infrastructure.Persistence;
@@ -54,6 +57,16 @@ public static class DependencyInjection
         services.AddSingleton<IJourneyPlanner, JourneyPlanner>();
         services.AddScoped<IJourneyReadModel, JourneyReadModel>();
         services.AddScoped<GetDailyJourneyUseCase>();
+
+        // Forge (PR 4) — gerador de perguntas. Estratégias são stateless,
+        // registradas múltiplas vezes na mesma interface (DI resolve como
+        // IEnumerable<IChallengeStrategy>). Para plugar uma LlmChallengeStrategy
+        // no futuro, basta um services.AddSingleton<IChallengeStrategy, LlmStrategy>().
+        services.AddSingleton<IDistractorPicker, DistractorPicker>();
+        services.AddSingleton<IChallengeStrategy, ClozeStrategy>();
+        services.AddSingleton<IChallengeStrategy, DefinitionStrategy>();
+        services.AddSingleton<IChallengeStrategy, TrueFalseStrategy>();
+        services.AddSingleton<IChallengeForge, ChallengeForge>();
 
         return services;
     }
