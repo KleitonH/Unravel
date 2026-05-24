@@ -9,6 +9,7 @@ using Unravel.Domain.Ports;
 using Unravel.Application.Forge.Ports;
 using Unravel.Application.Forge.UseCases;
 using Unravel.Application.Journey;
+using Unravel.Application.Journey.Onboarding;
 using Unravel.Application.Journey.UseCases;
 using Unravel.Infrastructure.Forge;
 using Unravel.Infrastructure.Forge.Strategies;
@@ -71,6 +72,15 @@ public static class DependencyInjection
         services.AddScoped<IGeneratedChallengeRepository, GeneratedChallengeRepository>();
         services.AddScoped<IForgeReadModel, ForgeReadModel>();
         services.AddScoped<GetChallengePoolUseCase>();
+
+        // Onboarding (PR 6) — cold-start com nivelamento.
+        // LevelingTestBuilder é stateless → singleton.
+        // Read model e enroller dependem de DbContext → scoped.
+        services.AddSingleton<LevelingTestBuilder>();
+        services.AddScoped<IOnboardingReadModel, OnboardingReadModel>();
+        services.AddScoped<IUserTrailEnroller, UserTrailEnroller>();
+        services.AddScoped<StartOnboardingUseCase>();
+        services.AddScoped<SubmitOnboardingUseCase>();
 
         return services;
     }
