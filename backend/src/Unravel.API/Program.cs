@@ -73,6 +73,11 @@ builder.Services.AddCors(options =>
 
 builder.Services.AddInfrastructure(builder.Configuration);
 
+// PR 7 — cron diário de replanejamento. Registrado aqui (não no
+// AddInfrastructure) porque AddHostedService só faz sentido no host;
+// testes unitários instanciam o DailyReplanService direto.
+builder.Services.AddHostedService<Unravel.Infrastructure.Journey.DailyReplanHostedService>();
+
 var app = builder.Build();
 
 using (var scope = app.Services.CreateScope())

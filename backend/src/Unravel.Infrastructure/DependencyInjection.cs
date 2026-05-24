@@ -82,6 +82,15 @@ public static class DependencyInjection
         services.AddScoped<StartOnboardingUseCase>();
         services.AddScoped<SubmitOnboardingUseCase>();
 
+        // Cron diário (PR 7) — orquestrador é scoped (depende de repos),
+        // event bus é singleton (sem estado mutável), read model + repo
+        // são scoped (DbContext). O hosted service é registrado pelo
+        // chamador via AddHostedService (Program.cs).
+        services.AddSingleton<IJourneyEventBus, LoggingJourneyEventBus>();
+        services.AddScoped<IDailyReplanReadModel, DailyReplanReadModel>();
+        services.AddScoped<IJourneySnapshotRepository, JourneySnapshotRepository>();
+        services.AddScoped<DailyReplanService>();
+
         return services;
     }
 }

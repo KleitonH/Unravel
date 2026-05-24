@@ -17,6 +17,7 @@ public partial class ApplicationDbContext(DbContextOptions<ApplicationDbContext>
 
     public DbSet<Mastery>            Mastery            => Set<Mastery>();
     public DbSet<GeneratedChallenge> GeneratedChallenge => Set<GeneratedChallenge>();
+    public DbSet<JourneySnapshot>    JourneySnapshot    => Set<JourneySnapshot>();
 
     protected override void OnModelCreating(ModelBuilder mb)
     {
