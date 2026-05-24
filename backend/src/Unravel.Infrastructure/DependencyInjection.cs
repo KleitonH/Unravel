@@ -42,6 +42,9 @@ public static class DependencyInjection
         services.AddSingleton<IKnowledgeGraphBuilder, GraphBuilder>();
         services.AddSingleton<IKnowledgeGraphCache, MemoryKnowledgeGraphCache>();
 
+        // Mastery (PR 2) — repositório scoped (depende de DbContext).
+        services.AddScoped<IMasteryRepository, MasteryRepository>();
+
         return services;
     }
 }
