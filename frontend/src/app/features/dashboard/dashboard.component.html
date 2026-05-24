@@ -1,154 +1,101 @@
-<div class="unravel-root">
-  <div class="glow glow--purple"></div>
-  <div class="glow glow--pink"></div>
-
-  <!-- Top bar -->
-  <header class="topbar">
-    <div class="logo">
-      <span class="logo__gem">💎</span>
-      <span class="logo__text">UNRAVEL</span>
+<div class="dashboard">
+  <header class="dashboard__top">
+    <div class="brand">
+      <span class="brand__logo">💎</span>
+      <span class="brand__name">UNRAVEL</span>
     </div>
-    <div class="topbar__right">
-      <button class="icon-btn" aria-label="Notificações">🔔</button>
-      <button class="icon-btn" (click)="authService.logout()" aria-label="Sair">
-        ⏻
-      </button>
-    </div>
+    <button class="icon-btn" (click)="logout()" aria-label="Sair">⏻</button>
   </header>
 
-  <!-- Scroll area -->
-  <main class="scroll-area">
-    <!-- Hero card -->
-    <div class="hero-card">
-      <div class="hero-card__accent"></div>
-      <div class="hero-card__glow"></div>
-      <div class="hero-card__mascot" aria-hidden="true">
-        <span class="mascot__emoji">🐱</span>
-        <span class="mascot__label">NAVI</span>
-      </div>
-      @if (authService.currentUser(); as user) {
-        <h2 class="hero-card__greeting">
-          Olá, {{ user.name.split(" ")[0] }}! 👋
-        </h2>
-      } @else {
-        <h2 class="hero-card__greeting">Olá! 👋</h2>
-      }
-      <p class="hero-card__sub">Continue sua trilha!</p>
-      <div class="chips">
-        <div class="chip chip--gold">⭐ 1.240 XP</div>
-        <div class="chip chip--green">🔥 12 dias</div>
-      </div>
+  @if (error()) {
+    <div class="dashboard__error" role="alert">{{ error() }}</div>
+  }
+
+  <!-- ── Saudação + stats ── -->
+  <section class="hero">
+    <div>
+      <h1>Olá, {{ userName() }}! 👋</h1>
+      <p class="muted">
+        @if (loading()) { Carregando seu plano… }
+        @else if (cards().length > 0) { Veja seu plano do dia abaixo. }
+        @else { Você ainda não tem trilhas. Vamos calibrar uma agora? }
+      </p>
     </div>
+    @if (profile(); as p) {
+      <div class="hero__stats">
+        <div class="stat"><span>⭐</span><strong>{{ p.xp }}</strong><small>XP</small></div>
+        <div class="stat"><span>🔥</span><strong>{{ p.streakDays }}</strong><small>dias</small></div>
+        <div class="stat"><span>❤️</span><strong>{{ p.lives }}</strong><small>vidas</small></div>
+      </div>
+    }
+  </section>
 
-    <!-- Active Trail -->
-    <section class="section">
-      <h3 class="section__title">Trilha Ativa</h3>
-      <div
-        class="trail-card trail-card--active"
-        (click)="goToTrails()"
-        style="cursor: pointer"
-      >
-        <div class="trail-card__top-bar"></div>
-        <div class="trail-card__icon">🔥</div>
-        <div class="trail-card__body">
-          <p class="trail-card__name">Desenvolvimento Web</p>
-          <p class="trail-card__sub">Módulo 3 de 8 · Sprint 2</p>
-          <div class="progress-row">
-            <div class="progress-bar">
-              <div class="progress-bar__fill" style="width: 38%"></div>
+  @if (loading()) {
+    <p class="muted center">Carregando…</p>
+  } @else if (cards().length === 0) {
+    <section class="empty">
+      <h2>Vamos começar?</h2>
+      <p>Escolha suas trilhas e responda um teste rápido para o Navi calibrar seu nível.</p>
+      <button class="btn btn-primary" (click)="goToOnboarding()">🐾 Iniciar onboarding</button>
+      <button class="btn btn-ghost" (click)="goToTrails()">Ver todas as trilhas</button>
+    </section>
+  } @else {
+    <section class="trails">
+      <div class="trails__header">
+        <h2>Suas trilhas</h2>
+        <button class="btn btn-link" (click)="goToOnboarding()">+ Adicionar trilha</button>
+      </div>
+
+      @for (card of cards(); track card.trail.id) {
+        <article class="trail-card" [style.--accent]="card.trail.accentColor">
+          <header class="trail-card__head">
+            <span class="trail-card__icon">{{ card.trail.icon }}</span>
+            <div>
+              <h3>{{ card.trail.name }}</h3>
+              <small class="muted">
+                {{ card.trail.level }} · Progresso geral: {{ card.trail.userProgress }}%
+              </small>
             </div>
-            <span class="progress-pct">38%</span>
-          </div>
-        </div>
-        <button
-          class="btn btn--continue"
-          (click)="goToTrails(); $event.stopPropagation()"
-        >
-          Continuar
-        </button>
-      </div>
+            @if (card.plan; as p) {
+              <span class="meta-pill">{{ p.metaDia }} hoje</span>
+            }
+          </header>
+
+          @if (card.plan; as p) {
+            @if (p.today.length === 0) {
+              <p class="muted center">Nenhum desafio para hoje. Volte mais tarde 🐾</p>
+            } @else {
+              <ul class="next">
+                @for (item of p.today.slice(0, 2); track item.topicId) {
+                  <li class="next__item">
+                    <strong>{{ item.title }}</strong>
+                    <span class="chip chip--{{ item.reason.toLowerCase() }}">
+                      {{ item.reason === 'NewLearning' ? 'Novo'
+                       : item.reason === 'DueReview' ? 'Revisão' : 'Reforço' }}
+                    </span>
+                    <small class="muted">
+                      Domínio: {{ (item.effectiveMastery * 100) | number: '1.0-0' }}%
+                    </small>
+                  </li>
+                }
+              </ul>
+            }
+          } @else {
+            <p class="muted">
+              Sem plano ainda — passe pelo
+              <a (click)="goToOnboarding()" class="link">onboarding</a>
+              para calibrar esta trilha.
+            </p>
+          }
+
+          <footer class="trail-card__foot">
+            <button class="btn btn-primary" (click)="goToJourney(card.trail.id)">
+              Ver jornada completa →
+            </button>
+          </footer>
+        </article>
+      }
     </section>
-
-    <!-- Daily Challenge -->
-    <section class="section">
-      <h3 class="section__title">Desafio do Dia</h3>
-      <div
-        class="challenge-card"
-        (click)="goToDesafio()"
-        style="cursor: pointer"
-      >
-        <div class="challenge-card__bg"></div>
-        <div class="challenge-card__mascot" aria-hidden="true">🐱</div>
-        <div class="challenge-card__icon">⚡</div>
-        <div class="challenge-card__body">
-          <p class="challenge-card__title">CSS Grid: Layout Avançado</p>
-          <p class="challenge-card__meta">3 questões · +150 XP</p>
-          <p class="challenge-card__timer">⏱ 23h 14min restantes</p>
-          <button
-            class="btn btn--challenge"
-            (click)="goToDesafio(); $event.stopPropagation()"
-          >
-            Iniciar Desafio
-          </button>
-        </div>
-      </div>
-    </section>
-
-    <!-- Explore Trails -->
-    <section class="section">
-      <h3 class="section__title">Explorar Trilhas</h3>
-      <div class="trails-list">
-        @for (trail of trails; track trail.key) {
-          <div
-            class="trail-item"
-            [style.--accent]="trail.color"
-            (click)="goToTrails()"
-            style="cursor: pointer"
-          >
-            <div class="trail-item__bar"></div>
-            <span class="trail-item__icon">{{ trail.emoji }}</span>
-            <div class="trail-item__body">
-              <p class="trail-item__name">{{ trail.name }}</p>
-              <p class="trail-item__meta">{{ trail.meta }}</p>
-            </div>
-            <span class="trail-item__arrow">›</span>
-          </div>
-        }
-      </div>
-    </section>
-
-    <div style="height: 88px"></div>
-  </main>
-
-  <!-- Bottom Nav -->
-  <nav class="bottom-nav" aria-label="Navegação principal">
-    <button class="nav-item nav-item--active" (click)="activeNav.set('home')">
-      <span class="nav-item__icon">🏠</span>
-      <span class="nav-item__label">Início</span>
-    </button>
-    <button class="nav-item" (click)="goToTrails()">
-      <span class="nav-item__icon">🗺️</span>
-      <span class="nav-item__label">Trilhas</span>
-    </button>
-    <button class="nav-item" (click)="goToDesafio()">
-      <span class="nav-item__icon">⚔️</span>
-      <span class="nav-item__label">Desafios</span>
-    </button>
-    <button
-      class="nav-item"
-      [class.nav-item--active]="activeNav() === 'ranking'"
-      (click)="activeNav.set('ranking')"
-    >
-      <span class="nav-item__icon">🏆</span>
-      <span class="nav-item__label">Ranking</span>
-    </button>
-    <button
-      class="nav-item"
-      [class.nav-item--active]="activeNav() === 'profile'"
-      (click)="activeNav.set('profile')"
-    >
-      <span class="nav-item__icon">👤</span>
-      <span class="nav-item__label">Perfil</span>
-    </button>
-  </nav>
+  }
 </div>
+<app-bottom-nav active="home" />
