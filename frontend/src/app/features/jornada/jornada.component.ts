@@ -9,6 +9,7 @@ import {
   StreakResetEvent,
 } from "../../core/services/journey-hub.service";
 import { JourneyPlan, JourneyReason } from "../../core/models/journey.model";
+import { BottomNavComponent } from "../../shared/components/bottom-nav/bottom-nav.component";
 
 const REASON_LABEL: Record<JourneyReason, string> = {
   NewLearning: "Novo",
@@ -31,7 +32,7 @@ const REASON_ICON: Record<JourneyReason, string> = {
 @Component({
   selector: "app-jornada",
   standalone: true,
-  imports: [CommonModule, DecimalPipe],
+  imports: [CommonModule, DecimalPipe, BottomNavComponent],
   templateUrl: "./jornada.component.html",
   styleUrls: ["./jornada.component.scss"],
 })

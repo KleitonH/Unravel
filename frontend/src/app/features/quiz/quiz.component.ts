@@ -6,6 +6,7 @@ import {
   ChallengePool,
   PoolChallenge,
 } from "../../core/models/challenge-pool.model";
+import { BottomNavComponent } from "../../shared/components/bottom-nav/bottom-nav.component";
 
 type AnswerState = {
   selectedIndex: number;
@@ -23,7 +24,7 @@ type AnswerState = {
 @Component({
   selector: "app-quiz",
   standalone: true,
-  imports: [CommonModule, DecimalPipe],
+  imports: [CommonModule, DecimalPipe, BottomNavComponent],
   templateUrl: "./quiz.component.html",
   styleUrls: ["./quiz.component.scss"],
 })

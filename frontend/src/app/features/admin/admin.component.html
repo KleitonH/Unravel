@@ -1,0 +1,105 @@
+<div class="admin">
+  <header class="admin__header">
+    <div>
+      <h1>🛠️ Painel admin</h1>
+      <p class="admin__sub">Disparo do cron diário e log de eventos em tempo real.</p>
+    </div>
+    <button class="btn btn-ghost" (click)="goBack()">← Voltar</button>
+  </header>
+
+  @if (!isModerator()) {
+    <div class="admin__warn" role="alert">
+      Esta página é destinada a moderadores. Se você não vê os botões abaixo
+      funcionando, o backend vai retornar 403.
+    </div>
+  }
+
+  <section class="admin__panel">
+    <div class="admin__row">
+      <div>
+        <strong>Hub SignalR</strong>
+        <p class="muted">{{ hubStateLabel() }}</p>
+      </div>
+      <div>
+        <strong>Cron diário</strong>
+        <p class="muted">
+          Roda automaticamente em 00:05 UTC. Use o botão abaixo para
+          disparar agora.
+        </p>
+      </div>
+    </div>
+
+    <div class="admin__actions">
+      <button
+        class="btn btn-primary"
+        (click)="triggerReplan()"
+        [disabled]="running()"
+      >
+        @if (running()) { ⌛ Executando… } @else { ▶ Disparar cron agora }
+      </button>
+      <button class="btn btn-ghost" (click)="clearLog()">
+        Limpar log
+      </button>
+    </div>
+
+    @if (lastReport(); as r) {
+      <div class="report">
+        <div class="report__item">
+          <span class="report__num">{{ r.processed }}</span>
+          <span class="muted">processados</span>
+        </div>
+        <div class="report__item">
+          <span class="report__num">{{ r.yesterdayGoalMet }}</span>
+          <span class="muted">meta cumprida</span>
+        </div>
+        <div class="report__item">
+          <span class="report__num" [class.report__num--bad]="r.failures > 0">
+            {{ r.failures }}
+          </span>
+          <span class="muted">falhas</span>
+        </div>
+      </div>
+    }
+
+    @if (lastError()) {
+      <div class="admin__error">{{ lastError() }}</div>
+    }
+  </section>
+
+  <section class="log">
+    <h2>Log de eventos ({{ events().length }})</h2>
+    @if (events().length === 0) {
+      <p class="muted">Nenhum evento ainda. Dispare o cron e observe.</p>
+    }
+    <ul>
+      @for (ev of events(); track ev.at + ev.kind) {
+        <li class="log__entry log__entry--{{ ev.kind }}">
+          <span class="log__time">{{ ev.at | date:'HH:mm:ss.SSS' }}</span>
+          <span class="log__kind">{{ ev.kind }}</span>
+          @if (ev.kind === 'DailyPlanGenerated') {
+            <span class="log__detail">
+              user={{ ev.data.userId.slice(0,8) }}…
+              · trail={{ ev.data.trailId }}
+              · meta={{ ev.data.metaDia }}
+              @if (ev.data.extraPenalty > 0) {
+                · <strong class="bad">penalidade +{{ ev.data.extraPenalty }}</strong>
+              }
+              · ontem={{
+                ev.data.metGoalYesterday === null ? '—'
+                : (ev.data.metGoalYesterday ? '✓' : '✗')
+              }}
+            </span>
+          } @else if (ev.kind === 'StreakReset') {
+            <span class="log__detail">
+              user={{ ev.data.userId.slice(0,8) }}…
+              · streak anterior={{ ev.data.previousStreak }}
+            </span>
+          } @else {
+            <span class="log__detail">{{ ev.message }}</span>
+          }
+        </li>
+      }
+    </ul>
+  </section>
+</div>
+<app-bottom-nav active="admin" />

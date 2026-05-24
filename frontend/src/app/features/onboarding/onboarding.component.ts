@@ -5,6 +5,7 @@ import { Router } from "@angular/router";
 import { TrailService } from "../../core/services/trail.service";
 import { OnboardingService } from "../../core/services/onboarding.service";
 import { TrailResponse } from "../../core/models/trail.model";
+import { BottomNavComponent } from "../../shared/components/bottom-nav/bottom-nav.component";
 import {
   LevelingAnswer,
   OnboardingResult,
@@ -25,7 +26,7 @@ type Step = "pick" | "test" | "result";
 @Component({
   selector: "app-onboarding",
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, BottomNavComponent],
   templateUrl: "./onboarding.component.html",
   styleUrls: ["./onboarding.component.scss"],
 })

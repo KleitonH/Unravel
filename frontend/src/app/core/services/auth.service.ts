@@ -25,6 +25,16 @@ export class AuthService {
   readonly currentUser = this._currentUser.asReadonly();
   readonly isAuthenticated = computed(() => this._currentUser() !== null);
 
+  /** Role extraído do claim do JWT atual. null se não logado. Útil para
+   *  esconder/exibir itens de UI; a autorização real está no backend. */
+  readonly currentRole = computed<string | null>(() => {
+    // computed reage ao currentUser; quando muda (login/logout), reavalia.
+    void this._currentUser();
+    return this.decodeRoleFromToken(this.getAccessToken());
+  });
+
+  readonly isModerator = computed(() => this.currentRole() === "Moderator");
+
   constructor() {
     const token = this.getAccessToken();
     if (token) {
@@ -78,5 +88,26 @@ export class AuthService {
   private clearTokens(): void {
     localStorage.removeItem(ACCESS_TOKEN_KEY);
     localStorage.removeItem(REFRESH_TOKEN_KEY);
+  }
+
+  /** Decodifica payload do JWT (sem validar assinatura — quem valida é o
+   *  backend) e devolve o claim de role. Aceita tanto o claim long-form
+   *  `http://schemas.microsoft.com/.../role` quanto o short `role`. */
+  private decodeRoleFromToken(token: string | null): string | null {
+    if (!token) return null;
+    try {
+      const payload = JSON.parse(
+        atob(token.split(".")[1].replace(/-/g, "+").replace(/_/g, "/")),
+      );
+      return (
+        payload[
+          "http://schemas.microsoft.com/ws/2008/06/identity/claims/role"
+        ] ??
+        payload.role ??
+        null
+      );
+    } catch {
+      return null;
+    }
   }
 }

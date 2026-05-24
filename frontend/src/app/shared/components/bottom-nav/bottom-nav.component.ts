@@ -1,7 +1,17 @@
-import { Component, input } from "@angular/core";
+import { Component, computed, inject, input } from "@angular/core";
 import { Router } from "@angular/router";
+import { AuthService } from "../../../core/services/auth.service";
 
-const NAV_ITEMS = [
+type NavItem = {
+  key: string;
+  icon: string;
+  label: string;
+  route: string;
+  /** Filtro de role; ausente = visível para todos. */
+  requires?: "Moderator";
+};
+
+const NAV_ITEMS: NavItem[] = [
   { key: "home", icon: "🏠", label: "Início", route: "/dashboard" },
   { key: "trails", icon: "🗺️", label: "Trilhas", route: "/trails" },
   // PR 9 — entrada pro algoritmo de jornada. Sem trilha selecionada, manda
@@ -9,6 +19,8 @@ const NAV_ITEMS = [
   { key: "journey", icon: "🐾", label: "Jornada", route: "/onboarding" },
   { key: "challenges", icon: "⚔️", label: "Desafios", route: "/desafio" },
   { key: "profile", icon: "👤", label: "Perfil", route: "/profile" },
+  // PR 10 — visível somente para Moderator (filtro UX; backend valida role).
+  { key: "admin", icon: "🛠️", label: "Admin", route: "/admin", requires: "Moderator" },
 ];
 
 @Component({
@@ -16,7 +28,7 @@ const NAV_ITEMS = [
   standalone: true,
   template: `
     <nav class="bottom-nav" aria-label="Navegação principal">
-      @for (item of navItems; track item.key) {
+      @for (item of navItems(); track item.key) {
         <button
           class="nav-item"
           [class.nav-item--active]="active() === item.key"
@@ -75,8 +87,15 @@ const NAV_ITEMS = [
   ],
 })
 export class BottomNavComponent {
+  private readonly auth = inject(AuthService);
+
   readonly active = input<string>("home");
-  readonly navItems = NAV_ITEMS;
+  /** Filtra itens condicionais por role atual; recomputado quando o user muda. */
+  readonly navItems = computed(() =>
+    NAV_ITEMS.filter(
+      (i) => !i.requires || this.auth.currentRole() === i.requires,
+    ),
+  );
 
   constructor(private readonly router: Router) {}
 
