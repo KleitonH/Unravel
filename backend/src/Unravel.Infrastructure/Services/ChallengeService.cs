@@ -1,15 +1,38 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
+using Unravel.Application.Journey.Ports;
 using Unravel.Application.Services;
 using Unravel.Domain.Entities;
+using Unravel.Domain.Knowledge;
 using Unravel.Infrastructure.Persistence;
 
 namespace Unravel.Infrastructure.Services;
 
 public class ChallengeService : IChallengeService
 {
-    private readonly ApplicationDbContext _db;
+    private readonly ApplicationDbContext   _db;
+    private readonly IKnowledgeGraphCache?  _graphCache;
+    private readonly ITopicResolver?        _topicResolver;
+    private readonly IMasteryRepository?    _masteryRepo;
+    private readonly ILogger<ChallengeService>? _log;
 
+    // Dois construtores: o "rico" recebe as peças de Journey e habilita o
+    // hook de mastery; o legacy mantém compatibilidade caso algum teste
+    // antigo instancie sem o pipeline. No DI usamos o rico.
     public ChallengeService(ApplicationDbContext db) => _db = db;
+
+    public ChallengeService(
+        ApplicationDbContext db,
+        IKnowledgeGraphCache graphCache,
+        ITopicResolver       topicResolver,
+        IMasteryRepository   masteryRepo,
+        ILogger<ChallengeService> log) : this(db)
+    {
+        _graphCache    = graphCache;
+        _topicResolver = topicResolver;
+        _masteryRepo   = masteryRepo;
+        _log           = log;
+    }
 
     // ── Helpers ──────────────────────────────────────────────────
 
@@ -177,11 +200,62 @@ public class ChallengeService : IChallengeService
 
         var badgeEarned = await CheckStreakBadgesAsync(user);
 
+        // Atualiza Mastery dos tópicos exercidos por este challenge. Falhas
+        // aqui são logadas mas não fazem o submit falhar — uma falha no
+        // tracking de mastery não deve travar a UX do quiz.
+        await TryUpdateMasteryAsync(userId, challenge, ratio);
+
         return new(
             xpEarned, coinsEarned, correctCount, answerResults.Count,
             isPerfect, user.StreakDays, user.Xp, user.Coins,
             badgeEarned, answerResults
         );
+    }
+
+    // ── Hook de Mastery (PR 2) ───────────────────────────────────────
+
+    private async Task TryUpdateMasteryAsync(Guid userId, Challenge challenge, double outcome)
+    {
+        if (_graphCache is null || _topicResolver is null || _masteryRepo is null)
+            return; // construtor legacy — nada a fazer
+
+        try
+        {
+            var graph = await _graphCache.GetOrBuildAsync(challenge.TrailId);
+            if (graph.Topics.Count == 0) return;
+
+            var text   = $"{challenge.Title} {challenge.Description}";
+            var topics = _topicResolver.Resolve(text, graph);
+            if (topics.Count == 0) return;
+
+            var now = DateTime.UtcNow;
+
+            // O outcome efetivo aplicado a cada topic é o ratio × peso. Em
+            // vez de aplicar a "regra cheia" N vezes (que distorceria o
+            // SM-2 — interval saltaria várias vezes), aplicamos uma única
+            // atualização por topic com outcome ponderado.
+            var updates = new List<Mastery>(topics.Count);
+            foreach (var tw in topics)
+            {
+                var current = await _masteryRepo.GetAsync(userId, tw.TopicId)
+                              ?? Mastery.Initial(userId, tw.TopicId, challenge.TrailId, now);
+
+                // Peso aplicado: mistura entre outcome real e score atual,
+                // ponderada por peso do topic. Topic com weight 1.0 recebe
+                // a tentativa cheia; topic com weight 0.2 recebe 80% do
+                // próprio score (quase nenhum sinal) + 20% do outcome.
+                var weighted = tw.Weight * outcome + (1 - tw.Weight) * current.Score;
+                updates.Add(MasteryScoring.Apply(current, weighted, now));
+            }
+
+            await _masteryRepo.UpsertManyAsync(updates);
+        }
+        catch (Exception ex)
+        {
+            _log?.LogWarning(ex,
+                "Falha ao atualizar mastery após challenge {ChallengeId}; submit continua.",
+                challenge.Id);
+        }
     }
 
     // ── Lógica de Streak ─────────────────────────────────────────
