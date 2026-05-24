@@ -6,6 +6,9 @@ using Unravel.Application.Ports;
 using Unravel.Application.Services;
 using Unravel.Application.UseCases;
 using Unravel.Domain.Ports;
+using Unravel.Application.Journey;
+using Unravel.Application.Journey.UseCases;
+using Unravel.Infrastructure.Journey;
 using Unravel.Infrastructure.Knowledge;
 using Unravel.Infrastructure.Persistence;
 using Unravel.Infrastructure.Repositories;
@@ -45,6 +48,12 @@ public static class DependencyInjection
         // Mastery (PR 2) — repositório e topic resolver.
         services.AddScoped<IMasteryRepository, MasteryRepository>();
         services.AddSingleton<ITopicResolver, KeywordTopicResolver>();
+
+        // Journey planner (PR 3) — planner singleton (puro/stateless),
+        // read model e use case escopados (dependem de DbContext).
+        services.AddSingleton<IJourneyPlanner, JourneyPlanner>();
+        services.AddScoped<IJourneyReadModel, JourneyReadModel>();
+        services.AddScoped<GetDailyJourneyUseCase>();
 
         return services;
     }
