@@ -2,6 +2,7 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Unravel.Application.Forge.DTOs;
 using Unravel.Application.Forge.UseCases;
 
 namespace Unravel.API.Controllers;
@@ -18,12 +19,19 @@ namespace Unravel.API.Controllers;
 [Authorize]
 public sealed class ChallengePoolController : ControllerBase
 {
-    private readonly GetChallengePoolUseCase _pool;
+    private readonly GetChallengePoolUseCase    _pool;
+    private readonly SubmitPoolChallengeUseCase _submit;
 
     private Guid UserId => Guid.Parse(User.FindFirstValue(JwtRegisteredClaimNames.Sub)
                                       ?? User.FindFirstValue(ClaimTypes.NameIdentifier)!);
 
-    public ChallengePoolController(GetChallengePoolUseCase pool) => _pool = pool;
+    public ChallengePoolController(
+        GetChallengePoolUseCase    pool,
+        SubmitPoolChallengeUseCase submit)
+    {
+        _pool   = pool;
+        _submit = submit;
+    }
 
     /// <summary>Retorna até <c>targetCount</c> perguntas (default 5) para
     /// o Content. Gera novas se o pool persistido estiver curto. 404 se
@@ -39,5 +47,23 @@ public sealed class ChallengePoolController : ControllerBase
 
         var pool = await _pool.ExecuteAsync(UserId, contentId, targetCount, ct);
         return pool is null ? NotFound() : Ok(pool);
+    }
+
+    /// <summary>Submete a resposta de uma pergunta do pool: servidor valida
+    /// contra o gabarito persistido (cliente nunca decide o acerto),
+    /// atualiza a Mastery do tópico e devolve o gabarito + nova mastery.
+    /// 404 se o GeneratedChallenge não existe ou não pertence ao Content.</summary>
+    [HttpPost("submit")]
+    public async Task<IActionResult> Submit(
+        int contentId,
+        [FromBody] SubmitPoolChallengeRequest request,
+        CancellationToken ct = default)
+    {
+        if (request is null) return BadRequest(new { message = "Body obrigatório." });
+        if (request.GeneratedChallengeId <= 0)
+            return BadRequest(new { message = "generatedChallengeId é obrigatório." });
+
+        var result = await _submit.ExecuteAsync(UserId, contentId, request, ct);
+        return result is null ? NotFound() : Ok(result);
     }
 }

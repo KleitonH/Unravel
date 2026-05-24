@@ -1,7 +1,10 @@
 import { Component, OnInit, computed, inject, signal } from "@angular/core";
 import { CommonModule, DecimalPipe } from "@angular/common";
 import { ActivatedRoute, Router } from "@angular/router";
-import { ChallengePoolService } from "../../core/services/challenge-pool.service";
+import {
+  ChallengePoolService,
+  SubmitPoolChallengeResponse,
+} from "../../core/services/challenge-pool.service";
 import {
   ChallengePool,
   PoolChallenge,
@@ -11,15 +14,21 @@ import { BottomNavComponent } from "../../shared/components/bottom-nav/bottom-na
 type AnswerState = {
   selectedIndex: number;
   isCorrect: boolean;
+  correctIndex: number;
+  explanation: string | null;
+  newMasteryScore: number;
 };
 
 /**
  * Página /quiz/:contentId — carrega o pool gerado pelo Forge e apresenta
- * uma pergunta por vez, com gabarito após a escolha. Não submete para o
- * backend (endpoint de submissão é o ChallengeService.SubmitAsync que
- * trabalha sobre Challenge, não GeneratedChallenge). Stub honesto: a
- * resposta fica só no front; quando o backend tiver endpoint dedicado
- * para validar GeneratedChallenge + atualizar Mastery, plugamos aqui.
+ * uma pergunta por vez. Ao escolher, submete ao backend
+ * (POST /challenge-pool/submit, PR 13). O servidor é a fonte da verdade:
+ * valida contra o gabarito persistido, atualiza Mastery do tópico e
+ * devolve o resultado autoritativo, que a UI usa para feedback.
+ *
+ * O <c>correctIndex</c> ainda vem no GET por compatibilidade — mas o
+ * submit é quem decide o acerto. Quando todos os clientes migrarem,
+ * podemos parar de expor no GET (segurança em profundidade).
  */
 @Component({
   selector: "app-quiz",
@@ -36,6 +45,7 @@ export class QuizComponent implements OnInit {
   readonly contentId = signal<number>(0);
   readonly data = signal<ChallengePool | null>(null);
   readonly loading = signal(false);
+  readonly submitting = signal(false);
   readonly error = signal<string | null>(null);
 
   readonly currentIndex = signal(0);
@@ -47,10 +57,12 @@ export class QuizComponent implements OnInit {
     return d.challenges[this.currentIndex()] ?? null;
   });
 
-  readonly answered = computed(() => {
+  readonly currentAnswer = computed<AnswerState | null>(() => {
     const c = this.current();
-    return c ? this.answers().has(c.id) : false;
+    return c ? this.answers().get(c.id) ?? null : null;
   });
+
+  readonly answered = computed(() => this.currentAnswer() !== null);
 
   readonly score = computed(() => {
     let correct = 0;
@@ -94,10 +106,43 @@ export class QuizComponent implements OnInit {
 
   choose(index: number): void {
     const c = this.current();
-    if (!c || this.answered()) return;
-    const next = new Map(this.answers());
-    next.set(c.id, { selectedIndex: index, isCorrect: index === c.correctIndex });
-    this.answers.set(next);
+    if (!c || this.answered() || this.submitting()) return;
+    this.submitting.set(true);
+
+    this.pool
+      .submit(this.contentId(), {
+        generatedChallengeId: c.id,
+        selectedOptionIndex: index,
+      })
+      .subscribe({
+        next: (r: SubmitPoolChallengeResponse) => {
+          const next = new Map(this.answers());
+          next.set(c.id, {
+            selectedIndex: index,
+            isCorrect: r.isCorrect,
+            correctIndex: r.correctOptionIndex,
+            explanation: r.explanation,
+            newMasteryScore: r.newMasteryScore,
+          });
+          this.answers.set(next);
+          this.submitting.set(false);
+        },
+        error: () => {
+          // Fallback "offline": usa o gabarito local que veio no GET para
+          // não travar o quiz se a submissão falhar transitoriamente. O
+          // sinal de mastery se perde nesse caso, é trade-off consciente.
+          const next = new Map(this.answers());
+          next.set(c.id, {
+            selectedIndex: index,
+            isCorrect: index === c.correctIndex,
+            correctIndex: c.correctIndex,
+            explanation: c.explanation,
+            newMasteryScore: this.data()?.targetUserMastery ?? 0,
+          });
+          this.answers.set(next);
+          this.submitting.set(false);
+        },
+      });
   }
 
   selectedIndexOf(c: PoolChallenge): number | undefined {
@@ -105,9 +150,10 @@ export class QuizComponent implements OnInit {
   }
 
   optionClass(c: PoolChallenge, i: number): string {
-    if (!this.answered()) return "";
-    if (i === c.correctIndex) return "option--correct";
-    if (this.selectedIndexOf(c) === i) return "option--wrong";
+    const ans = this.answers().get(c.id);
+    if (!ans) return "";
+    if (i === ans.correctIndex) return "option--correct";
+    if (ans.selectedIndex === i) return "option--wrong";
     return "option--dimmed";
   }
 

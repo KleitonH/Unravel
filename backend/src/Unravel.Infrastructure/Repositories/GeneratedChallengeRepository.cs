@@ -38,4 +38,24 @@ public sealed class GeneratedChallengeRepository : IGeneratedChallengeRepository
             .Where(g => ids.Contains(g.Id))
             .ExecuteUpdateAsync(s => s.SetProperty(g => g.ServedCount, g => g.ServedCount + 1), ct);
     }
+
+    public Task<GeneratedChallenge?> GetByIdAsync(int id, CancellationToken ct = default)
+        => _db.GeneratedChallenge
+              .AsNoTracking()
+              .FirstOrDefaultAsync(g => g.Id == id && g.IsActive, ct);
+
+    public async Task RecordOutcomeAsync(int challengeId, bool correct, CancellationToken ct = default)
+    {
+        // Média móvel "online" — atualiza CorrectRate sem materializar:
+        //   newRate = (oldRate * served + (correct ? 1 : 0)) / (served + 1)
+        // Em seguida, served += 1. Tudo num único UPDATE — atômico contra
+        // múltiplas respostas concorrentes pra mesma pergunta.
+        var outcome = correct ? 1.0 : 0.0;
+        await _db.GeneratedChallenge
+            .Where(g => g.Id == challengeId)
+            .ExecuteUpdateAsync(s => s
+                .SetProperty(g => g.CorrectRate,
+                    g => (g.CorrectRate * g.ServedCount + outcome) / (g.ServedCount + 1))
+                .SetProperty(g => g.ServedCount, g => g.ServedCount + 1), ct);
+    }
 }

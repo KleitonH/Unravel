@@ -37,7 +37,7 @@
               <button
                 type="button"
                 class="option {{ optionClass(c, $index) }}"
-                [disabled]="answered()"
+                [disabled]="answered() || submitting()"
                 (click)="choose($index)"
               >
                 <span class="option__letter">{{ ['A','B','C','D','E','F'][$index] }}</span>
@@ -47,16 +47,19 @@
           }
         </ul>
 
-        @if (answered()) {
-          <div class="quiz__feedback" [class.quiz__feedback--ok]="selectedIndexOf(c) === c.correctIndex">
-            @if (selectedIndexOf(c) === c.correctIndex) {
+        @if (currentAnswer(); as a) {
+          <div class="quiz__feedback" [class.quiz__feedback--ok]="a.isCorrect">
+            @if (a.isCorrect) {
               ✅ Resposta correta!
             } @else {
-              ❌ Não foi dessa vez. Correta: <strong>{{ c.options[c.correctIndex] }}</strong>
+              ❌ Não foi dessa vez. Correta: <strong>{{ c.options[a.correctIndex] }}</strong>
             }
-            @if (c.explanation) {
-              <p class="quiz__explain">{{ c.explanation }}</p>
+            @if (a.explanation) {
+              <p class="quiz__explain">{{ a.explanation }}</p>
             }
+            <p class="quiz__explain quiz__mastery">
+              📈 Domínio atualizado: <strong>{{ (a.newMasteryScore * 100) | number: '1.0-0' }}%</strong>
+            </p>
           </div>
         }
 

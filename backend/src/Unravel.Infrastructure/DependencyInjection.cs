@@ -78,6 +78,8 @@ public static class DependencyInjection
         services.AddScoped<IGeneratedChallengeRepository, GeneratedChallengeRepository>();
         services.AddScoped<IForgeReadModel, ForgeReadModel>();
         services.AddScoped<GetChallengePoolUseCase>();
+        // PR 13 — submit do quiz: valida no servidor, propaga p/ Mastery.
+        services.AddScoped<SubmitPoolChallengeUseCase>();
 
         // Onboarding (PR 6) — cold-start com nivelamento.
         // LevelingTestBuilder é stateless → singleton.

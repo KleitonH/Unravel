@@ -21,4 +21,15 @@ public interface IGeneratedChallengeRepository
     /// pra evitar repetir os mesmos a cada request. Update atômico via
     /// SQL pra não exigir tracking.</summary>
     Task IncrementServedAsync(IEnumerable<int> challengeIds, CancellationToken ct = default);
+
+    /// <summary>Busca uma pergunta gerada pelo Id. <c>null</c> se não existe
+    /// ou está inativa. Usado pelo submit do quiz para validar a resposta
+    /// contra o gabarito persistido (não confiamos no que o cliente envia).</summary>
+    Task<GeneratedChallenge?> GetByIdAsync(int id, CancellationToken ct = default);
+
+    /// <summary>Após o usuário responder, registra o resultado: atualiza
+    /// <c>CorrectRate</c> como média móvel sobre o <c>ServedCount</c> atual
+    /// e incrementa <c>ServedCount</c> em 1. SQL atômico — evita race
+    /// quando múltiplos users respondem a mesma pergunta simultaneamente.</summary>
+    Task RecordOutcomeAsync(int challengeId, bool correct, CancellationToken ct = default);
 }

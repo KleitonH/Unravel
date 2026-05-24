@@ -19,3 +19,23 @@ public sealed record PoolChallengeDto(
     string?              Explanation,
     double               EstimatedDifficulty
 );
+
+// ── Submit (PR 13) ─────────────────────────────────────────────────────
+
+/// <summary>Resposta enviada pelo cliente para validar e propagar o sinal
+/// até a Mastery. ID veio do <see cref="PoolChallengeDto.Id"/>.</summary>
+public sealed record SubmitPoolChallengeRequest(
+    int GeneratedChallengeId,
+    int SelectedOptionIndex
+);
+
+/// <summary>Resultado autoritativo: gabarito vem do servidor (cliente
+/// nunca decide se acertou), explicação, e atualização visível da
+/// mastery do tópico para a UI mostrar feedback.</summary>
+public sealed record SubmitPoolChallengeResponse(
+    bool    IsCorrect,
+    int     CorrectOptionIndex,
+    string? Explanation,
+    double  NewMasteryScore,
+    int     NewMasteryConfidence
+);
