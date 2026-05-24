@@ -67,6 +67,7 @@ public static class DependencyInjection
         services.AddSingleton<IChallengeStrategy, DefinitionStrategy>();
         services.AddSingleton<IChallengeStrategy, TrueFalseStrategy>();
         services.AddSingleton<IChallengeForge, ChallengeForge>();
+        services.AddScoped<IGeneratedChallengeRepository, GeneratedChallengeRepository>();
 
         return services;
     }

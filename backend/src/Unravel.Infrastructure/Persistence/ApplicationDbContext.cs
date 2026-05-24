@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Unravel.Domain.Entities;
+using Unravel.Domain.Forge;
 using Unravel.Domain.Knowledge;
 
 namespace Unravel.Infrastructure.Persistence;
@@ -14,7 +15,8 @@ public partial class ApplicationDbContext(DbContextOptions<ApplicationDbContext>
     public DbSet<UserTrail>   UserTrail   => Set<UserTrail>();
     public DbSet<UserContent> UserContent => Set<UserContent>();
 
-    public DbSet<Mastery>     Mastery     => Set<Mastery>();
+    public DbSet<Mastery>            Mastery            => Set<Mastery>();
+    public DbSet<GeneratedChallenge> GeneratedChallenge => Set<GeneratedChallenge>();
 
     protected override void OnModelCreating(ModelBuilder mb)
     {
