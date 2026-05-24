@@ -1,0 +1,135 @@
+<!doctype html>
+<html lang="pt-br">
+<head>
+<meta charset="utf-8" />
+<title>Unravel SignalR Test Client</title>
+<style>
+  :root { color-scheme: light dark; }
+  body { font-family: ui-sans-serif, system-ui, -apple-system, sans-serif;
+         max-width: 880px; margin: 2rem auto; padding: 0 1rem; }
+  fieldset { border: 1px solid #ccc; border-radius: 8px; padding: 1rem; margin-bottom: 1rem; }
+  legend { font-weight: 600; padding: 0 .5rem; }
+  input, button { font: inherit; padding: .4rem .6rem; }
+  input[type="text"], input[type="password"] { width: 24rem; max-width: 100%; }
+  button { cursor: pointer; }
+  #log { background: #111; color: #eee; padding: 1rem; border-radius: 8px;
+         min-height: 220px; font-family: ui-monospace, monospace; font-size: 13px;
+         white-space: pre-wrap; max-height: 480px; overflow-y: auto; }
+  .ok    { color: #38db8c; }
+  .warn  { color: #ffc700; }
+  .err   { color: #ff7373; }
+  .event { color: #73daff; }
+  .meta  { color: #888; }
+</style>
+</head>
+<body>
+  <h1>Unravel · SignalR test client</h1>
+  <p>Standalone client para demoar o hub <code>/hubs/journey</code> (PR 8).
+     Conecta com JWT, escuta os eventos do cron diário em tempo real e
+     dispara <code>POST /api/admin/replan-now</code> com um clique.</p>
+
+  <fieldset>
+    <legend>Conexão</legend>
+    <label>API base: <input id="apiBase"  type="text" value="http://localhost:5099" /></label><br/><br/>
+    <label>Email:    <input id="email"    type="text" value="smoke@unravel.test" /></label><br/><br/>
+    <label>Senha:    <input id="password" type="password" value="Strong#Pass1" /></label><br/><br/>
+    <button id="loginBtn">1. Login + conectar hub</button>
+    <button id="disconnectBtn" disabled>Desconectar</button>
+  </fieldset>
+
+  <fieldset>
+    <legend>Ações</legend>
+    <button id="replanBtn" disabled>Disparar cron (POST /api/admin/replan-now)</button>
+    <button id="clearBtn">Limpar log</button>
+  </fieldset>
+
+  <fieldset>
+    <legend>Log</legend>
+    <div id="log"></div>
+  </fieldset>
+
+<script src="https://cdn.jsdelivr.net/npm/@microsoft/signalr@8.0.0/dist/browser/signalr.min.js"></script>
+<script>
+  const $ = (id) => document.getElementById(id);
+  const log = (msg, cls = '') => {
+    const time = new Date().toISOString().split('T')[1].slice(0, 12);
+    const line = document.createElement('div');
+    line.className = cls;
+    line.textContent = `[${time}] ${msg}`;
+    $('log').appendChild(line);
+    $('log').scrollTop = $('log').scrollHeight;
+  };
+
+  let token = null;
+  let connection = null;
+
+  $('loginBtn').addEventListener('click', async () => {
+    const base = $('apiBase').value.replace(/\/$/, '');
+    try {
+      log('Login…', 'meta');
+      const res = await fetch(`${base}/api/auth/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: $('email').value, password: $('password').value }),
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json();
+      token = data.accessToken;
+      log('Token obtido (len=' + token.length + ')', 'ok');
+
+      log('Conectando hub…', 'meta');
+      connection = new signalR.HubConnectionBuilder()
+        .withUrl(`${base}/hubs/journey`, { accessTokenFactory: () => token })
+        .withAutomaticReconnect()
+        .configureLogging(signalR.LogLevel.Information)
+        .build();
+
+      connection.on('DailyPlanGenerated', (e) => log('► DailyPlanGenerated ' + JSON.stringify(e), 'event'));
+      connection.on('StreakReset',         (e) => log('► StreakReset '         + JSON.stringify(e), 'event'));
+
+      connection.onreconnecting(err => log('Reconectando: ' + (err?.message ?? ''), 'warn'));
+      connection.onreconnected(id   => log('Reconectado, id=' + id, 'ok'));
+      connection.onclose(err        => log('Conexão fechada: ' + (err?.message ?? 'normal'), 'warn'));
+
+      await connection.start();
+      log('Conectado. ConnectionId=' + connection.connectionId, 'ok');
+      $('disconnectBtn').disabled = false;
+      $('replanBtn').disabled     = false;
+      $('loginBtn').disabled      = true;
+    } catch (ex) {
+      log('Falha no login/conexão: ' + ex.message, 'err');
+    }
+  });
+
+  $('disconnectBtn').addEventListener('click', async () => {
+    if (connection) {
+      await connection.stop();
+      connection = null;
+      log('Desconectado.', 'meta');
+    }
+    $('disconnectBtn').disabled = true;
+    $('replanBtn').disabled     = true;
+    $('loginBtn').disabled      = false;
+  });
+
+  $('replanBtn').addEventListener('click', async () => {
+    const base = $('apiBase').value.replace(/\/$/, '');
+    try {
+      log('POST /api/admin/replan-now…', 'meta');
+      const res = await fetch(`${base}/api/admin/replan-now`, {
+        method: 'POST',
+        headers: { 'Authorization': 'Bearer ' + token },
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status} — ${await res.text()}`);
+      const report = await res.json();
+      log('Cron OK: ' + JSON.stringify(report), 'ok');
+      log('Aguarde eventos no hub…', 'meta');
+    } catch (ex) {
+      log('Falha replan: ' + ex.message, 'err');
+    }
+  });
+
+  $('clearBtn').addEventListener('click', () => { $('log').innerHTML = ''; });
+</script>
+</body>
+</html>
