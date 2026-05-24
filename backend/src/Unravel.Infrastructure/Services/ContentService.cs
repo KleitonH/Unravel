@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Unravel.Application.DTOs;
+using Unravel.Application.Journey.Ports;
 using Unravel.Application.Services;
 using Unravel.Domain.Entities;
 using Unravel.Infrastructure.Persistence;
@@ -8,8 +9,17 @@ namespace Unravel.Infrastructure.Services;
 
 public class ContentService : IContentService
 {
-    private readonly ApplicationDbContext _db;
+    private readonly ApplicationDbContext  _db;
+    private readonly IKnowledgeGraphCache? _graphCache;
+
+    // Construtor secundário (rico) — DI usa este. O legado é apenas para
+    // testes antigos que ainda não passaram o cache.
     public ContentService(ApplicationDbContext db) => _db = db;
+
+    public ContentService(ApplicationDbContext db, IKnowledgeGraphCache graphCache) : this(db)
+    {
+        _graphCache = graphCache;
+    }
 
     private static string LevelLabel(DifficultyLevel l) => l switch
     {
@@ -72,6 +82,10 @@ public class ContentService : IContentService
         };
         _db.Content.Add(content);
         await _db.SaveChangesAsync();
+
+        // PR 16 — estrutura da trilha mudou; KnowledgeGraph cacheado fica stale.
+        _graphCache?.Invalidate(content.TrailId);
+
         return new ContentResponse(content.Id, content.TrailId, content.Title, content.Body,
             content.ExternalUrl, TypeLabel(content.Type), LevelLabel(content.Level), content.Order, false);
     }
@@ -89,6 +103,7 @@ public class ContentService : IContentService
         if (dto.Order       is not null) content.Order       = dto.Order.Value;
 
         await _db.SaveChangesAsync();
+        _graphCache?.Invalidate(content.TrailId);
         return await GetByIdAsync(id, userId);
     }
 
@@ -98,6 +113,7 @@ public class ContentService : IContentService
         if (content is null) return false;
         content.IsActive = false;
         await _db.SaveChangesAsync();
+        _graphCache?.Invalidate(content.TrailId);
         return true;
     }
 }

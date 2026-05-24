@@ -224,9 +224,22 @@ public class ChallengeService : IChallengeService
             var graph = await _graphCache.GetOrBuildAsync(challenge.TrailId);
             if (graph.Topics.Count == 0) return;
 
-            var text   = $"{challenge.Title} {challenge.Description}";
-            var topics = _topicResolver.Resolve(text, graph);
-            if (topics.Count == 0) return;
+            // PR 16 — atalho cirúrgico: se o Challenge tem ContentId setado,
+            // sabemos exatamente qual topic ele exercita. Pula o TopicResolver
+            // lexical (que é best-effort por similaridade de keywords) e
+            // aplica peso 1.0 direto no topic correspondente.
+            IReadOnlyList<TopicWeight> topics;
+            if (challenge.ContentId is int contentId
+                && graph.Topics.Any(t => t.ContentId == contentId))
+            {
+                topics = new[] { new TopicWeight(TopicId: contentId, Weight: 1.0) };
+            }
+            else
+            {
+                var text = $"{challenge.Title} {challenge.Description}";
+                topics = _topicResolver.Resolve(text, graph);
+                if (topics.Count == 0) return;
+            }
 
             var now = DateTime.UtcNow;
 

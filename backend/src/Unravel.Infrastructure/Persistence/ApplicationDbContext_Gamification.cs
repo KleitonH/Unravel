@@ -26,6 +26,15 @@ public partial class ApplicationDbContext
              .WithMany()
              .HasForeignKey(c => c.TrailId)
              .OnDelete(DeleteBehavior.Cascade);
+
+            // PR 16 — link opcional ao Content específico. SetNull no delete
+            // pra não cascatear apagando perguntas curadas quando moderador
+            // arquiva Content. Índice cobre lookups "perguntas deste content".
+            e.HasOne(c => c.Content)
+             .WithMany()
+             .HasForeignKey(c => c.ContentId)
+             .OnDelete(DeleteBehavior.SetNull);
+            e.HasIndex(c => c.ContentId);
         });
 
         mb.Entity<ChallengeOption>(e =>

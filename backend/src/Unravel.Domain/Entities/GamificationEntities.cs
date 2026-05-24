@@ -5,6 +5,15 @@ public class Challenge
     public int    Id               { get; set; }
     public int    TrailId          { get; set; }
     public Trail  Trail            { get; set; } = null!;
+
+    /// <summary>(Opcional, PR 16) Content específico ao qual a pergunta se
+    /// refere. Quando setado, o hook de mastery do <c>ChallengeService</c>
+    /// atualiza diretamente o topic correspondente (peso 1.0) em vez de
+    /// inferir via similaridade lexical. Permite mastery cirúrgico.
+    /// Quando null, comportamento legado: TopicResolver via Jaccard.</summary>
+    public int?     ContentId       { get; set; }
+    public Content? Content         { get; set; }
+
     public string Title            { get; set; } = string.Empty;
     public string Description      { get; set; } = string.Empty;
     public ChallengeType   Type    { get; set; } = ChallengeType.MultipleChoice;
