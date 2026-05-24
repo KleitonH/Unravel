@@ -7,6 +7,12 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <!-- ILogger<T> usado pelo DailyReplanService (PR 7). Abstractions-only,
+         sem implementação — mantém Application leve. -->
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="8.0.0" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\Unravel.Domain\Unravel.Domain.csproj" />
   </ItemGroup>
 
