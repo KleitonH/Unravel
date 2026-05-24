@@ -1,0 +1,74 @@
+name: CI
+
+on:
+  push:
+    branches: [development, main]
+  pull_request:
+    branches: [development, main]
+
+# Cancela runs anteriores no mesmo PR/branch — economiza minutos.
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # ── Backend ──────────────────────────────────────────────────────
+  backend-test:
+    name: Backend · build + tests
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET 8
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0.x"
+
+      - name: Restore
+        run: dotnet restore
+
+      - name: Build (no restore)
+        run: dotnet build --no-restore --configuration Release --nologo
+
+      - name: Run tests
+        # Suite atual: 92 testes (Forge/Journey/Knowledge/Mastery/Onboarding).
+        # Sem cobertura de integração com DB ainda — quando tiver, considerar
+        # spin de container postgres via services.
+        run: |
+          dotnet test tests/Unravel.Tests/Unravel.Tests.csproj \
+            --no-build --configuration Release --nologo \
+            --logger "console;verbosity=minimal"
+
+  # ── Frontend ─────────────────────────────────────────────────────
+  frontend-check:
+    name: Frontend · typecheck + build
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install
+        run: npm ci
+
+      - name: Typecheck (strict, sem emit)
+        # Equivalente ao "ng build" sem o overhead de empacotamento;
+        # captura 99% dos erros de tipo em segundos.
+        run: npx tsc --noEmit -p tsconfig.app.json
+
+      - name: Build (dev configuration)
+        # Build dev é ~5x mais rápido que prod e basta como sanity-check
+        # de que template/css compilam. O build de produção do deploy.yml
+        # é o que vai pra release.
+        run: npm run build -- --configuration development
