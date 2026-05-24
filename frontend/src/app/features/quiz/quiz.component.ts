@@ -17,6 +17,11 @@ type AnswerState = {
   correctIndex: number;
   explanation: string | null;
   newMasteryScore: number;
+  // PR 15 — ganhos exibidos abaixo do feedback
+  xpEarned: number;
+  coinsEarned: number;
+  starsEarned: number;
+  lifeDelta: number;
 };
 
 /**
@@ -123,14 +128,18 @@ export class QuizComponent implements OnInit {
             correctIndex: r.correctOptionIndex,
             explanation: r.explanation,
             newMasteryScore: r.newMasteryScore,
+            xpEarned: r.xpEarned,
+            coinsEarned: r.coinsEarned,
+            starsEarned: r.starsEarned,
+            lifeDelta: r.lifeDelta,
           });
           this.answers.set(next);
           this.submitting.set(false);
         },
         error: () => {
           // Fallback "offline": usa o gabarito local que veio no GET para
-          // não travar o quiz se a submissão falhar transitoriamente. O
-          // sinal de mastery se perde nesse caso, é trade-off consciente.
+          // não travar o quiz se a submissão falhar transitoriamente. Os
+          // ganhos não são contabilizados — trade-off consciente.
           const next = new Map(this.answers());
           next.set(c.id, {
             selectedIndex: index,
@@ -138,6 +147,7 @@ export class QuizComponent implements OnInit {
             correctIndex: c.correctIndex,
             explanation: c.explanation,
             newMasteryScore: this.data()?.targetUserMastery ?? 0,
+            xpEarned: 0, coinsEarned: 0, starsEarned: 0, lifeDelta: 0,
           });
           this.answers.set(next);
           this.submitting.set(false);

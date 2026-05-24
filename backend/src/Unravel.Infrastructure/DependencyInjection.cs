@@ -8,11 +8,13 @@ using Unravel.Application.UseCases;
 using Unravel.Domain.Ports;
 using Unravel.Application.Forge.Ports;
 using Unravel.Application.Forge.UseCases;
+using Unravel.Application.Gamification.Ports;
 using Unravel.Application.Journey;
 using Unravel.Application.Journey.Onboarding;
 using Unravel.Application.Journey.UseCases;
 using Unravel.Infrastructure.Forge;
 using Unravel.Infrastructure.Forge.Strategies;
+using Unravel.Infrastructure.Gamification;
 using Unravel.Infrastructure.Journey;
 using Unravel.Infrastructure.Knowledge;
 using Unravel.Infrastructure.Persistence;
@@ -80,6 +82,9 @@ public static class DependencyInjection
         services.AddScoped<GetChallengePoolUseCase>();
         // PR 13 — submit do quiz: valida no servidor, propaga p/ Mastery.
         services.AddScoped<SubmitPoolChallengeUseCase>();
+
+        // PR 15 — gamificação: XP/Coins/Stars/Vidas + streak no submit do quiz.
+        services.AddScoped<IUserGamificationGateway, UserGamificationGateway>();
 
         // Onboarding (PR 6) — cold-start com nivelamento.
         // LevelingTestBuilder é stateless → singleton.

@@ -68,6 +68,25 @@ $text:       #ffffff;
   }
   &__explain { color: $muted; font-size: 13px; margin-top: 6px; }
 
+  &__rewards {
+    display: flex; flex-wrap: wrap; gap: 8px;
+    list-style: none; padding: 0; margin: 10px 0 0;
+    li {
+      background: rgba(167,139,250,.14);
+      border: 1px solid $accent;
+      color: $text;
+      padding: 4px 10px; border-radius: 999px;
+      font-size: 12px; font-weight: 600;
+      display: inline-flex; gap: 4px; align-items: center;
+      strong { color: $accent; }
+    }
+    &-bad {
+      background: rgba(255,115,115,.12) !important;
+      border-color: $danger !important;
+      strong { color: $danger !important; }
+    }
+  }
+
   &__nav {
     display: flex; justify-content: space-between; gap: 8px;
     margin-top: 18px;

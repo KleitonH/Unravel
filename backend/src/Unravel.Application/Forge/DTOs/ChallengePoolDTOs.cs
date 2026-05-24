@@ -30,12 +30,22 @@ public sealed record SubmitPoolChallengeRequest(
 );
 
 /// <summary>Resultado autoritativo: gabarito vem do servidor (cliente
-/// nunca decide se acertou), explicação, e atualização visível da
-/// mastery do tópico para a UI mostrar feedback.</summary>
+/// nunca decide se acertou), explicação, atualização visível da mastery
+/// do tópico e <b>ganhos de gamificação</b> (XP/Coins/Stars/Vidas/Streak)
+/// para a UI mostrar feedback rico no quiz.</summary>
 public sealed record SubmitPoolChallengeResponse(
     bool    IsCorrect,
     int     CorrectOptionIndex,
     string? Explanation,
     double  NewMasteryScore,
-    int     NewMasteryConfidence
+    int     NewMasteryConfidence,
+    int     XpEarned,
+    int     CoinsEarned,
+    int     StarsEarned,
+    int     LifeDelta,        // -1 em erro, 0 em acerto
+    int     TotalXp,
+    int     TotalCoins,
+    int     TotalStars,
+    int     TotalLives,
+    int     StreakDays
 );

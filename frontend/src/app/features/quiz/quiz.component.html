@@ -60,6 +60,22 @@
             <p class="quiz__explain quiz__mastery">
               📈 Domínio atualizado: <strong>{{ (a.newMasteryScore * 100) | number: '1.0-0' }}%</strong>
             </p>
+            @if (a.xpEarned > 0 || a.coinsEarned > 0 || a.starsEarned > 0 || a.lifeDelta < 0) {
+              <ul class="quiz__rewards">
+                @if (a.xpEarned > 0) {
+                  <li>⭐ <strong>+{{ a.xpEarned }}</strong> XP</li>
+                }
+                @if (a.coinsEarned > 0) {
+                  <li>🪙 <strong>+{{ a.coinsEarned }}</strong> moedas</li>
+                }
+                @if (a.starsEarned > 0) {
+                  <li>🌟 <strong>+{{ a.starsEarned }}</strong> estrela{{ a.starsEarned === 1 ? '' : 's' }}</li>
+                }
+                @if (a.lifeDelta < 0) {
+                  <li class="quiz__rewards-bad">❤️ <strong>{{ a.lifeDelta }}</strong> vida</li>
+                }
+              </ul>
+            }
           </div>
         }
 

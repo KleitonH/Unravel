@@ -15,6 +15,16 @@ export type SubmitPoolChallengeResponse = {
   explanation: string | null;
   newMasteryScore: number;
   newMasteryConfidence: number;
+  // PR 15 — gamificação
+  xpEarned: number;
+  coinsEarned: number;
+  starsEarned: number;
+  lifeDelta: number;       // -1 em erro, 0 em acerto
+  totalXp: number;
+  totalCoins: number;
+  totalStars: number;
+  totalLives: number;
+  streakDays: number;
 };
 
 /**
