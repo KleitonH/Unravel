@@ -4,8 +4,10 @@ import { Router } from "@angular/router";
 const NAV_ITEMS = [
   { key: "home", icon: "🏠", label: "Início", route: "/dashboard" },
   { key: "trails", icon: "🗺️", label: "Trilhas", route: "/trails" },
+  // PR 9 — entrada pro algoritmo de jornada. Sem trilha selecionada, manda
+  // para o onboarding (que escolhe trilhas + faz nivelamento).
+  { key: "journey", icon: "🐾", label: "Jornada", route: "/onboarding" },
   { key: "challenges", icon: "⚔️", label: "Desafios", route: "/desafio" },
-  { key: "ranking", icon: "🏆", label: "Ranking", route: "/dashboard" },
   { key: "profile", icon: "👤", label: "Perfil", route: "/profile" },
 ];
 

@@ -44,6 +44,29 @@ export const routes: Routes = [
       ),
     canActivate: [authGuard],
   },
+  // PR 9 — rotas do algoritmo de jornada (onboarding, jornada do dia, quiz gerado).
+  {
+    path: "onboarding",
+    loadComponent: () =>
+      import("./features/onboarding/onboarding.component").then(
+        (m) => m.OnboardingComponent,
+      ),
+    canActivate: [authGuard],
+  },
+  {
+    path: "jornada/:trailId",
+    loadComponent: () =>
+      import("./features/jornada/jornada.component").then(
+        (m) => m.JornadaComponent,
+      ),
+    canActivate: [authGuard],
+  },
+  {
+    path: "quiz/:contentId",
+    loadComponent: () =>
+      import("./features/quiz/quiz.component").then((m) => m.QuizComponent),
+    canActivate: [authGuard],
+  },
   {
     path: "profile",
     loadComponent: () =>

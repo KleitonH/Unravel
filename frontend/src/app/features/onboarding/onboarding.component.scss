@@ -1,0 +1,174 @@
+// Paleta alinhada com styles.scss/global do Unravel.
+$bg-deep:    #0e0a1e;
+$bg-card:    #181230;
+$bg-card-2:  #231b3e;
+$border:     #4a387d;
+$accent:     #a78bfa;
+$accent-2:   #38db8c;
+$danger:     #ff7373;
+$muted:      #a89bcf;
+$text:       #ffffff;
+
+.onboarding {
+  max-width: 880px;
+  margin: 0 auto;
+  padding: 24px 16px 96px;
+  color: $text;
+
+  &__header { margin-bottom: 24px; }
+  &__header h1 {
+    font-family: 'Syne', 'DM Sans', sans-serif;
+    font-size: 28px;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    margin-bottom: 12px;
+  }
+  &__steps {
+    display: flex; gap: 8px; flex-wrap: wrap;
+    list-style: none; padding: 0; margin: 0;
+    font-size: 12px; color: $muted;
+
+    li { padding: 4px 10px; border-radius: 999px; background: $bg-card; }
+    li.active {
+      background: $accent;
+      color: $bg-deep;
+      font-weight: 700;
+    }
+  }
+
+  &__lead { color: $muted; line-height: 1.5; margin-bottom: 16px; }
+
+  &__error {
+    background: rgba(255,115,115,.1);
+    border: 1px solid $danger;
+    color: $danger;
+    padding: 12px 14px;
+    border-radius: 8px;
+    margin-bottom: 16px;
+    font-size: 14px;
+  }
+
+  &__progress {
+    color: $muted; font-size: 13px; margin-bottom: 16px;
+  }
+
+  &__actions {
+    display: flex; justify-content: flex-end; margin-top: 24px;
+  }
+}
+
+// ── trail picker ────────────────────────────────
+.trail-grid {
+  display: grid; gap: 12px;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  list-style: none; padding: 0;
+}
+.trail-card {
+  --accent: #{$accent};
+  display: flex; gap: 12px; align-items: flex-start;
+  background: $bg-card; border: 1px solid $border;
+  border-radius: 12px; padding: 14px;
+  cursor: pointer; transition: transform .12s, border-color .12s, background .12s;
+
+  &:focus-visible { outline: 2px solid $accent; outline-offset: 2px; }
+  &:hover { transform: translateY(-1px); border-color: var(--accent); }
+  &--selected {
+    border-color: var(--accent);
+    background: linear-gradient(180deg, rgba(167,139,250,.08), $bg-card);
+    box-shadow: 0 0 0 2px var(--accent) inset;
+  }
+
+  &__icon { font-size: 28px; line-height: 1; }
+  h3 { font-size: 16px; margin-bottom: 4px; }
+  p  { font-size: 13px; color: $muted; line-height: 1.4; }
+  &__meta { color: $muted; font-size: 11px; margin-top: 6px; display: block; }
+}
+
+// ── teste de nivelamento ────────────────────────
+.test-group {
+  background: $bg-card; border: 1px solid $border;
+  border-radius: 12px; padding: 16px; margin-bottom: 16px;
+
+  h2 { font-size: 17px; margin-bottom: 12px; font-family: 'Syne', sans-serif; }
+}
+.test-question {
+  border: none; padding: 12px 0; margin: 0;
+  border-top: 1px solid $border;
+
+  &:first-of-type { border-top: none; padding-top: 0; }
+
+  &__prompt {
+    font-size: 14px; line-height: 1.5; margin-bottom: 8px;
+    white-space: pre-wrap;
+  }
+  &__meta { display: flex; gap: 6px; margin-bottom: 10px; }
+}
+.chip {
+  background: $bg-card-2; color: $muted;
+  padding: 2px 8px; border-radius: 999px; font-size: 11px;
+  &--ghost { background: transparent; border: 1px solid $border; }
+}
+.test-options { list-style: none; padding: 0; display: grid; gap: 6px; }
+.test-option {
+  width: 100%; text-align: left;
+  display: flex; gap: 10px; align-items: center;
+  background: $bg-card-2; border: 1px solid $border; color: $text;
+  padding: 10px 12px; border-radius: 10px; cursor: pointer;
+  font: inherit;
+  transition: border-color .12s, background .12s;
+
+  &:hover { border-color: $accent; }
+  &--picked {
+    background: rgba(167,139,250,.14); border-color: $accent;
+  }
+  &__letter {
+    flex-shrink: 0;
+    width: 24px; height: 24px;
+    display: inline-flex; align-items: center; justify-content: center;
+    border-radius: 6px; background: $bg-deep; color: $accent;
+    font-weight: 700; font-size: 12px;
+  }
+}
+
+// ── resultado ───────────────────────────────────
+.estimates { list-style: none; padding: 0; display: grid; gap: 12px; }
+.estimate {
+  background: $bg-card; border: 1px solid $border;
+  border-radius: 12px; padding: 14px;
+
+  &__head { display: flex; justify-content: space-between; align-items: center; }
+  &__bar {
+    height: 8px; background: $bg-card-2; border-radius: 4px;
+    margin: 10px 0 6px; overflow: hidden;
+    span {
+      display: block; height: 100%;
+      background: linear-gradient(90deg, $accent, $accent-2);
+      transition: width .4s ease;
+    }
+  }
+  &__row { display: flex; justify-content: space-between; align-items: center; }
+}
+.label {
+  font-size: 11px; padding: 2px 8px; border-radius: 999px; font-weight: 700;
+  &--iniciante     { background: rgba(167,139,250,.16); color: $accent; }
+  &--intermediario { background: rgba(56,219,140,.16);  color: $accent-2; }
+  &--avancado      { background: rgba(255,199,0,.16);   color: #ffc700; }
+}
+
+// ── buttons ────────────────────────────────────
+.btn {
+  font: inherit; cursor: pointer;
+  border: none; border-radius: 10px;
+  padding: 10px 18px;
+  transition: opacity .12s, transform .12s;
+  &:disabled { opacity: .4; cursor: not-allowed; }
+  &:not(:disabled):active { transform: scale(.98); }
+}
+.btn-primary {
+  background: $accent; color: $bg-deep; font-weight: 700;
+}
+.btn-link {
+  background: transparent; color: $accent; padding: 4px 8px;
+  font-size: 13px; font-weight: 600;
+  &:hover { text-decoration: underline; }
+}

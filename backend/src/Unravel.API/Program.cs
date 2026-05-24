@@ -82,7 +82,14 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowAngular", policy =>
     {
-        policy.WithOrigins("http://localhost:4200")
+        // 4200 é o default do ng serve; 4201 é o que usamos quando 4200
+        // está ocupado por outro projeto local. 127.0.0.1 espelha
+        // "localhost" para sandboxes que normalizam diferente.
+        policy.WithOrigins(
+                  "http://localhost:4200",
+                  "http://localhost:4201",
+                  "http://127.0.0.1:4200",
+                  "http://127.0.0.1:4201")
               .AllowAnyHeader()
               .AllowAnyMethod()
               // SignalR WebSocket exige AllowCredentials para o handshake;

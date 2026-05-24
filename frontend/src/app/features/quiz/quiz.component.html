@@ -1,0 +1,89 @@
+<div class="quiz">
+  @if (loading()) {
+    <p class="quiz__loading">Carregando perguntas…</p>
+  }
+
+  @if (error()) {
+    <div class="quiz__error" role="alert">{{ error() }}</div>
+  }
+
+  @if (data(); as d) {
+    <header class="quiz__header">
+      <div>
+        <h1>{{ d.contentTitle }}</h1>
+        <p class="quiz__sub">
+          Domínio atual: {{ (d.targetUserMastery * 100) | number: '1.0-0' }}%
+        </p>
+      </div>
+      <div class="quiz__progress">
+        {{ currentIndex() + 1 }} / {{ totalQuestions() }}
+      </div>
+    </header>
+
+    @if (current(); as c) {
+      <article class="quiz__card">
+        <div class="quiz__chips">
+          <span class="chip">{{ c.strategy }}</span>
+          <span class="chip chip--ghost">
+            Dificuldade: {{ (c.estimatedDifficulty * 100) | number: '1.0-0' }}%
+          </span>
+        </div>
+
+        <pre class="quiz__prompt">{{ c.prompt }}</pre>
+
+        <ul class="quiz__options">
+          @for (opt of c.options; track $index) {
+            <li>
+              <button
+                type="button"
+                class="option {{ optionClass(c, $index) }}"
+                [disabled]="answered()"
+                (click)="choose($index)"
+              >
+                <span class="option__letter">{{ ['A','B','C','D','E','F'][$index] }}</span>
+                <span class="option__text">{{ opt }}</span>
+              </button>
+            </li>
+          }
+        </ul>
+
+        @if (answered()) {
+          <div class="quiz__feedback" [class.quiz__feedback--ok]="selectedIndexOf(c) === c.correctIndex">
+            @if (selectedIndexOf(c) === c.correctIndex) {
+              ✅ Resposta correta!
+            } @else {
+              ❌ Não foi dessa vez. Correta: <strong>{{ c.options[c.correctIndex] }}</strong>
+            }
+            @if (c.explanation) {
+              <p class="quiz__explain">{{ c.explanation }}</p>
+            }
+          </div>
+        }
+
+        <nav class="quiz__nav">
+          <button class="btn btn-ghost" (click)="previous()" [disabled]="currentIndex() === 0">
+            ← Anterior
+          </button>
+          @if (currentIndex() < totalQuestions() - 1) {
+            <button class="btn btn-primary" (click)="next()" [disabled]="!answered()">
+              Próxima →
+            </button>
+          } @else if (isFinished()) {
+            <button class="btn btn-primary" (click)="finish()">
+              Finalizar
+            </button>
+          }
+        </nav>
+      </article>
+
+      @if (isFinished()) {
+        <section class="quiz__summary">
+          <h2>Resultado</h2>
+          <p class="quiz__summary-score">
+            {{ score() }} / {{ totalQuestions() }} acertos
+          </p>
+        </section>
+      }
+    }
+  }
+</div>

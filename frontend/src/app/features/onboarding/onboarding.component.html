@@ -1,0 +1,136 @@
+<div class="onboarding">
+  <header class="onboarding__header">
+    <h1>🐾 Vamos preparar sua jornada</h1>
+    <ol class="onboarding__steps" aria-label="Etapas">
+      <li [class.active]="step() === 'pick'">1. Trilhas</li>
+      <li [class.active]="step() === 'test'">2. Nivelamento</li>
+      <li [class.active]="step() === 'result'">3. Pronto</li>
+    </ol>
+  </header>
+
+  @if (error()) {
+    <div class="onboarding__error" role="alert">{{ error() }}</div>
+  }
+
+  <!-- ── Etapa 1 — escolha de trilhas ── -->
+  @if (step() === 'pick') {
+    <section class="onboarding__pick">
+      <p class="onboarding__lead">
+        Escolha as áreas que você quer estudar. O Navi vai criar um teste rápido
+        para entender de onde você parte.
+      </p>
+      <ul class="trail-grid">
+        @for (t of trails(); track t.id) {
+          <li
+            class="trail-card"
+            [class.trail-card--selected]="selectedIds().has(t.id)"
+            (click)="toggleTrail(t.id)"
+            (keydown.enter)="toggleTrail(t.id)"
+            tabindex="0"
+            role="button"
+            [attr.aria-pressed]="selectedIds().has(t.id)"
+            [style.--accent]="t.accentColor"
+          >
+            <span class="trail-card__icon">{{ t.icon }}</span>
+            <div>
+              <h3>{{ t.name }}</h3>
+              <p>{{ t.description }}</p>
+              <small class="trail-card__meta">{{ t.level }} · {{ t.totalContents }} conteúdos</small>
+            </div>
+          </li>
+        }
+      </ul>
+      <div class="onboarding__actions">
+        <button
+          class="btn btn-primary"
+          [disabled]="!hasSelection() || loading()"
+          (click)="startTest()"
+        >
+          @if (loading()) { Carregando… } @else { Continuar ({{ selectedIds().size }}) }
+        </button>
+      </div>
+    </section>
+  }
+
+  <!-- ── Etapa 2 — teste de nivelamento ── -->
+  @if (step() === 'test' && test()) {
+    <section class="onboarding__test">
+      <p class="onboarding__lead">
+        Responda como achar melhor. Não se preocupe em acertar tudo — o Navi
+        usa essas respostas para calibrar a jornada.
+      </p>
+      <div class="onboarding__progress">
+        {{ answeredCount() }} / {{ totalQuestions() }} respondidas
+      </div>
+      @for (group of test()!.trails; track group.trailId) {
+        <article class="test-group">
+          <h2>{{ group.trailName }}</h2>
+          @for (q of group.questions; track q.topicId) {
+            <fieldset class="test-question">
+              <legend class="test-question__prompt">{{ q.prompt }}</legend>
+              <div class="test-question__meta">
+                <span class="chip">{{ q.contentTitle }}</span>
+                <span class="chip chip--ghost">{{ q.strategy }}</span>
+              </div>
+              <ul class="test-options">
+                @for (opt of q.options; track opt; let i = $index) {
+                  <li>
+                    <button
+                      type="button"
+                      class="test-option"
+                      [class.test-option--picked]="isPicked(q.topicId, i)"
+                      (click)="answer(q.topicId, i)"
+                    >
+                      <span class="test-option__letter">{{ ['A','B','C','D','E','F'][i] }}</span>
+                      <span>{{ opt }}</span>
+                    </button>
+                  </li>
+                }
+              </ul>
+            </fieldset>
+          }
+        </article>
+      }
+      <div class="onboarding__actions">
+        <button
+          class="btn btn-primary"
+          [disabled]="!canSubmit() || loading()"
+          (click)="submitTest()"
+        >
+          @if (loading()) { Calibrando… } @else { Finalizar }
+        </button>
+      </div>
+    </section>
+  }
+
+  <!-- ── Etapa 3 — resultado ── -->
+  @if (step() === 'result' && result()) {
+    <section class="onboarding__result">
+      <h2>🎉 Tudo pronto</h2>
+      <p class="onboarding__lead">
+        Suas trilhas foram calibradas. Aqui está o nível inicial estimado:
+      </p>
+      <ul class="estimates">
+        @for (e of result()!.estimates; track e.trailId) {
+          <li class="estimate">
+            <div class="estimate__head">
+              <strong>{{ e.trailName }}</strong>
+              <span class="label label--{{ e.label.toLowerCase().replace('é','e') }}">
+                {{ e.label }}
+              </span>
+            </div>
+            <div class="estimate__bar">
+              <span [style.width.%]="e.estimatedMastery * 100"></span>
+            </div>
+            <div class="estimate__row">
+              <small>Domínio: {{ (e.estimatedMastery * 100) | number: '1.0-0' }}%</small>
+              <button class="btn btn-link" (click)="goToJourney(e.trailId)">
+                Ver plano do dia →
+              </button>
+            </div>
+          </li>
+        }
+      </ul>
+    </section>
+  }
+</div>
