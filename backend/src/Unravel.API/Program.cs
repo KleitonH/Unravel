@@ -3,7 +3,9 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
+using Unravel.API.Hubs;
 using Unravel.API.Middleware;
+using Unravel.Application.Journey.Ports;
 using Unravel.Infrastructure;
 using Unravel.Infrastructure.Persistence;
 
@@ -57,6 +59,21 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             ValidateLifetime = true,
             ClockSkew = TimeSpan.Zero
         };
+
+        // PR 8 — SignalR usa WebSocket; o header Authorization não é
+        // entregue pelo navegador na conexão WS, então aceitamos token
+        // via query string `?access_token=` SOMENTE para rotas /hubs/*.
+        options.Events = new JwtBearerEvents
+        {
+            OnMessageReceived = ctx =>
+            {
+                var accessToken = ctx.Request.Query["access_token"];
+                var path        = ctx.HttpContext.Request.Path;
+                if (!string.IsNullOrEmpty(accessToken) && path.StartsWithSegments("/hubs"))
+                    ctx.Token = accessToken;
+                return Task.CompletedTask;
+            }
+        };
     });
 
 builder.Services.AddAuthorization();
@@ -67,7 +84,10 @@ builder.Services.AddCors(options =>
     {
         policy.WithOrigins("http://localhost:4200")
               .AllowAnyHeader()
-              .AllowAnyMethod();
+              .AllowAnyMethod()
+              // SignalR WebSocket exige AllowCredentials para o handshake;
+              // origens devem ser explícitas (não "*") quando esse flag está on.
+              .AllowCredentials();
     });
 });
 
@@ -77,6 +97,13 @@ builder.Services.AddInfrastructure(builder.Configuration);
 // AddInfrastructure) porque AddHostedService só faz sentido no host;
 // testes unitários instanciam o DailyReplanService direto.
 builder.Services.AddHostedService<Unravel.Infrastructure.Journey.DailyReplanHostedService>();
+
+// PR 8 — SignalR para push real-time. Hub + bus que substitui o
+// LoggingJourneyEventBus registrado pelo AddInfrastructure (último
+// AddSingleton da mesma interface vence). Mantemos o Logging como
+// fallback se SignalR for desligado no futuro.
+builder.Services.AddSignalR();
+builder.Services.AddSingleton<IJourneyEventBus, SignalRJourneyEventBus>();
 
 var app = builder.Build();
 
@@ -103,5 +130,9 @@ app.UseCors("AllowAngular");
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
+
+// PR 8 — endpoint do hub. /hubs/journey aceita JWT via header ou
+// ?access_token= (configurado no JwtBearerEvents acima).
+app.MapHub<JourneyHub>("/hubs/journey");
 
 app.Run();
