@@ -68,6 +68,12 @@ public static class DependencyInjection
         services.AddSingleton<IChallengeStrategy, ClozeStrategy>();
         services.AddSingleton<IChallengeStrategy, DefinitionStrategy>();
         services.AddSingleton<IChallengeStrategy, TrueFalseStrategy>();
+        // PR 5 — estratégias avançadas. Mesma interface, registradas em
+        // paralelo; o ChallengeForge resolve como IEnumerable<IChallengeStrategy>
+        // e roteia automaticamente.
+        services.AddSingleton<IChallengeStrategy, OrderingStrategy>();
+        services.AddSingleton<IChallengeStrategy, MatchStrategy>();
+        services.AddSingleton<IChallengeStrategy, CodeStrategy>();
         services.AddSingleton<IChallengeForge, ChallengeForge>();
         services.AddScoped<IGeneratedChallengeRepository, GeneratedChallengeRepository>();
         services.AddScoped<IForgeReadModel, ForgeReadModel>();
