@@ -1,5 +1,10 @@
 name: Deploy
 
+# Migrations EF Core aplicam automaticamente no startup do Unravel.API
+# (Program.cs chama `await db.Database.MigrateAsync()`). O systemctl restart
+# abaixo dispara o startup; se uma migration falhar, o check de
+# `systemctl is-active` aborta o deploy. Não precisa passo manual de migrate.
+
 on:
   push:
     branches:
