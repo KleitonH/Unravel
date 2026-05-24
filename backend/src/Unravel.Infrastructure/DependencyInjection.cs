@@ -7,6 +7,7 @@ using Unravel.Application.Services;
 using Unravel.Application.UseCases;
 using Unravel.Domain.Ports;
 using Unravel.Application.Forge.Ports;
+using Unravel.Application.Forge.UseCases;
 using Unravel.Application.Journey;
 using Unravel.Application.Journey.UseCases;
 using Unravel.Infrastructure.Forge;
@@ -68,6 +69,8 @@ public static class DependencyInjection
         services.AddSingleton<IChallengeStrategy, TrueFalseStrategy>();
         services.AddSingleton<IChallengeForge, ChallengeForge>();
         services.AddScoped<IGeneratedChallengeRepository, GeneratedChallengeRepository>();
+        services.AddScoped<IForgeReadModel, ForgeReadModel>();
+        services.AddScoped<GetChallengePoolUseCase>();
 
         return services;
     }

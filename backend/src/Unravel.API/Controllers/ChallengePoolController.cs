@@ -1,0 +1,43 @@
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using Unravel.Application.Forge.UseCases;
+
+namespace Unravel.API.Controllers;
+
+/// <summary>
+/// Pool de perguntas geradas pelo Forge para um Content específico,
+/// calibrado pelo nível de domínio do usuário. Separado do
+/// <see cref="ChallengesController"/> (que serve as perguntas curadas
+/// por moderadores, ligadas a Trail) — quando Challenge ganhar
+/// ContentId, os dois pools podem mesclar no use case.
+/// </summary>
+[ApiController]
+[Route("api/contents/{contentId:int}/challenge-pool")]
+[Authorize]
+public sealed class ChallengePoolController : ControllerBase
+{
+    private readonly GetChallengePoolUseCase _pool;
+
+    private Guid UserId => Guid.Parse(User.FindFirstValue(JwtRegisteredClaimNames.Sub)
+                                      ?? User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+
+    public ChallengePoolController(GetChallengePoolUseCase pool) => _pool = pool;
+
+    /// <summary>Retorna até <c>targetCount</c> perguntas (default 5) para
+    /// o Content. Gera novas se o pool persistido estiver curto. 404 se
+    /// Content não existe ou está inativo.</summary>
+    [HttpGet]
+    public async Task<IActionResult> Get(
+        int contentId,
+        [FromQuery] int targetCount = 5,
+        CancellationToken ct = default)
+    {
+        if (targetCount is < 1 or > 20)
+            return BadRequest(new { message = "targetCount deve estar entre 1 e 20." });
+
+        var pool = await _pool.ExecuteAsync(UserId, contentId, targetCount, ct);
+        return pool is null ? NotFound() : Ok(pool);
+    }
+}
