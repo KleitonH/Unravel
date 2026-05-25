@@ -12,6 +12,7 @@ using Unravel.Application.Gamification.Ports;
 using Unravel.Application.Journey;
 using Unravel.Application.Journey.Onboarding;
 using Unravel.Application.Journey.UseCases;
+using Unravel.Application.Knowledge.Ports;
 using Unravel.Infrastructure.Forge;
 using Unravel.Infrastructure.Forge.Strategies;
 using Unravel.Infrastructure.Gamification;
@@ -66,7 +67,25 @@ public static class DependencyInjection
         // registradas múltiplas vezes na mesma interface (DI resolve como
         // IEnumerable<IChallengeStrategy>). Para plugar uma LlmChallengeStrategy
         // no futuro, basta um services.AddSingleton<IChallengeStrategy, LlmStrategy>().
-        services.AddSingleton<IDistractorPicker, DistractorPicker>();
+        // PR 18 — opcionalmente, embedder semântico substitui DistractorPicker
+        // lexical. Lê config "Embedding:Enabled" (default false). Quando ligado,
+        // exige Embedding:ModelPath e Embedding:TokenizerPath apontando para
+        // arquivos baixados via scripts/download-minilm.sh.
+        var embeddingEnabled = configuration.GetValue("Embedding:Enabled", false);
+        if (embeddingEnabled)
+        {
+            var modelPath     = configuration["Embedding:ModelPath"]
+                                ?? throw new InvalidOperationException("Embedding:ModelPath obrigatório quando Embedding:Enabled=true.");
+            var tokenizerPath = configuration["Embedding:TokenizerPath"]
+                                ?? throw new InvalidOperationException("Embedding:TokenizerPath obrigatório quando Embedding:Enabled=true.");
+            services.AddSingleton<IEmbedder>(sp => new MiniLmEmbedder(modelPath, tokenizerPath));
+            services.AddSingleton<IDistractorPicker, SemanticDistractorPicker>();
+        }
+        else
+        {
+            services.AddSingleton<IDistractorPicker, DistractorPicker>();
+        }
+
         services.AddSingleton<IChallengeStrategy, ClozeStrategy>();
         services.AddSingleton<IChallengeStrategy, DefinitionStrategy>();
         services.AddSingleton<IChallengeStrategy, TrueFalseStrategy>();
