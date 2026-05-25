@@ -1,4 +1,5 @@
 using Unravel.Application.Journey.Ports;
+using Unravel.Application.Telemetry;
 using Unravel.Domain.Knowledge;
 
 namespace Unravel.Application.Journey;
@@ -94,6 +95,12 @@ public sealed class JourneyPlanner : IJourneyPlanner
         var today      = ranked.Take(metaDia).ToList();
         var upcomingN  = Math.Min(opts.UpcomingDays, ranked.Count - metaDia);
         var upcoming   = ranked.Skip(metaDia).Take(upcomingN).ToList();
+
+        // Telemetria PR 19
+        UnravelMetrics.PlannerMetaDia.Record(metaDia);
+        foreach (var g in today.GroupBy(i => i.Reason))
+            UnravelMetrics.PlannerItemsByReason.Add(g.Count(),
+                new KeyValuePair<string, object?>("reason", g.Key.ToString()));
 
         return new JourneyPlan(input.UserId, input.Graph.TrailId, input.AsOf,
             metaDia, today, upcoming);

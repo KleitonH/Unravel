@@ -1,8 +1,10 @@
+using System.Diagnostics;
 using System.Text.Json;
 using Unravel.Application.Forge.DTOs;
 using Unravel.Application.Forge.Ports;
 using Unravel.Application.Gamification.Ports;
 using Unravel.Application.Journey.Ports;
+using Unravel.Application.Telemetry;
 using Unravel.Domain.Gamification;
 using Unravel.Domain.Knowledge;
 
@@ -44,6 +46,8 @@ public sealed class SubmitPoolChallengeUseCase
     public async Task<SubmitPoolChallengeResponse?> ExecuteAsync(
         Guid userId, int contentId, SubmitPoolChallengeRequest request, CancellationToken ct = default)
     {
+        var sw = Stopwatch.StartNew();
+
         var gc = await _generated.GetByIdAsync(request.GeneratedChallengeId, ct);
         if (gc is null) return null;
         if (gc.ContentId != contentId) return null;          // 404 — defesa contra IDs trocados
@@ -68,6 +72,12 @@ public sealed class SubmitPoolChallengeUseCase
         //    pergunta calibra a magnitude da recompensa.
         var rewards  = RewardCalculator.Compute(gc.EstimatedDifficulty, isCorrect);
         var snapshot = await _gamification.ApplyAsync(userId, rewards, now, ct);
+
+        // Telemetria PR 19
+        UnravelMetrics.QuizSubmissions.Add(1,
+            new KeyValuePair<string, object?>("outcome", isCorrect ? "correct" : "wrong"),
+            new KeyValuePair<string, object?>("strategy", gc.Strategy.ToString()));
+        UnravelMetrics.QuizSubmitDurationMs.Record(sw.Elapsed.TotalMilliseconds);
 
         return new SubmitPoolChallengeResponse(
             IsCorrect:            isCorrect,

@@ -1,6 +1,8 @@
+using System.Diagnostics;
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using Unravel.Application.Journey.Ports;
+using Unravel.Application.Telemetry;
 using Unravel.Domain.Knowledge;
 
 namespace Unravel.Application.Journey;
@@ -68,6 +70,7 @@ public sealed class DailyReplanService
     /// tempo arbitrário.</summary>
     public async Task<DailyReplanReport> RunAsync(DateTime asOf, CancellationToken ct = default)
     {
+        var sw = Stopwatch.StartNew();
         var today      = asOf.Date;       // 00:00 UTC do dia atual
         var yesterday  = today.AddDays(-1);
         var processed  = 0;
@@ -97,6 +100,7 @@ public sealed class DailyReplanService
                 effectiveStreak = 0;
                 await _readModel.UpdateUserStreakAsync(userGroup.Key, 0, ct);
                 await _eventBus.PublishAsync(new StreakReset(userGroup.Key, user.StreakDays, asOf), ct);
+                UnravelMetrics.CronStreakResets.Add(1);
                 _log.LogInformation("Streak reset for user {UserId} ({Days} days inactive)",
                     userGroup.Key, daysSinceActivity);
             }
@@ -113,12 +117,17 @@ public sealed class DailyReplanService
                 catch (Exception ex)
                 {
                     failures++;
+                    UnravelMetrics.CronFailures.Add(1);
                     _log.LogWarning(ex,
                         "Falha replanejando user {UserId} trilha {TrailId}; segue lote.",
                         target.UserId, target.TrailId);
                 }
             }
         }
+
+        // Telemetria PR 19 — métricas agregadas do batch.
+        UnravelMetrics.CronTargetsProcessed.Add(processed);
+        UnravelMetrics.CronRunDurationSec.Record(sw.Elapsed.TotalSeconds);
 
         var report = new DailyReplanReport(asOf, processed, failures, goalMet);
         _log.LogInformation("Daily replan done: {Processed} processed, {GoalMet} met goal, {Failures} failures",
@@ -159,6 +168,7 @@ public sealed class DailyReplanService
 
         // 3) Penalidade — +1 desafio extra se não cumpriu (e havia plano).
         var extra = (metYesterday == false) ? 1 : 0;
+        if (extra > 0) UnravelMetrics.CronPenaltiesApplied.Add(1);
 
         // 4) Persiste snapshot de hoje.
         var snap = new JourneySnapshot

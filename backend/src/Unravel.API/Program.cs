@@ -3,9 +3,12 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
+using OpenTelemetry.Metrics;
+using OpenTelemetry.Resources;
 using Unravel.API.Hubs;
 using Unravel.API.Middleware;
 using Unravel.Application.Journey.Ports;
+using Unravel.Application.Telemetry;
 using Unravel.Infrastructure;
 using Unravel.Infrastructure.Persistence;
 
@@ -99,6 +102,28 @@ builder.Services.AddCors(options =>
 });
 
 builder.Services.AddInfrastructure(builder.Configuration);
+
+// PR 19 — OpenTelemetry. Console exporter sempre ligado (visibilidade no
+// log durante dev/debug). OTLP exporter opcional via config:
+//   "Telemetry": { "Otlp": { "Endpoint": "http://collector:4317" } }
+// Sem Endpoint configurado, só console. Sem instrumentação automática
+// de EF Core ainda — nossas queries são poucas e curtas; podemos adicionar
+// se necessário (`AddSource("Npgsql")`).
+builder.Services.AddOpenTelemetry()
+    .ConfigureResource(r => r.AddService(
+        serviceName:    "unravel-api",
+        serviceVersion: typeof(Program).Assembly.GetName().Version?.ToString() ?? "0.0.0"))
+    .WithMetrics(b =>
+    {
+        b.AddMeter(UnravelMetrics.MeterName);
+        b.AddAspNetCoreInstrumentation();   // duração + status por endpoint
+
+        b.AddConsoleExporter();
+
+        var otlpEndpoint = builder.Configuration["Telemetry:Otlp:Endpoint"];
+        if (!string.IsNullOrWhiteSpace(otlpEndpoint))
+            b.AddOtlpExporter(o => o.Endpoint = new Uri(otlpEndpoint));
+    });
 
 // PR 7 — cron diário de replanejamento. Registrado aqui (não no
 // AddInfrastructure) porque AddHostedService só faz sentido no host;

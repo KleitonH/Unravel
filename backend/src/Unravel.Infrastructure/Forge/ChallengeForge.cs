@@ -1,6 +1,8 @@
+using System.Diagnostics;
 using Unravel.Application.Forge;
 using Unravel.Application.Forge.Ports;
 using Unravel.Application.Journey.Ports;
+using Unravel.Application.Telemetry;
 using Unravel.Domain.Entities;
 using Unravel.Domain.Forge;
 using Unravel.Domain.Knowledge;
@@ -47,6 +49,8 @@ public sealed class ChallengeForge : IChallengeForge
         int targetCount,
         double targetUserMastery = 0.3)
     {
+        var sw = Stopwatch.StartNew();
+
         var topic = graph.Topics.FirstOrDefault(t => t.ContentId == content.Id);
         if (topic is null) return Array.Empty<GeneratedChallengeDraft>();
 
@@ -56,12 +60,37 @@ public sealed class ChallengeForge : IChallengeForge
             .SelectMany(s => s.Generate(content, topic, graph, per))
             .ToList();
 
-        var approved = raw.Where(d => QualityGate.Approve(d, out _)).ToList();
-        if (approved.Count == 0) return Array.Empty<GeneratedChallengeDraft>();
+        // Telemetria PR 19 — drafts gerados por strategy.
+        foreach (var g in raw.GroupBy(d => d.Strategy))
+            UnravelMetrics.ForgeDraftsGenerated.Add(g.Count(),
+                new KeyValuePair<string, object?>("strategy", g.Key.ToString()));
+
+        // QualityGate com captura de razão para métrica de rejeição.
+        var approved = new List<GeneratedChallengeDraft>();
+        foreach (var d in raw)
+        {
+            if (QualityGate.Approve(d, out var reason))
+            {
+                approved.Add(d);
+                UnravelMetrics.ForgeDraftsApproved.Add(1,
+                    new KeyValuePair<string, object?>("strategy", d.Strategy.ToString()));
+            }
+            else
+            {
+                UnravelMetrics.ForgeDraftsRejected.Add(1,
+                    new KeyValuePair<string, object?>("strategy", d.Strategy.ToString()),
+                    new KeyValuePair<string, object?>("reason", reason ?? "unknown"));
+            }
+        }
+
+        if (approved.Count == 0)
+        {
+            UnravelMetrics.ForgeBuildDurationMs.Record(sw.Elapsed.TotalMilliseconds);
+            return Array.Empty<GeneratedChallengeDraft>();
+        }
 
         var target = Math.Clamp(targetUserMastery + 0.15, 0.10, 0.95);
 
-        // Ranking primário — por fitness, com tie-break determinístico.
         var ranked = approved
             .Select(d => new ScoredDraft(d, Fitness(d, target), StableHash(d.Prompt)))
             .OrderByDescending(x => x.Score)
@@ -69,7 +98,9 @@ public sealed class ChallengeForge : IChallengeForge
             .ThenBy(x => x.Hash)
             .ToList();
 
-        return Diversify(ranked, targetCount, MinDistinctStrategies);
+        var result = Diversify(ranked, targetCount, MinDistinctStrategies);
+        UnravelMetrics.ForgeBuildDurationMs.Record(sw.Elapsed.TotalMilliseconds);
+        return result;
     }
 
     // ── Helpers ──────────────────────────────────────────────────────
