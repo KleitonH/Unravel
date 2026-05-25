@@ -17,6 +17,11 @@
     <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="8.0.0" />
     <PackageReference Include="EFCore.NamingConventions" Version="8.0.0" />
     <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="7.0.3" />
+
+    <!-- PR 18 — MiniLM embedder via ONNX Runtime + tokenizer Hugging Face.
+         Ambos com binários nativos pré-compilados pra Linux/Windows/Mac. -->
+    <PackageReference Include="Microsoft.ML.OnnxRuntime" Version="1.18.0" />
+    <PackageReference Include="Tokenizers.DotNet" Version="1.0.5" />
   </ItemGroup>
 
   <ItemGroup>
