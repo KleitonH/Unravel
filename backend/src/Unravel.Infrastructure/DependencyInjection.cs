@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using Unravel.Application.Journey.Ports;
 using Unravel.Application.Ports;
 using Unravel.Application.Services;
@@ -14,6 +15,7 @@ using Unravel.Application.Journey.Onboarding;
 using Unravel.Application.Journey.UseCases;
 using Unravel.Application.Knowledge.Ports;
 using Unravel.Infrastructure.Forge;
+using Unravel.Infrastructure.Forge.Llm;
 using Unravel.Infrastructure.Forge.Strategies;
 using Unravel.Infrastructure.Gamification;
 using Unravel.Infrastructure.Journey;
@@ -95,6 +97,29 @@ public static class DependencyInjection
         services.AddSingleton<IChallengeStrategy, OrderingStrategy>();
         services.AddSingleton<IChallengeStrategy, MatchStrategy>();
         services.AddSingleton<IChallengeStrategy, CodeStrategy>();
+
+        // PR 20 — LLM strategy opcional. Lê Llm:Enabled (default false).
+        // Quando ligada, registra LLamaSharpInference (singleton, modelo na
+        // RAM) + LlmChallengeStrategy. ChallengeForge resolve como mais um
+        // IChallengeStrategy sem mudança. Orchestrator + hosted service
+        // entram juntos.
+        var llmEnabled = configuration.GetValue("Llm:Enabled", false);
+        if (llmEnabled)
+        {
+            var modelPath = configuration["Llm:ModelPath"]
+                            ?? throw new InvalidOperationException("Llm:ModelPath obrigatório quando Llm:Enabled=true.");
+            var gpuLayers = configuration.GetValue("Llm:GpuLayerCount", 0);
+            var ctxSize   = configuration.GetValue("Llm:ContextSize", 2048);
+            var maxTok    = configuration.GetValue("Llm:MaxTokens", 400);
+            var temp      = configuration.GetValue("Llm:Temperature", 0.7f);
+
+            services.AddSingleton<ILlmInference>(sp =>
+                new LLamaSharpInference(modelPath, gpuLayers, ctxSize, maxTok, temp,
+                    sp.GetRequiredService<ILogger<LLamaSharpInference>>()));
+            services.AddSingleton<IChallengeStrategy, LlmChallengeStrategy>();
+            services.AddScoped<ILlmGenerationOrchestrator, LlmGenerationOrchestrator>();
+        }
+
         services.AddSingleton<IChallengeForge, ChallengeForge>();
         services.AddScoped<IGeneratedChallengeRepository, GeneratedChallengeRepository>();
         services.AddScoped<IForgeReadModel, ForgeReadModel>();
