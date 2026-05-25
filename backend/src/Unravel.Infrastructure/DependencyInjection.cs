@@ -86,6 +86,10 @@ public static class DependencyInjection
         // PR 15 — gamificação: XP/Coins/Stars/Vidas + streak no submit do quiz.
         services.AddScoped<IUserGamificationGateway, UserGamificationGateway>();
 
+        // PR 17 — auto-desativador de perguntas com CorrectRate extremo.
+        // O hosted service correspondente é registrado em Program.cs.
+        services.AddScoped<IGeneratedChallengeMaintenance, GeneratedChallengeMaintenance>();
+
         // Onboarding (PR 6) — cold-start com nivelamento.
         // LevelingTestBuilder é stateless → singleton.
         // Read model e enroller dependem de DbContext → scoped.

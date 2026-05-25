@@ -105,6 +105,9 @@ builder.Services.AddInfrastructure(builder.Configuration);
 // testes unitários instanciam o DailyReplanService direto.
 builder.Services.AddHostedService<Unravel.Infrastructure.Journey.DailyReplanHostedService>();
 
+// PR 17 — auto-desativador semanal de perguntas com CorrectRate extrema.
+builder.Services.AddHostedService<Unravel.Infrastructure.Forge.GeneratedChallengeMaintenanceHostedService>();
+
 // PR 8 — SignalR para push real-time. Hub + bus que substitui o
 // LoggingJourneyEventBus registrado pelo AddInfrastructure (último
 // AddSingleton da mesma interface vence). Mantemos o Logging como
