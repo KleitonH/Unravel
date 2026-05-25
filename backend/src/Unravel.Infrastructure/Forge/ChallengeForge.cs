@@ -8,20 +8,30 @@ using Unravel.Domain.Knowledge;
 namespace Unravel.Infrastructure.Forge;
 
 /// <summary>
-/// Orquestrador do PR 4. Recebe N <see cref="IChallengeStrategy"/> via DI
+/// Orquestrador do Forge. Recebe N <see cref="IChallengeStrategy"/> via DI
 /// (pronto pra plugar <c>LlmChallengeStrategy</c> futura), pede a cada uma
 /// um lote de drafts, valida com <see cref="QualityGate"/>, calibra a saída
 /// pela mastery do usuário (zona proximal) e devolve um pool curto.
 ///
-/// <para><b>Calibragem</b>: filtra drafts cuja
-/// <c>EstimatedDifficulty</c> está dentro de uma janela em torno do
-/// <c>targetUserMastery + 0.15</c>. Drafts fora da janela só entram se o
-/// pool ficar pequeno demais — preferimos servir algo a servir nada.</para>
+/// <para><b>Calibragem</b>: prefere drafts cuja <c>EstimatedDifficulty</c>
+/// está próxima de <c>targetUserMastery + 0.15</c> (zona proximal).</para>
+///
+/// <para><b>Diversidade (PR 17)</b>: a ordenação pura por fitness fazia a
+/// estratégia mais prolífica (geralmente Cloze) saturar o top-N e a UX virar
+/// monótona. Agora aplicamos um passo de diversificação: garantimos até
+/// <see cref="MinDistinctStrategies"/> estratégias distintas no resultado
+/// sempre que houver drafts dessas estratégias disponíveis. O ranking
+/// continua determinístico: mesmo input → mesma saída e ordem.</para>
 /// </summary>
 public sealed class ChallengeForge : IChallengeForge
 {
     private readonly IEnumerable<IChallengeStrategy> _strategies;
     private readonly IKnowledgeGraphCache             _graphCache; // for topic lookup
+
+    /// <summary>Quantas estratégias distintas tentamos garantir no pool
+    /// quando há drafts suficientes. 3 espelha o pool padrão de targetCount=5
+    /// (60% diversificado, 40% por fitness puro).</summary>
+    public int MinDistinctStrategies { get; init; } = 3;
 
     public ChallengeForge(
         IEnumerable<IChallengeStrategy> strategies,
@@ -37,50 +47,102 @@ public sealed class ChallengeForge : IChallengeForge
         int targetCount,
         double targetUserMastery = 0.3)
     {
-        // 1. localiza o Topic correspondente ao Content (GraphBuilder usa
-        //    Topic.Id == Content.Id por convenção, mas defensivo).
         var topic = graph.Topics.FirstOrDefault(t => t.ContentId == content.Id);
         if (topic is null) return Array.Empty<GeneratedChallengeDraft>();
 
-        // 2. peça a cada estratégia ~2x o targetCount; o QualityGate vai
-        //    derrubar uma parte e a calibragem outra.
         var per = Math.Max(2, targetCount);
 
         var raw = _strategies
             .SelectMany(s => s.Generate(content, topic, graph, per))
             .ToList();
 
-        // 3. quality gate
         var approved = raw.Where(d => QualityGate.Approve(d, out _)).ToList();
         if (approved.Count == 0) return Array.Empty<GeneratedChallengeDraft>();
 
-        // 4. calibragem — preferência por dificuldade próxima da target.
-        //    Score = 1 - |diff - target|; tie-break por estratégia (rotação
-        //    leve) e por hash determinístico do prompt.
         var target = Math.Clamp(targetUserMastery + 0.15, 0.10, 0.95);
 
+        // Ranking primário — por fitness, com tie-break determinístico.
         var ranked = approved
-            .Select((d, idx) => new
-            {
-                Draft        = d,
-                Fitness      = 1.0 - Math.Abs(d.EstimatedDifficulty - target),
-                StrategyTier = (int)d.Strategy,
-                Hash         = StableHash(d.Prompt),
-                Idx          = idx,
-            })
-            .OrderByDescending(x => x.Fitness)
-            .ThenBy(x => x.StrategyTier)        // rotação: Cloze antes de Definition antes de TF, etc.
+            .Select(d => new ScoredDraft(d, Fitness(d, target), StableHash(d.Prompt)))
+            .OrderByDescending(x => x.Score)
+            .ThenBy(x => (int)x.Draft.Strategy)
             .ThenBy(x => x.Hash)
-            .Select(x => x.Draft)
-            .Take(targetCount)
             .ToList();
 
-        return ranked;
+        return Diversify(ranked, targetCount, MinDistinctStrategies);
+    }
+
+    // ── Helpers ──────────────────────────────────────────────────────
+
+    private static double Fitness(GeneratedChallengeDraft d, double target)
+        => 1.0 - Math.Abs(d.EstimatedDifficulty - target);
+
+    /// <summary>
+    /// Garante até <paramref name="minDistinct"/> estratégias distintas no
+    /// top-<paramref name="targetCount"/>. Algoritmo:
+    /// <list type="number">
+    ///   <item>Pega top-N por fitness (ordem original).</item>
+    ///   <item>Conta estratégias distintas presentes.</item>
+    ///   <item>Para cada estratégia ausente que tem ao menos 1 draft
+    ///   aprovado: substitui o draft de pior fitness do top-N (cuja
+    ///   estratégia esteja sobre-representada) pelo melhor draft da
+    ///   estratégia ausente.</item>
+    ///   <item>Reordena por fitness antes de retornar (manter UX consistente
+    ///   com "melhores primeiro").</item>
+    /// </list>
+    /// Determinístico — todas as escolhas dependem só do ranking.
+    /// </summary>
+    private static IReadOnlyList<GeneratedChallengeDraft> Diversify(
+        List<ScoredDraft> ranked, int targetCount, int minDistinct)
+    {
+        if (ranked.Count == 0 || targetCount <= 0) return Array.Empty<GeneratedChallengeDraft>();
+
+        var top = ranked.Take(targetCount).ToList();
+        if (minDistinct <= 1) return top.Select(x => x.Draft).ToList();
+
+        var availableStrategies = ranked
+            .Select(x => x.Draft.Strategy).Distinct().Count();
+        var goalDistinct = Math.Min(minDistinct, Math.Min(availableStrategies, targetCount));
+
+        while (top.Select(x => x.Draft.Strategy).Distinct().Count() < goalDistinct)
+        {
+            var present = top.Select(x => x.Draft.Strategy).ToHashSet();
+
+            // Próxima estratégia ausente, escolhida pelo melhor candidato
+            // disponível fora do top (estabilidade: a estratégia com o
+            // melhor candidato vence).
+            var bestMissing = ranked
+                .Where(x => !present.Contains(x.Draft.Strategy))
+                .FirstOrDefault();
+
+            if (bestMissing is null) break; // nada a fazer
+
+            // Slot a substituir: o draft de pior fitness no top cuja
+            // estratégia está duplicada — assim removemos redundância,
+            // não diversidade.
+            var slotToSwap = top
+                .Where(x => top.Count(y => y.Draft.Strategy == x.Draft.Strategy) > 1)
+                .OrderBy(x => x.Score)
+                .ThenByDescending(x => x.Hash)
+                .FirstOrDefault();
+
+            if (slotToSwap is null) break;   // sem duplicatas; não há o que substituir
+
+            top.Remove(slotToSwap);
+            top.Add(bestMissing);
+        }
+
+        // Reordena pra UX coerente: melhor fitness primeiro.
+        return top
+            .OrderByDescending(x => x.Score)
+            .ThenBy(x => (int)x.Draft.Strategy)
+            .ThenBy(x => x.Hash)
+            .Select(x => x.Draft)
+            .ToList();
     }
 
     private static int StableHash(string s)
     {
-        // Hash determinístico (não depende do random seed do CLR).
         unchecked
         {
             var h = 23;
@@ -88,4 +150,6 @@ public sealed class ChallengeForge : IChallengeForge
             return h;
         }
     }
+
+    private sealed record ScoredDraft(GeneratedChallengeDraft Draft, double Score, int Hash);
 }
