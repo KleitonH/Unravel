@@ -3,38 +3,89 @@ import {
   createRoute,
   createRouter,
   Outlet,
+  redirect,
 } from "@tanstack/react-router"
+import { AppShell } from "@/components/layout/app-shell"
+import { LoginPage } from "@/features/auth/login-page"
+import { RegisterPage } from "@/features/auth/register-page"
+import { useAuth } from "@/stores/auth"
 
-/**
- * Router skeleton do PR 21 — só rota raiz com placeholder. Páginas reais
- * (login, dashboard, onboarding, jornada, quiz, admin) entram no PR 22+.
- * Setup já pronto pra suportar protected routes via `beforeLoad` no PR 22.
- */
-const rootRoute = createRootRoute({
-  component: () => <Outlet />,
-})
+const rootRoute = createRootRoute({ component: () => <Outlet /> })
 
 const indexRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/",
+  beforeLoad: () => {
+    if (useAuth.getState().isAuthenticated()) throw redirect({ to: "/dashboard" })
+    throw redirect({ to: "/auth/login" })
+  },
+})
+
+const loginRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/auth/login",
+  component: LoginPage,
+})
+
+const registerRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/auth/register",
+  component: RegisterPage,
+})
+
+const authedLayoutRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  id: "authed",
+  beforeLoad: ({ location }) => {
+    if (!useAuth.getState().isAuthenticated()) {
+      throw redirect({
+        to: "/auth/login",
+        search: { redirect: location.pathname },
+      })
+    }
+  },
   component: () => (
-    <div className="flex h-full items-center justify-center p-8">
-      <div className="text-center space-y-3">
-        <h1 className="text-4xl font-display font-extrabold tracking-tight">
-          💎 Unravel
-        </h1>
-        <p className="text-muted-foreground">
-          Bootstrap React + Vite + Tailwind + shadcn-style pronto.
-        </p>
-        <p className="text-xs text-muted-foreground/70">
-          PR 22 adiciona auth + AppShell responsivo; PR 23 as páginas.
-        </p>
-      </div>
-    </div>
+    <AppShell>
+      <Outlet />
+    </AppShell>
   ),
 })
 
-const routeTree = rootRoute.addChildren([indexRoute])
+function Placeholder({ title }: { title: string }) {
+  return (
+    <div className="p-6 lg:p-10 space-y-2">
+      <h1 className="text-3xl font-display font-extrabold tracking-tight">{title}</h1>
+      <p className="text-muted-foreground">
+        Página placeholder — conteúdo real chega no PR 23.
+      </p>
+    </div>
+  )
+}
+
+const dashboardRoute  = createRoute({ getParentRoute: () => authedLayoutRoute, path: "/dashboard",        component: () => <Placeholder title="Início" /> })
+const trailsRoute     = createRoute({ getParentRoute: () => authedLayoutRoute, path: "/trails",           component: () => <Placeholder title="Trilhas" /> })
+const onboardingRoute = createRoute({ getParentRoute: () => authedLayoutRoute, path: "/onboarding",       component: () => <Placeholder title="Onboarding" /> })
+const jornadaRoute    = createRoute({ getParentRoute: () => authedLayoutRoute, path: "/jornada/$trailId", component: () => <Placeholder title="Jornada" /> })
+const quizRoute       = createRoute({ getParentRoute: () => authedLayoutRoute, path: "/quiz/$contentId",  component: () => <Placeholder title="Quiz" /> })
+const adminRoute      = createRoute({ getParentRoute: () => authedLayoutRoute, path: "/admin",            component: () => <Placeholder title="Admin" /> })
+const profileRoute    = createRoute({ getParentRoute: () => authedLayoutRoute, path: "/profile",          component: () => <Placeholder title="Perfil" /> })
+const desafioRoute    = createRoute({ getParentRoute: () => authedLayoutRoute, path: "/desafio",          component: () => <Placeholder title="Desafios" /> })
+
+const routeTree = rootRoute.addChildren([
+  indexRoute,
+  loginRoute,
+  registerRoute,
+  authedLayoutRoute.addChildren([
+    dashboardRoute,
+    trailsRoute,
+    onboardingRoute,
+    jornadaRoute,
+    quizRoute,
+    adminRoute,
+    profileRoute,
+    desafioRoute,
+  ]),
+])
 
 export const router = createRouter({ routeTree })
 
