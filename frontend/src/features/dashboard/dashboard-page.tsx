@@ -4,11 +4,12 @@ import { Coins, Flame, Heart, Plus, Star } from "lucide-react"
 import { useAuth } from "@/stores/auth"
 import { trailsApi } from "@/api/trails"
 import { journeyApi } from "@/api/journey"
+import { profileApi } from "@/api/profile"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
-import type { JourneyPlan, JourneyReason, Trail } from "@/types/api"
+import type { JourneyPlan, JourneyReason, Profile, StudentProfile, Trail } from "@/types/api"
 
 const REASON_LABEL: Record<JourneyReason, string> = {
   NewLearning: "Novo",
@@ -23,6 +24,15 @@ const REASON_LABEL: Record<JourneyReason, string> = {
 export function DashboardPage() {
   const user        = useAuth((s) => s.user)
   const navigate    = useNavigate()
+
+  // PR 26: profile real (XP, streak, vidas, coins). Tem que vir antes
+  // do hero pra renderizar com os dados certos no first paint.
+  // Stale 60s — perfil muda só no submit de quiz; já invalidamos lá via QC.
+  const profileQuery = useQuery({
+    queryKey: ["profile", "me"],
+    queryFn:  profileApi.me,
+    staleTime: 60_000,
+  })
 
   const trailsQuery = useQuery({
     queryKey: ["trails"],
@@ -43,7 +53,11 @@ export function DashboardPage() {
 
   return (
     <div className="p-6 lg:p-10 space-y-6">
-      <Hero name={user?.name ?? "estudante"} />
+      <Hero
+        name={user?.name ?? "estudante"}
+        profile={profileQuery.data ?? null}
+        loading={profileQuery.isLoading}
+      />
 
       {isLoading ? (
         <SkeletonList />
@@ -76,20 +90,51 @@ export function DashboardPage() {
   )
 }
 
-function Hero({ name }: { name: string }) {
-  // PR 24 vai trazer o profile real; por enquanto stats vazios — não
-  // criamos fake pra evitar confundir o usuário.
+function Hero({ name, profile, loading }: { name: string; profile: Profile | null; loading: boolean }) {
+  // PR 26 — stats reais via /api/profile.
+  // - Student: XP/streak/vidas/coins (chips animáveis em PR 27)
+  // - Moderator: sem stats individuais — exibe métricas globais discretas
+  // - Loading: skeletons no chip pra não pular layout
+  const isStudent = profile?.role === "Student"
+  const s = isStudent ? (profile as StudentProfile) : null
+
   return (
     <Card className="bg-gradient-to-br from-primary/10 via-card to-card border-primary/20">
       <CardHeader className="flex-row items-center justify-between gap-4">
-        <div>
-          <CardTitle className="text-2xl">Olá, {name}! 👋</CardTitle>
-          <CardDescription>Seu plano do dia está abaixo.</CardDescription>
+        <div className="min-w-0">
+          <CardTitle className="text-2xl truncate">
+            Olá, {name}! 👋
+            {s?.activeTitle && (
+              <span className="ml-2 align-middle text-xs font-medium text-primary/80 italic">
+                · {s.activeTitle}
+              </span>
+            )}
+          </CardTitle>
+          <CardDescription>
+            {profile?.role === "Moderator"
+              ? "Painel global — métricas da plataforma."
+              : "Seu plano do dia está abaixo."}
+          </CardDescription>
         </div>
+
         <div className="hidden sm:flex gap-2">
-          <Stat icon={<Star className="h-4 w-4" />}  value="0" label="XP" />
-          <Stat icon={<Flame className="h-4 w-4" />} value="0" label="dias" />
-          <Stat icon={<Heart className="h-4 w-4" />} value="5" label="vidas" />
+          {loading ? (
+            <>
+              <StatSkeleton /><StatSkeleton /><StatSkeleton />
+            </>
+          ) : isStudent && s ? (
+            <>
+              <Stat icon={<Star  className="h-4 w-4" />} value={fmt(s.xp)}         label="XP" />
+              <Stat icon={<Flame className="h-4 w-4" />} value={fmt(s.streakDays)} label={s.streakDays === 1 ? "dia" : "dias"} />
+              <Stat icon={<Heart className="h-4 w-4" />} value={fmt(s.lives)}      label={s.lives === 1 ? "vida" : "vidas"} />
+              <Stat icon={<Coins className="h-4 w-4" />} value={fmt(s.coins)}      label="coins" />
+            </>
+          ) : profile?.role === "Moderator" ? (
+            <>
+              <Stat icon={<Star className="h-4 w-4" />} value={fmt(profile.metrics.totalStudents)} label="alunos" />
+              <Stat icon={<Star className="h-4 w-4" />} value={fmt(profile.metrics.totalTrails)}   label="trilhas" />
+            </>
+          ) : null}
         </div>
       </CardHeader>
     </Card>
@@ -103,6 +148,23 @@ function Stat({ icon, value, label }: { icon: React.ReactNode; value: string; la
       <span className="text-[10px] uppercase tracking-wider text-muted-foreground">{label}</span>
     </div>
   )
+}
+
+function StatSkeleton() {
+  return (
+    <div className="min-w-[60px] rounded-md bg-popover/60 px-2 py-1.5 border border-border space-y-1">
+      <Skeleton className="h-4 w-12" />
+      <Skeleton className="h-2 w-8" />
+    </div>
+  )
+}
+
+/** Formata números do hero: <1k cru, ≥1k em "k", ≥1M em "M".
+ *  Mantém o chip estreito mesmo com XP grande (ex: 12500 → "12.5k"). */
+function fmt(n: number): string {
+  if (n < 1_000)     return n.toString()
+  if (n < 1_000_000) return `${(n / 1_000).toFixed(n < 10_000 ? 1 : 0).replace(/\.0$/, "")}k`
+  return `${(n / 1_000_000).toFixed(1).replace(/\.0$/, "")}M`
 }
 
 function EmptyState({ onStart }: { onStart: () => void }) {
@@ -199,6 +261,3 @@ function TrailCard({ trail, plan, loading }: { trail: Trail; plan: JourneyPlan |
     </Card>
   )
 }
-
-// 🪙 e <Coins /> evitam tree-shake do icone usado nos hero stats (mantém compatibilidade futura)
-void Coins

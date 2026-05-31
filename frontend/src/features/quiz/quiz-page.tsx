@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react"
-import { useQuery } from "@tanstack/react-query"
+import { useQuery, useQueryClient } from "@tanstack/react-query"
 import { useNavigate, useParams } from "@tanstack/react-router"
 import { toast } from "sonner"
 import { Check, ChevronLeft, ChevronRight, Coins, Heart, Star, X } from "lucide-react"
@@ -27,6 +27,7 @@ export function QuizPage() {
   const { contentId } = useParams({ from: "/authed/quiz/$contentId" })
   const contentIdNum = Number(contentId)
   const navigate = useNavigate()
+  const qc = useQueryClient()
 
   const poolQuery = useQuery({
     queryKey: ["challenge-pool", contentIdNum],
@@ -67,6 +68,10 @@ export function QuizPage() {
         lifeDelta: r.lifeDelta,
       }
       setAnswers((prev) => new Map(prev).set(current.id, state))
+
+      // PR 26: invalida o profile pro Hero do dashboard atualizar XP/streak/vidas
+      // no próximo render. Não esperamos o refetch (não é UI crítica do quiz).
+      qc.invalidateQueries({ queryKey: ["profile", "me"] })
 
       // Toast com ganhos
       if (r.isCorrect && (r.xpEarned > 0 || r.coinsEarned > 0)) {
