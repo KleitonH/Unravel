@@ -32,7 +32,9 @@ export const useAuth = create<AuthState>()(
       user:         null,
       role:         null,
 
-      isAuthenticated: () => !!get().accessToken && !!get().user,
+      // Token presente basta — se inválido, interceptor 401 dispara logout
+      // via onAuthFailed. Esperar `user` carregar bloquearia a UX no boot.
+      isAuthenticated: () => !!get().accessToken,
       isModerator:     () => get().role === "Moderator",
 
       async login(body) {

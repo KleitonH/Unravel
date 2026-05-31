@@ -18,10 +18,15 @@ backend/**/appsettings.Local.json
 # EF Core Migrations (optional - remove if you want to track migrations)
 # backend/**/Migrations/
 
-# Node / Angular
+# Node / Angular / Vite
 frontend/node_modules/
 frontend/.angular/
 frontend/dist/
+
+# Defensivo: caso `npm install` seja rodado na raiz por engano
+/node_modules/
+/package.json
+/package-lock.json
 
 # OS
 .DS_Store
