@@ -157,6 +157,11 @@ public static class DependencyInjection
         // Execução automática no startup é decidida em Program.cs.
         services.AddScoped<KnowledgeImporter>();
 
+        // PR 29 — ClaimExtractor: segmenta Content.Body em chunks +
+        // extrai atomic claims testáveis. Stateless após construção;
+        // singleton seguro. Alimenta o gerador LLM grounded (PR 31).
+        services.AddSingleton<IClaimExtractor, ClaimExtractor>();
+
         return services;
     }
 }
