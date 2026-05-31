@@ -10,6 +10,7 @@ using Unravel.API.Middleware;
 using Unravel.Application.Journey.Ports;
 using Unravel.Application.Telemetry;
 using Unravel.Infrastructure;
+using Unravel.Infrastructure.Knowledge;
 using Unravel.Infrastructure.Persistence;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -158,7 +159,38 @@ using (var scope = app.Services.CreateScope())
         await db.Database.MigrateAsync();
         await TrailSeeder.SeedAsync(db);
         await GamificationSeeder.SeedAsync(db);
+
+        // PR 28 — KnowledgeImporter: importa trilhas em backend/knowledge/.
+        // Idempotente (upsert por slug). Pode ser desligado via
+        // Knowledge:AutoImport=false em appsettings.
+        if (app.Configuration.GetValue("Knowledge:AutoImport", true))
+        {
+            var importer = scope.ServiceProvider.GetRequiredService<KnowledgeImporter>();
+            var rootPath = ResolveKnowledgePath(app.Configuration, app.Environment.ContentRootPath);
+            try
+            {
+                await importer.ImportAllAsync(rootPath);
+            }
+            catch (Exception ex)
+            {
+                // Falha de import NÃO deve impedir startup — a app
+                // segue funcionando com o conteúdo que já estava no DB.
+                app.Logger.LogError(ex, "KnowledgeImporter falhou no startup. Conteúdo prévio preservado.");
+            }
+        }
     }
+}
+
+// Resolve o caminho de Knowledge:Path relativo ao ContentRoot quando
+// configurado como caminho relativo. Default: ../../knowledge (pra
+// rodar do bin/Debug/net8.0 do projeto API até backend/knowledge).
+static string ResolveKnowledgePath(IConfiguration cfg, string contentRoot)
+{
+    var configured = cfg["Knowledge:Path"];
+    if (!string.IsNullOrWhiteSpace(configured) && Path.IsPathRooted(configured))
+        return configured;
+    var relative = configured ?? "../../knowledge";
+    return Path.GetFullPath(Path.Combine(contentRoot, relative));
 }
 
 if (app.Environment.IsDevelopment())

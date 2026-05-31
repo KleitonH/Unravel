@@ -3,6 +3,17 @@ namespace Unravel.Domain.Entities;
 public class Content
 {
     public int     Id          { get; set; }
+
+    /// <summary>
+    /// Identificador estável para upsert via KnowledgeImporter (PR 28).
+    /// Nullable para retrocompatibilidade com conteúdos criados pelo
+    /// TrailSeeder antes da migration AddSlugToTrailAndContent. Quando
+    /// preenchido, é único na tabela inteira (não escopado por trilha)
+    /// para evitar ambiguidade em referências cruzadas (gold set, claim
+    /// extractor, forge queue).
+    /// </summary>
+    public string? Slug        { get; set; }
+
     public string  Title       { get; set; } = string.Empty;
     public string  Body        { get; set; } = string.Empty;
     public string? ExternalUrl { get; set; }

@@ -3,6 +3,15 @@ namespace Unravel.Domain.Entities;
 public class Trail
 {
     public int    Id          { get; set; }
+
+    /// <summary>
+    /// Identificador estável para upsert via KnowledgeImporter (PR 28).
+    /// Nullable para retrocompatibilidade com trilhas criadas via TrailSeeder
+    /// antes da migration AddSlugToTrailAndContent. Trilhas novas importadas
+    /// de markdown sempre têm slug. Quando preenchido, é único.
+    /// </summary>
+    public string? Slug        { get; set; }
+
     public string Name        { get; set; } = string.Empty;
     public string Description { get; set; } = string.Empty;
     public string Icon        { get; set; } = string.Empty;

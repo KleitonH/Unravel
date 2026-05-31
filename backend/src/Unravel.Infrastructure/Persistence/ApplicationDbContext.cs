@@ -27,6 +27,12 @@ public partial class ApplicationDbContext(DbContextOptions<ApplicationDbContext>
         mb.Entity<Trail>(e =>
         {
             e.HasKey(t => t.Id);
+            // PR 28: slug é único (quando preenchido). Filtro nullable
+            // permite legacy trails sem slug coexistirem sem violar índice.
+            e.Property(t => t.Slug).HasMaxLength(80);
+            e.HasIndex(t => t.Slug)
+             .IsUnique()
+             .HasFilter("\"slug\" IS NOT NULL");
             e.Property(t => t.Name).HasMaxLength(120).IsRequired();
             e.Property(t => t.Description).HasMaxLength(500);
             e.Property(t => t.Icon).HasMaxLength(10);
@@ -37,6 +43,12 @@ public partial class ApplicationDbContext(DbContextOptions<ApplicationDbContext>
         mb.Entity<Content>(e =>
         {
             e.HasKey(c => c.Id);
+            // PR 28: slug global (não escopado por trilha) — evita
+            // ambiguidade em refs cruzadas (gold set / claim extractor).
+            e.Property(c => c.Slug).HasMaxLength(80);
+            e.HasIndex(c => c.Slug)
+             .IsUnique()
+             .HasFilter("\"slug\" IS NOT NULL");
             e.Property(c => c.Title).HasMaxLength(200).IsRequired();
             e.Property(c => c.ExternalUrl).HasMaxLength(500);
             e.Property(c => c.Type).HasConversion<int>();

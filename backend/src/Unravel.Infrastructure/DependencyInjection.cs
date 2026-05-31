@@ -152,6 +152,11 @@ public static class DependencyInjection
         services.AddScoped<IJourneySnapshotRepository, JourneySnapshotRepository>();
         services.AddScoped<DailyReplanService>();
 
+        // PR 28 — KnowledgeImporter: lê backend/knowledge/* e popula
+        // Trail+Content via upsert por Slug. Scoped (usa DbContext).
+        // Execução automática no startup é decidida em Program.cs.
+        services.AddScoped<KnowledgeImporter>();
+
         return services;
     }
 }
