@@ -13,6 +13,8 @@ import { TrailsPage } from "@/features/trails/trails-page"
 import { ProfilePage } from "@/features/profile/profile-page"
 import { OnboardingPage } from "@/features/onboarding/onboarding-page"
 import { JornadaPage } from "@/features/jornada/jornada-page"
+import { QuizPage } from "@/features/quiz/quiz-page"
+import { AdminPage } from "@/features/admin/admin-page"
 import { useAuth } from "@/stores/auth"
 
 const rootRoute = createRootRoute({ component: () => <Outlet /> })
@@ -71,8 +73,8 @@ const dashboardRoute  = createRoute({ getParentRoute: () => authedLayoutRoute, p
 const trailsRoute     = createRoute({ getParentRoute: () => authedLayoutRoute, path: "/trails",           component: TrailsPage })
 const onboardingRoute = createRoute({ getParentRoute: () => authedLayoutRoute, path: "/onboarding",       component: OnboardingPage })
 const jornadaRoute    = createRoute({ getParentRoute: () => authedLayoutRoute, path: "/jornada/$trailId", component: JornadaPage })
-const quizRoute       = createRoute({ getParentRoute: () => authedLayoutRoute, path: "/quiz/$contentId",  component: () => <Placeholder title="Quiz" /> })
-const adminRoute      = createRoute({ getParentRoute: () => authedLayoutRoute, path: "/admin",            component: () => <Placeholder title="Admin" /> })
+const quizRoute       = createRoute({ getParentRoute: () => authedLayoutRoute, path: "/quiz/$contentId",  component: QuizPage })
+const adminRoute      = createRoute({ getParentRoute: () => authedLayoutRoute, path: "/admin",            component: AdminPage })
 const profileRoute    = createRoute({ getParentRoute: () => authedLayoutRoute, path: "/profile",          component: ProfilePage })
 const desafioRoute    = createRoute({ getParentRoute: () => authedLayoutRoute, path: "/desafio",          component: () => <Placeholder title="Desafios" /> })
 
