@@ -98,24 +98,55 @@ public static class DependencyInjection
         services.AddSingleton<IChallengeStrategy, MatchStrategy>();
         services.AddSingleton<IChallengeStrategy, CodeStrategy>();
 
-        // PR 20 — LLM strategy opcional. Lê Llm:Enabled (default false).
-        // Quando ligada, registra LLamaSharpInference (singleton, modelo na
-        // RAM) + LlmChallengeStrategy. ChallengeForge resolve como mais um
-        // IChallengeStrategy sem mudança. Orchestrator + hosted service
-        // entram juntos.
+        // PR 20 + PR 30 — LLM strategy opcional. Lê Llm:Enabled (default
+        // false). Quando ligada, escolhe entre dois providers via
+        // Llm:Provider:
+        //   • "Ollama"     → HTTP pra daemon local com GPU offload (dev/lab)
+        //   • "LLamaSharp" → modelo .gguf embarcado no processo (VPS CPU)
+        //                    [default, retrocompat com PR 20]
+        // Ambos implementam ILlmInference; LlmChallengeStrategy não sabe
+        // qual está em uso. Health check no boot do hosted service.
         var llmEnabled = configuration.GetValue("Llm:Enabled", false);
         if (llmEnabled)
         {
-            var modelPath = configuration["Llm:ModelPath"]
-                            ?? throw new InvalidOperationException("Llm:ModelPath obrigatório quando Llm:Enabled=true.");
-            var gpuLayers = configuration.GetValue("Llm:GpuLayerCount", 0);
-            var ctxSize   = configuration.GetValue("Llm:ContextSize", 2048);
-            var maxTok    = configuration.GetValue("Llm:MaxTokens", 400);
-            var temp      = configuration.GetValue("Llm:Temperature", 0.7f);
+            var provider = configuration.GetValue("Llm:Provider", "LLamaSharp");
+            var maxTok   = configuration.GetValue("Llm:MaxTokens", 400);
+            var temp     = configuration.GetValue("Llm:Temperature", 0.7f);
+            var ctxSize  = configuration.GetValue("Llm:ContextSize", 2048);
 
-            services.AddSingleton<ILlmInference>(sp =>
-                new LLamaSharpInference(modelPath, gpuLayers, ctxSize, maxTok, temp,
-                    sp.GetRequiredService<ILogger<LLamaSharpInference>>()));
+            if (provider.Equals("Ollama", StringComparison.OrdinalIgnoreCase))
+            {
+                // Ollama: HTTP client + factory de OllamaInference. HttpClient
+                // gerenciado pelo IHttpClientFactory (lifecycle + socket reuse).
+                var baseUrl = configuration["Llm:Ollama:BaseUrl"] ?? "http://127.0.0.1:11434";
+                var model   = configuration["Llm:Ollama:Model"]
+                              ?? throw new InvalidOperationException("Llm:Ollama:Model obrigatório (ex: 'qwen2.5:7b-instruct-q4_K_M').");
+                var forceJson = configuration.GetValue("Llm:Ollama:ForceJson", true);
+
+                services.AddHttpClient<OllamaInference>(c =>
+                {
+                    c.BaseAddress = new Uri(baseUrl.TrimEnd('/') + "/");
+                });
+
+                services.AddSingleton<ILlmInference>(sp =>
+                {
+                    var http = sp.GetRequiredService<IHttpClientFactory>().CreateClient(nameof(OllamaInference));
+                    http.BaseAddress = new Uri(baseUrl.TrimEnd('/') + "/");
+                    return new OllamaInference(http, model, temp, maxTok, ctxSize, forceJson,
+                        sp.GetRequiredService<ILogger<OllamaInference>>());
+                });
+            }
+            else
+            {
+                var modelPath = configuration["Llm:ModelPath"]
+                                ?? throw new InvalidOperationException("Llm:ModelPath obrigatório quando Llm:Provider=LLamaSharp.");
+                var gpuLayers = configuration.GetValue("Llm:GpuLayerCount", 0);
+
+                services.AddSingleton<ILlmInference>(sp =>
+                    new LLamaSharpInference(modelPath, gpuLayers, ctxSize, maxTok, temp,
+                        sp.GetRequiredService<ILogger<LLamaSharpInference>>()));
+            }
+
             services.AddSingleton<IChallengeStrategy, LlmChallengeStrategy>();
             services.AddScoped<ILlmGenerationOrchestrator, LlmGenerationOrchestrator>();
         }
