@@ -107,10 +107,14 @@ export function JornadaPage() {
               </CardContent></Card>
             ) : (
               <ul className="space-y-2">
-                {planQuery.data.today.map((item) =>
-                  <ItemRow key={item.topicId} item={item} ghost={false}
-                    onPraticar={() => navigate({ to: "/quiz/$contentId", params: { contentId: String(item.contentId) } })}
-                  />)}
+                {planQuery.data.today.map((item, i) =>
+                  // PR 27: stagger 60ms — entrega visual de "lista chegando"
+                  // sem fazer o user esperar pra ler. Cap em 8 pra trails longas.
+                  <div key={item.topicId} className="animate-pop-in" style={{ animationDelay: `${Math.min(i, 8) * 60}ms` }}>
+                    <ItemRow item={item} ghost={false}
+                      onPraticar={() => navigate({ to: "/quiz/$contentId", params: { contentId: String(item.contentId) } })}
+                    />
+                  </div>)}
               </ul>
             )}
           </section>

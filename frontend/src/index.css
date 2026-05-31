@@ -60,3 +60,22 @@
   }
   ::-webkit-scrollbar-thumb:hover { background: hsl(var(--primary) / 0.6); }
 }
+
+/* PR 27 — Acessibilidade: respeitar usuários que desabilitam motion no
+ * sistema (Windows, macOS, iOS, Android). Mata praticamente toda
+ * animação/transição mantendo conteúdo legível.
+ *
+ * Não usamos `* { animation: none }` porque isso quebra spinners
+ * funcionais (ex: Loader2 do quiz indicando submit em andamento).
+ * Em vez disso, encurtamos pra 0.01ms — o navegador respeita o
+ * estado final imediato sem disparar callbacks intermediários. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration:   0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration:  0.01ms !important;
+    scroll-behavior:      auto !important;
+  }
+}

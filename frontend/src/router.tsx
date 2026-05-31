@@ -31,7 +31,10 @@ const QuizPage       = lazy(() => import("@/features/quiz/quiz-page").then((m) =
 const AdminPage      = lazy(() => import("@/features/admin/admin-page").then((m) => ({ default: m.AdminPage })))
 
 /** Wrapper que serializa Suspense fallback em cada rota lazy.
- *  Skeleton segue identidade visual; nada de spinner branco. */
+ *  Skeleton segue identidade visual; nada de spinner branco.
+ *  PR 27: aplica `animate-page-in` no conteúdo (fade + slide up
+ *  sutil ~8px). Skeleton fica imóvel — anima só o conteúdo final
+ *  pra não criar dupla animação. */
 function Lazy({ Component }: { Component: React.ComponentType }) {
   return (
     <Suspense fallback={
@@ -43,7 +46,9 @@ function Lazy({ Component }: { Component: React.ComponentType }) {
         </div>
       </div>
     }>
-      <Component />
+      <div className="animate-page-in">
+        <Component />
+      </div>
     </Suspense>
   )
 }

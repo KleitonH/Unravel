@@ -219,9 +219,12 @@ export function QuizPage() {
 }
 
 function FeedbackBlock({ answer }: { answer: AnswerState }) {
+  // PR 27: `animate-pop-in` no bloco inteiro — feedback aparece com
+  // pequena escala in pra confirmar a interação. Sem isso o usuário
+  // pode não notar que o bloco surgiu (especialmente em viewport longa).
   return (
     <div className={cn(
-      "rounded-md border p-3 text-sm space-y-2",
+      "rounded-md border p-3 text-sm space-y-2 animate-pop-in",
       answer.isCorrect ? "border-success bg-success/10" : "border-destructive bg-destructive/10",
     )}>
       <div className="flex items-center gap-2 font-semibold">

@@ -76,12 +76,15 @@ export function DashboardPage() {
 
           <div className="grid gap-4 md:grid-cols-2">
             {enrolled.map((trail, i) => (
-              <TrailCard
-                key={trail.id}
-                trail={trail}
-                plan={journeyQueries[i].data ?? null}
-                loading={journeyQueries[i].isLoading}
-              />
+              // PR 27: stagger ~80ms entre cards. Cap em 6 pra não criar
+              // "wave" muito longa quando o user tiver 10+ trilhas.
+              <div key={trail.id} className="animate-pop-in" style={{ animationDelay: `${Math.min(i, 6) * 80}ms` }}>
+                <TrailCard
+                  trail={trail}
+                  plan={journeyQueries[i].data ?? null}
+                  loading={journeyQueries[i].isLoading}
+                />
+              </div>
             ))}
           </div>
         </section>
@@ -124,15 +127,15 @@ function Hero({ name, profile, loading }: { name: string; profile: Profile | nul
             </>
           ) : isStudent && s ? (
             <>
-              <Stat icon={<Star  className="h-4 w-4" />} value={fmt(s.xp)}         label="XP" />
-              <Stat icon={<Flame className="h-4 w-4" />} value={fmt(s.streakDays)} label={s.streakDays === 1 ? "dia" : "dias"} />
-              <Stat icon={<Heart className="h-4 w-4" />} value={fmt(s.lives)}      label={s.lives === 1 ? "vida" : "vidas"} />
-              <Stat icon={<Coins className="h-4 w-4" />} value={fmt(s.coins)}      label="coins" />
+              <Stat idx={0} icon={<Star  className="h-4 w-4" />} value={fmt(s.xp)}         label="XP" />
+              <Stat idx={1} icon={<Flame className="h-4 w-4" />} value={fmt(s.streakDays)} label={s.streakDays === 1 ? "dia" : "dias"} />
+              <Stat idx={2} icon={<Heart className="h-4 w-4" />} value={fmt(s.lives)}      label={s.lives === 1 ? "vida" : "vidas"} />
+              <Stat idx={3} icon={<Coins className="h-4 w-4" />} value={fmt(s.coins)}      label="coins" />
             </>
           ) : profile?.role === "Moderator" ? (
             <>
-              <Stat icon={<Star className="h-4 w-4" />} value={fmt(profile.metrics.totalStudents)} label="alunos" />
-              <Stat icon={<Star className="h-4 w-4" />} value={fmt(profile.metrics.totalTrails)}   label="trilhas" />
+              <Stat idx={0} icon={<Star className="h-4 w-4" />} value={fmt(profile.metrics.totalStudents)} label="alunos" />
+              <Stat idx={1} icon={<Star className="h-4 w-4" />} value={fmt(profile.metrics.totalTrails)}   label="trilhas" />
             </>
           ) : null}
         </div>
@@ -141,10 +144,21 @@ function Hero({ name, profile, loading }: { name: string; profile: Profile | nul
   )
 }
 
-function Stat({ icon, value, label }: { icon: React.ReactNode; value: string; label: string }) {
+function Stat({ idx = 0, icon, value, label }: { idx?: number; icon: React.ReactNode; value: string; label: string }) {
+  // PR 27 — `animate-pop-in` no chip (entra em escala) com stagger ~50ms
+  // entre eles. O <strong> usa `key={value}` pra re-renderizar com
+  // `animate-count-pop` quando o número muda (ex: ganho de XP após quiz).
   return (
-    <div className="flex flex-col items-center min-w-[60px] rounded-md bg-popover/60 px-2 py-1.5 border border-border">
-      <div className="flex items-center gap-1 text-primary">{icon}<strong className="font-display text-base">{value}</strong></div>
+    <div
+      className="flex flex-col items-center min-w-[60px] rounded-md bg-popover/60 px-2 py-1.5 border border-border animate-pop-in"
+      style={{ animationDelay: `${idx * 50}ms` }}
+    >
+      <div className="flex items-center gap-1 text-primary">
+        {icon}
+        <strong key={value} className="font-display text-base animate-count-pop inline-block">
+          {value}
+        </strong>
+      </div>
       <span className="text-[10px] uppercase tracking-wider text-muted-foreground">{label}</span>
     </div>
   )

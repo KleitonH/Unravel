@@ -70,13 +70,40 @@ const config: Config = {
         sm: "calc(var(--radius) - 4px)",
       },
       keyframes: {
+        // PR 21 — fade simples (usado em micro-feedback inline)
         "fade-in": {
           from: { opacity: "0", transform: "translateY(-4px)" },
           to:   { opacity: "1", transform: "none" },
         },
+        // PR 27 — transição entre páginas: leve subida + fade.
+        // Curva ease-out + 18ms de delay pra absorver o flush
+        // do React após Suspense resolver (evita flicker do skeleton
+        // virando direto).
+        "page-in": {
+          from: { opacity: "0", transform: "translateY(8px)" },
+          to:   { opacity: "1", transform: "none" },
+        },
+        // PR 27 — entrada de card/chip. Escala discreta (0.96→1)
+        // pra dar sensação de "pop" sem ser brincalhão. Stagger por
+        // animation-delay no consumer.
+        "pop-in": {
+          "0%":   { opacity: "0", transform: "scale(0.96)" },
+          "100%": { opacity: "1", transform: "scale(1)" },
+        },
+        // PR 27 — quando o número de XP/streak muda (após submit do
+        // quiz, refetch do profile). Overshoot leve pra chamar atenção
+        // sem ser intrusivo.
+        "count-pop": {
+          "0%":   { transform: "scale(0.85)" },
+          "50%":  { transform: "scale(1.08)" },
+          "100%": { transform: "scale(1)" },
+        },
       },
       animation: {
-        "fade-in": "fade-in 0.25s ease-out",
+        "fade-in":   "fade-in 0.25s ease-out",
+        "page-in":   "page-in 0.32s cubic-bezier(0.22, 1, 0.36, 1)",
+        "pop-in":    "pop-in 0.24s cubic-bezier(0.22, 1, 0.36, 1) both",
+        "count-pop": "count-pop 0.32s ease-out",
       },
     },
   },

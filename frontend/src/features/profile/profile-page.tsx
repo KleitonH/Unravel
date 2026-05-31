@@ -67,7 +67,7 @@ export function ProfilePage() {
       {/* Stats — Student only */}
       {profileQuery.isLoading && <Skeleton className="h-32" />}
       {s && (
-        <Card>
+        <Card className="animate-pop-in" style={{ animationDelay: "60ms" }}>
           <CardHeader>
             <CardTitle className="text-sm font-display font-bold uppercase tracking-wider text-muted-foreground">
               Estatísticas
@@ -84,7 +84,7 @@ export function ProfilePage() {
 
       {/* Trilhas */}
       {s && s.trailProgress.length > 0 && (
-        <Card>
+        <Card className="animate-pop-in" style={{ animationDelay: "120ms" }}>
           <CardHeader>
             <CardTitle className="text-sm font-display font-bold uppercase tracking-wider text-muted-foreground">
               Suas trilhas ({s.trailProgress.length})
@@ -105,7 +105,7 @@ export function ProfilePage() {
 
       {/* Badges */}
       {s && s.badges.length > 0 && (
-        <Card>
+        <Card className="animate-pop-in" style={{ animationDelay: "180ms" }}>
           <CardHeader>
             <CardTitle className="text-sm font-display font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-2">
               <Trophy className="h-4 w-4" />Conquistas ({s.badges.length})
