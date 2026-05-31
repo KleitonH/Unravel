@@ -34,17 +34,21 @@ jobs:
         run: dotnet build --no-restore --configuration Release --nologo
 
       - name: Run tests
-        # Suite atual: 92 testes (Forge/Journey/Knowledge/Mastery/Onboarding).
-        # Sem cobertura de integração com DB ainda — quando tiver, considerar
-        # spin de container postgres via services.
+        # Suite atual: 125 testes (Forge/Journey/Knowledge/Mastery/
+        # Onboarding/Gamification). Sem cobertura de integração com DB
+        # ainda — quando tiver, considerar spin de container postgres
+        # via services.
         run: |
           dotnet test tests/Unravel.Tests/Unravel.Tests.csproj \
             --no-build --configuration Release --nologo \
             --logger "console;verbosity=minimal"
 
   # ── Frontend ─────────────────────────────────────────────────────
+  # Stack atual (PR 21+): Vite 5 + React 18 + TypeScript + Tailwind +
+  # shadcn-style. Antes era Angular; o build script é `vite build`
+  # (NÃO `ng build --configuration ...`).
   frontend-check:
-    name: Frontend · typecheck + build
+    name: Frontend · lint + typecheck + build
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -62,13 +66,21 @@ jobs:
       - name: Install
         run: npm ci
 
-      - name: Typecheck (strict, sem emit)
-        # Equivalente ao "ng build" sem o overhead de empacotamento;
-        # captura 99% dos erros de tipo em segundos.
-        run: npx tsc --noEmit -p tsconfig.app.json
+      - name: Lint
+        # Vite gera eslint.config.js — pega problemas de hooks e tipos
+        # antes do typecheck. Continue-on-error pra não bloquear merge em
+        # warnings menores enquanto o codebase estabiliza.
+        run: npx eslint .
+        continue-on-error: true
 
-      - name: Build (dev configuration)
-        # Build dev é ~5x mais rápido que prod e basta como sanity-check
-        # de que template/css compilam. O build de produção do deploy.yml
-        # é o que vai pra release.
-        run: npm run build -- --configuration development
+      - name: Typecheck (strict, sem emit)
+        # tsc -b roda em modo build (compose projects) usando tsconfig.json
+        # + tsconfig.app.json + tsconfig.node.json. Detecta tudo que o vite
+        # build detectaria, em ~2-3s.
+        run: npx tsc -b --noEmit
+
+      - name: Build (produção via Vite)
+        # Compila + bundla + minifica. Mesmo comando do deploy.yml — se
+        # passa aqui, passa lá. Não tem `--configuration development` como
+        # no Angular CLI; Vite usa NODE_ENV pra alternar modo.
+        run: npm run build
