@@ -8,6 +8,9 @@ import {
 import { AppShell } from "@/components/layout/app-shell"
 import { LoginPage } from "@/features/auth/login-page"
 import { RegisterPage } from "@/features/auth/register-page"
+import { DashboardPage } from "@/features/dashboard/dashboard-page"
+import { TrailsPage } from "@/features/trails/trails-page"
+import { ProfilePage } from "@/features/profile/profile-page"
 import { useAuth } from "@/stores/auth"
 
 const rootRoute = createRootRoute({ component: () => <Outlet /> })
@@ -62,13 +65,13 @@ function Placeholder({ title }: { title: string }) {
   )
 }
 
-const dashboardRoute  = createRoute({ getParentRoute: () => authedLayoutRoute, path: "/dashboard",        component: () => <Placeholder title="Início" /> })
-const trailsRoute     = createRoute({ getParentRoute: () => authedLayoutRoute, path: "/trails",           component: () => <Placeholder title="Trilhas" /> })
+const dashboardRoute  = createRoute({ getParentRoute: () => authedLayoutRoute, path: "/dashboard",        component: DashboardPage })
+const trailsRoute     = createRoute({ getParentRoute: () => authedLayoutRoute, path: "/trails",           component: TrailsPage })
 const onboardingRoute = createRoute({ getParentRoute: () => authedLayoutRoute, path: "/onboarding",       component: () => <Placeholder title="Onboarding" /> })
 const jornadaRoute    = createRoute({ getParentRoute: () => authedLayoutRoute, path: "/jornada/$trailId", component: () => <Placeholder title="Jornada" /> })
 const quizRoute       = createRoute({ getParentRoute: () => authedLayoutRoute, path: "/quiz/$contentId",  component: () => <Placeholder title="Quiz" /> })
 const adminRoute      = createRoute({ getParentRoute: () => authedLayoutRoute, path: "/admin",            component: () => <Placeholder title="Admin" /> })
-const profileRoute    = createRoute({ getParentRoute: () => authedLayoutRoute, path: "/profile",          component: () => <Placeholder title="Perfil" /> })
+const profileRoute    = createRoute({ getParentRoute: () => authedLayoutRoute, path: "/profile",          component: ProfilePage })
 const desafioRoute    = createRoute({ getParentRoute: () => authedLayoutRoute, path: "/desafio",          component: () => <Placeholder title="Desafios" /> })
 
 const routeTree = rootRoute.addChildren([
