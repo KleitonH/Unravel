@@ -141,6 +141,14 @@ builder.Services.AddHostedService<Unravel.Infrastructure.Forge.GeneratedChalleng
 // uniforme aos outros hosted services.
 builder.Services.AddHostedService<Unravel.Infrastructure.Forge.LlmGenerationHostedService>();
 
+// PR 30 — health check do LLM no startup. Loga sucesso/warning sem
+// bloquear a API. Só registrado quando Llm:Enabled=true (caso contrário
+// ILlmInference não está no DI e GetRequiredService quebra).
+if (builder.Configuration.GetValue("Llm:Enabled", false))
+{
+    builder.Services.AddHostedService<Unravel.Infrastructure.Forge.Llm.LlmHealthCheck>();
+}
+
 // PR 8 — SignalR para push real-time. Hub + bus que substitui o
 // LoggingJourneyEventBus registrado pelo AddInfrastructure (último
 // AddSingleton da mesma interface vence). Mantemos o Logging como
