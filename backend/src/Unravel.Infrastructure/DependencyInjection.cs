@@ -147,7 +147,12 @@ public static class DependencyInjection
                         sp.GetRequiredService<ILogger<LLamaSharpInference>>()));
             }
 
-            services.AddSingleton<IChallengeStrategy, LlmChallengeStrategy>();
+            // PR 32 — LlmChallengeStrategy NÃO é mais registrada como
+            // IChallengeStrategy pro Forge síncrono. Geração LLM é
+            // assíncrona via QuestionForgeWorker → grava em
+            // GeneratedChallenge, e o pool puxa de lá naturalmente.
+            // Mantemos o ILlmGenerationOrchestrator pro cron noturno
+            // legado do PR 20 (será migrado pra usar a queue futuramente).
             services.AddScoped<ILlmGenerationOrchestrator, LlmGenerationOrchestrator>();
 
             // PR 31 — Grounded question generator: prompt builder + validators
