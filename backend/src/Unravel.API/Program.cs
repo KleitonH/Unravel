@@ -147,6 +147,11 @@ builder.Services.AddHostedService<Unravel.Infrastructure.Forge.LlmGenerationHost
 if (builder.Configuration.GetValue("Llm:Enabled", false))
 {
     builder.Services.AddHostedService<Unravel.Infrastructure.Forge.Llm.LlmHealthCheck>();
+
+    // PR 32 — QuestionForgeWorker: BackgroundService que consome a fila
+    // persistida de jobs de geração LLM. Single-worker (GPU-bound).
+    // Dorme 30s entre polls quando fila vazia.
+    builder.Services.AddHostedService<Unravel.Infrastructure.Forge.Queue.QuestionForgeWorker>();
 }
 
 // PR 8 — SignalR para push real-time. Hub + bus que substitui o

@@ -18,6 +18,7 @@ public partial class ApplicationDbContext(DbContextOptions<ApplicationDbContext>
     public DbSet<Mastery>            Mastery            => Set<Mastery>();
     public DbSet<GeneratedChallenge> GeneratedChallenge => Set<GeneratedChallenge>();
     public DbSet<JourneySnapshot>    JourneySnapshot    => Set<JourneySnapshot>();
+    public DbSet<QuestionForgeJob>   QuestionForgeJob   => Set<QuestionForgeJob>();
 
     protected override void OnModelCreating(ModelBuilder mb)
     {
@@ -93,5 +94,24 @@ public partial class ApplicationDbContext(DbContextOptions<ApplicationDbContext>
         });
 
         ConfigureGamification(mb);
+
+        // PR 32 — QuestionForgeJob: fila persistida de geração de
+        // perguntas. Índices pra (a) próxima Pending por prioridade
+        // (dequeue rápido) e (b) dedup por (ContentId, ChunkIndex, ClaimHash).
+        mb.Entity<QuestionForgeJob>(e =>
+        {
+            e.HasKey(j => j.Id);
+            e.Property(j => j.ClaimText).IsRequired();
+            e.Property(j => j.ClaimHash).HasMaxLength(64).IsRequired();
+            e.Property(j => j.Status).HasConversion<int>();
+            e.Property(j => j.Priority).HasConversion<int>();
+            e.Property(j => j.LastError).HasMaxLength(2000);
+
+            // Dequeue: WHERE status=0 ORDER BY priority DESC, id ASC
+            e.HasIndex(j => new { j.Status, j.Priority });
+            // Dedup: garante que (Content, Chunk, ClaimHash) só existe 1x
+            // entre Pending/Running. Permite Done duplicado (histórico).
+            e.HasIndex(j => new { j.ContentId, j.ChunkIndex, j.ClaimHash });
+        });
     }
 }

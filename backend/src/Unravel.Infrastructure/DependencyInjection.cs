@@ -216,6 +216,12 @@ public static class DependencyInjection
         // Execução automática no startup é decidida em Program.cs.
         services.AddScoped<KnowledgeImporter>();
 
+        // PR 32 — Fila persistida de jobs de geração LLM. Scoped (DbContext).
+        // O worker BackgroundService é registrado em Program.cs (só quando
+        // Llm:Enabled=true).
+        services.AddScoped<IQuestionForgeQueue,
+            Unravel.Infrastructure.Forge.Queue.QuestionForgeQueueService>();
+
         // PR 29 — ClaimExtractor: segmenta Content.Body em chunks +
         // extrai atomic claims testáveis. Stateless após construção;
         // singleton seguro. Alimenta o gerador LLM grounded (PR 31).
