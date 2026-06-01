@@ -168,7 +168,7 @@ public sealed class QuestionForgeWorker(
             ContentId           = job.ContentId,
             TopicId             = job.ContentId,
             TrailId             = content.TrailId,
-            Strategy            = ForgeStrategy.Definition, // PR 34 adicionará LlmGrounded
+            Strategy            = ForgeStrategy.LlmGrounded,
             Prompt              = result.Question.Prompt,
             BodyJson            = bodyJson,
             EstimatedDifficulty = 0.5, // Calibrar via PR 33

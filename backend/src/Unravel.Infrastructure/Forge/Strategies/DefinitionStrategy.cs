@@ -4,6 +4,7 @@ using Unravel.Domain.Entities;
 using Unravel.Domain.Forge;
 using Unravel.Domain.Knowledge;
 using Unravel.Infrastructure.Knowledge;
+using Unravel.Infrastructure.Knowledge.Chunking;
 
 namespace Unravel.Infrastructure.Forge.Strategies;
 
@@ -47,6 +48,12 @@ public sealed class DefinitionStrategy : IChallengeStrategy
     {
         if (string.IsNullOrWhiteSpace(content.Body)) return Array.Empty<GeneratedChallengeDraft>();
 
+        // Bug 1: strip markdown antes de aplicar regex de definições.
+        // Sem isso, "## Para que serve\nO componente é..." matchava
+        // "Para que serve\nO componente" como "termo" → prompt "O que é
+        // Para que serve\n\nO componente?". MarkdownStripper resolve.
+        var plain = MarkdownStripper.Strip(content.Body);
+
         var drafts    = new List<GeneratedChallengeDraft>();
         var usedTerms = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
@@ -54,7 +61,7 @@ public sealed class DefinitionStrategy : IChallengeStrategy
         {
             if (drafts.Count >= maxDrafts) break;
 
-            foreach (Match m in pattern.Matches(content.Body))
+            foreach (Match m in pattern.Matches(plain))
             {
                 if (drafts.Count >= maxDrafts) break;
 

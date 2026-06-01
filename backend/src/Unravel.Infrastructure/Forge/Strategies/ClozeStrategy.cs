@@ -4,6 +4,7 @@ using Unravel.Domain.Entities;
 using Unravel.Domain.Forge;
 using Unravel.Domain.Knowledge;
 using Unravel.Infrastructure.Knowledge;
+using Unravel.Infrastructure.Knowledge.Chunking;
 
 namespace Unravel.Infrastructure.Forge.Strategies;
 
@@ -37,7 +38,13 @@ public sealed class ClozeStrategy : IChallengeStrategy
         if (string.IsNullOrWhiteSpace(content.Body) || topic.Keywords.Count == 0)
             return Array.Empty<GeneratedChallengeDraft>();
 
-        var sentences = SentenceSplitter.Split(content.Body)
+        // Bug 1 (sessão): strip markdown ANTES de extrair sentenças.
+        // Sem isso, "## Para que serve\nO componente é..." virava prompt
+        // "Complete: '## Para que serve\nO ___ é...'" — feio. MarkdownStripper
+        // (PR 29) descarta code fences e formatação preservando texto puro.
+        var plain = MarkdownStripper.Strip(content.Body);
+
+        var sentences = SentenceSplitter.Split(plain)
                                         .Select(s => s.Trim())
                                         .Where(s => s.Length >= 30 && s.Length <= 220)
                                         .ToList();

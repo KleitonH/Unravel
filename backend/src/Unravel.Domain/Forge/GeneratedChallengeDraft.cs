@@ -28,4 +28,5 @@ public enum ForgeStrategy
     Ordering     = 4,   // (PR 5)
     Match        = 5,   // (PR 5)
     Code         = 6,   // (PR 5)
+    LlmGrounded  = 7,   // (PR 31/32) gerado por LLM com claim grounded no chunk
 }

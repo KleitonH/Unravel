@@ -41,6 +41,34 @@ public class MarkdownStripperTests
     }
 
     [Fact]
+    public void Strip_HeadingWithoutPeriod_GetsPeriodForSentenceBoundary()
+    {
+        // Sem o fix: "Para que serve\n\nO componente é..." vira
+        // "Para que serve\nO componente é..." (sem ##), e o sentence
+        // splitter junta os dois (não há .!? entre).
+        // Com o fix: heading recebe "." → "Para que serve.\n\nO componente..."
+        var md = "## Para que serve\n\nO componente é a unidade básica de qualquer aplicação Angular.";
+        var result = MarkdownStripper.Strip(md);
+
+        Assert.Contains("Para que serve.", result);
+        // E o splitter consegue separar essas frases agora:
+        var sentences = System.Text.RegularExpressions.Regex.Split(
+            result, @"(?<=[.!?])\s+(?=[A-ZÁÉÍÓÚÂÊÔÃÕÇ])");
+        Assert.True(sentences.Length >= 2,
+            $"Esperava ≥2 sentenças após o split. Conteúdo: '{result}'");
+    }
+
+    [Fact]
+    public void Strip_HeadingAlreadyEndsWithPunctuation_NoExtraPeriod()
+    {
+        var md = "## Por que usar isso?\n\nÉ útil porque resolve problemas.";
+        var result = MarkdownStripper.Strip(md);
+
+        Assert.DoesNotContain("isso?.", result); // não duplica pontuação
+        Assert.Contains("isso?", result);
+    }
+
+    [Fact]
     public void Strip_PreservesParagraphBreaks()
     {
         var md = "Primeiro parágrafo.\n\nSegundo parágrafo.\n\n\n\nTerceiro com gap maior.";

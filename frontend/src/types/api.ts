@@ -99,6 +99,7 @@ export type OnboardingResult = {
 export type ChallengeStrategy =
   | "Cloze" | "Definition" | "TrueFalse"
   | "Ordering" | "Match" | "Code"
+  | "LlmGrounded"
 
 export type PoolChallenge = {
   id: number

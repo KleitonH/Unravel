@@ -136,7 +136,7 @@ export function QuizPage() {
             <Card>
               <CardContent className="pt-6 space-y-4">
                 <div className="flex gap-1.5 flex-wrap">
-                  <Badge variant="secondary" className="text-[10px]">{current.strategy}</Badge>
+                  <StrategyBadge strategy={current.strategy} />
                   <Badge variant="outline" className="text-[10px]">
                     Dificuldade: {Math.round(current.estimatedDifficulty * 100)}%
                   </Badge>
@@ -271,4 +271,26 @@ function SkeletonView() {
       {[1, 2, 3, 4].map((i) => <Skeleton key={i} className="h-12 w-full" />)}
     </div>
   )
+}
+
+/** Badge da strategy com tratamento especial pra LlmGrounded.
+ *  - LlmGrounded → ícone 🤖 + cor accent (verde), pra destacar
+ *    visualmente perguntas geradas por IA local (PR 31/32)
+ *  - Demais (Cloze/Definition/TrueFalse/Ordering/Match/Code) → label
+ *    plana variant=secondary */
+function StrategyBadge({ strategy }: { strategy: import("@/types/api").ChallengeStrategy }) {
+  if (strategy === "LlmGrounded") {
+    return (
+      <Badge
+        className={cn(
+          "text-[10px] bg-accent/15 text-accent border border-accent/40",
+          "inline-flex items-center gap-1",
+        )}
+      >
+        <span aria-hidden>🤖</span>
+        LLM grounded
+      </Badge>
+    )
+  }
+  return <Badge variant="secondary" className="text-[10px]">{strategy}</Badge>
 }

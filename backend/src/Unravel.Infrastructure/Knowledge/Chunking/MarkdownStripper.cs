@@ -28,6 +28,15 @@ internal static class MarkdownStripper
         @"(?<!`)`[^`\n]+?`(?!`)",
         RegexOptions.Compiled);
 
+    // Captura linhas de heading (## / ###) ANTES do Markdig comê-los.
+    // Pós-Markdig, headings viram texto puro sem `##` mas também sem
+    // pontuação no final — fica grudado com o próximo parágrafo no
+    // sentence-split (sentence splitter só quebra em .!?). Forçamos
+    // ponto-final no fim do heading pra criar um boundary explícito.
+    private static readonly Regex HeadingLine = new(
+        @"^(?<hash>#{1,6})\s+(?<text>.+?)\s*$",
+        RegexOptions.Compiled | RegexOptions.Multiline);
+
     // Compacta whitespace: múltiplos espaços/tabs → 1 espaço; preserva quebras
     // duplas (parágrafo) mas reduz triplas+ pra duplas.
     private static readonly Regex MultiSpace = new(@"[ \t]+", RegexOptions.Compiled);
@@ -44,7 +53,20 @@ internal static class MarkdownStripper
         //    ele renderiza o conteúdo como texto também, poluindo.
         var withoutCode = FencedCodeBlock.Replace(markdown, "");
 
-        // 2) Markdig converte tudo restante (headings, listas, links, ênfase,
+        // 2) Forçar ponto-final no fim de cada heading. Sem isso, "##
+        //    Para que serve\n\nO componente é..." vira pós-Markdig
+        //    "Para que serve\nO componente é..." (sem ##, mas grudado);
+        //    sentence splitters baseados em .!? não conseguem separar.
+        //    Com este patch, vira "Para que serve.\n\nO componente é...".
+        //    Skip se heading já termina com pontuação.
+        withoutCode = HeadingLine.Replace(withoutCode, m =>
+        {
+            var text = m.Groups["text"].Value.TrimEnd();
+            var needsPeriod = text.Length > 0 && !".!?:".Contains(text[^1]);
+            return $"{m.Groups["hash"].Value} {text}{(needsPeriod ? "." : "")}";
+        });
+
+        // 3) Markdig converte tudo restante (headings, listas, links, ênfase,
         //    blockquotes) pra texto plano. Inline code que sobrou vira texto;
         //    removemos depois (não queremos `inject()` como claim).
         var plainText = Markdown.ToPlainText(withoutCode);
