@@ -149,6 +149,34 @@ public static class DependencyInjection
 
             services.AddSingleton<IChallengeStrategy, LlmChallengeStrategy>();
             services.AddScoped<ILlmGenerationOrchestrator, LlmGenerationOrchestrator>();
+
+            // PR 31 — Grounded question generator: prompt builder + validators
+            // em cadeia + parser JSON robusto. Threshold da grounding default
+            // 0.55 (calibrado, ajustar com PR 33 gold set).
+            services.AddSingleton<Unravel.Infrastructure.Forge.Llm.Grounded.Validators.IQuestionValidator,
+                Unravel.Infrastructure.Forge.Llm.Grounded.Validators.SchemaValidator>();
+            services.AddSingleton<Unravel.Infrastructure.Forge.Llm.Grounded.Validators.IQuestionValidator,
+                Unravel.Infrastructure.Forge.Llm.Grounded.Validators.AnswerLeakageValidator>();
+            // Validators que dependem do embedder só são registrados se
+            // Embedding:Enabled=true (caso contrário IEmbedder não está no DI).
+            if (embeddingEnabled)
+            {
+                var groundingThreshold = configuration.GetValue("Llm:Grounding:Threshold", 0.55);
+                services.AddSingleton<Unravel.Infrastructure.Forge.Llm.Grounded.Validators.IQuestionValidator>(sp =>
+                    new Unravel.Infrastructure.Forge.Llm.Grounded.Validators.AnswerGroundednessValidator(
+                        sp.GetRequiredService<IEmbedder>(), groundingThreshold));
+                services.AddSingleton<Unravel.Infrastructure.Forge.Llm.Grounded.Validators.IQuestionValidator>(sp =>
+                    new Unravel.Infrastructure.Forge.Llm.Grounded.Validators.DistractorDiversityValidator(
+                        sp.GetService<IEmbedder>()));
+            }
+            else
+            {
+                // Sem embedder: só a check de Jaccard nos distratores roda.
+                services.AddSingleton<Unravel.Infrastructure.Forge.Llm.Grounded.Validators.IQuestionValidator>(sp =>
+                    new Unravel.Infrastructure.Forge.Llm.Grounded.Validators.DistractorDiversityValidator(embedder: null));
+            }
+            services.AddSingleton<IGroundedQuestionGenerator,
+                Unravel.Infrastructure.Forge.Llm.Grounded.LlmGroundedQuestionGenerator>();
         }
 
         services.AddSingleton<IChallengeForge, ChallengeForge>();
