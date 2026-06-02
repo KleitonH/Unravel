@@ -36,3 +36,5 @@ Thumbs.db
 .idea/
 .vscode/settings.json
 *.swp
+out/
+frontend/public/forge-eval-*.html

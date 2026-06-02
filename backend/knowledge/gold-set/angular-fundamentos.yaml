@@ -1,0 +1,489 @@
+# Gold set — Angular Fundamentos (PR 33)
+#
+# 50 perguntas curadas manualmente que representam "o que um bom
+# generator LLM deveria produzir" a partir dos MDs de
+# backend/knowledge/angular-fundamentos/.
+#
+# Esse arquivo é a REGUA do `dotnet run -- forge:eval`. Não é input
+# do quiz nem é importado pro DB — só serve pra comparar a saída real
+# do generator contra o que humano consideraria boa pergunta.
+#
+# ─── Schema por item ────────────────────────────────────────────────
+#   topicSlug:       slug do Content (igual ao frontmatter do .md)
+#   chunkHeading:    (opcional) H2/H3 dentro do MD pra ancorar a fonte
+#   sourceClaim:     a afirmação testável que o item exercita
+#   prompt:          a pergunta — natural, sem markdown
+#   correctAnswer:   resposta correta (texto)
+#   distractors:     3 distratores plausíveis (do mesmo domínio,
+#                    mas incorretos pelo MD)
+#   explanation:     1 frase justificando porque a correta é correta
+#   difficultyHint:  0.05–0.95, opcional (default 0.50)
+#
+# ─── Como preencher os TODOs ────────────────────────────────────────
+# Cada tópico tem 1 exemplo COMPLETO (seguir o padrão) + 4 placeholders
+# marcados `# TODO`. Substitua cada bloco TODO por um item completo.
+# Boas práticas:
+#   - prompt NÃO deve vazar a resposta literal (testa raciocínio)
+#   - distratores devem soar plausíveis pra quem não estudou
+#   - resposta deve estar parafraseada ou literal no MD do tópico
+#
+# ─── Validar ────────────────────────────────────────────────────────
+#   cd backend
+#   dotnet run --project src/Unravel.API -- forge:eval \
+#     --gold knowledge/gold-set/angular-fundamentos.yaml \
+#     --out out/
+# Report aparece em out/forge-eval-<timestamp>.html
+
+trail: angular-fundamentos
+
+items:
+
+  # ─── 1) angular-componentes ───────────────────────────────────────
+  - topicSlug: angular-componentes
+    chunkHeading: "Anatomia de um componente"
+    sourceClaim: "O decorator @Component marca a classe como um componente Angular."
+    prompt: "Qual é o papel do decorator @Component em uma classe TypeScript?"
+    correctAnswer: "Marca a classe como um componente Angular reconhecido pelo framework"
+    distractors:
+      - "Cria um serviço injetável que pode ser usado por outras classes"
+      - "Define uma diretiva de atributo aplicável a elementos HTML existentes"
+      - "Registra a classe como módulo raiz da aplicação"
+    explanation: "@Component é o decorator que transforma uma classe comum em um componente reconhecido pelo Angular, exposto via selector."
+    difficultyHint: 0.35
+
+  - topicSlug: angular-componentes
+    # TODO completar — sugestão de foco: o que o selector define?
+    sourceClaim: ""
+    prompt: ""
+    correctAnswer: ""
+    distractors: []
+    explanation: ""
+
+  - topicSlug: angular-componentes
+    # TODO completar — sugestão: diferença entre standalone e ngModule
+    sourceClaim: ""
+    prompt: ""
+    correctAnswer: ""
+    distractors: []
+    explanation: ""
+
+  - topicSlug: angular-componentes
+    # TODO completar — sugestão: templates inline vs externos
+    sourceClaim: ""
+    prompt: ""
+    correctAnswer: ""
+    distractors: []
+    explanation: ""
+
+  - topicSlug: angular-componentes
+    # TODO completar — sugestão: ViewEncapsulation
+    sourceClaim: ""
+    prompt: ""
+    correctAnswer: ""
+    distractors: []
+    explanation: ""
+
+  # ─── 2) angular-templates ─────────────────────────────────────────
+  - topicSlug: angular-templates
+    chunkHeading: "Interpolação"
+    sourceClaim: "A interpolação com {{ expressão }} renderiza valores de propriedades do componente no template."
+    prompt: "O que a sintaxe {{ nome }} faz num template Angular?"
+    correctAnswer: "Renderiza o valor da propriedade nome do componente no DOM"
+    distractors:
+      - "Cria uma variável local de template com o nome 'nome'"
+      - "Aplica uma diretiva estrutural condicional baseada em nome"
+      - "Registra um event listener para o evento nome"
+    explanation: "Interpolação avalia a expressão entre as duplas chaves e insere o resultado como texto no DOM."
+    difficultyHint: 0.30
+
+  - topicSlug: angular-templates
+    # TODO — sugestão: @if vs *ngIf
+    sourceClaim: ""
+    prompt: ""
+    correctAnswer: ""
+    distractors: []
+    explanation: ""
+
+  - topicSlug: angular-templates
+    # TODO — sugestão: @for e track
+    sourceClaim: ""
+    prompt: ""
+    correctAnswer: ""
+    distractors: []
+    explanation: ""
+
+  - topicSlug: angular-templates
+    # TODO — sugestão: template reference variable (#var)
+    sourceClaim: ""
+    prompt: ""
+    correctAnswer: ""
+    distractors: []
+    explanation: ""
+
+  - topicSlug: angular-templates
+    # TODO — sugestão: ng-template / ng-container
+    sourceClaim: ""
+    prompt: ""
+    correctAnswer: ""
+    distractors: []
+    explanation: ""
+
+  # ─── 3) angular-data-binding ──────────────────────────────────────
+  - topicSlug: angular-data-binding
+    chunkHeading: "Property binding"
+    sourceClaim: "Property binding com [prop]=\"valor\" passa dados do componente para o DOM ou para componentes filhos."
+    prompt: "Qual direção o property binding [src]=\"imgUrl\" estabelece entre componente e DOM?"
+    correctAnswer: "Do componente para o atributo do elemento (unidirecional, do TS para o template)"
+    distractors:
+      - "Do DOM para o componente, capturando mudanças do usuário"
+      - "Bidirecional, sincronizando estado entre os dois sentidos"
+      - "Estabelece um event listener para o atributo src"
+    explanation: "[prop] é property binding unidirecional do componente para o template — o DOM recebe o valor avaliado da expressão."
+    difficultyHint: 0.40
+
+  - topicSlug: angular-data-binding
+    # TODO — sugestão: event binding (click)
+    sourceClaim: ""
+    prompt: ""
+    correctAnswer: ""
+    distractors: []
+    explanation: ""
+
+  - topicSlug: angular-data-binding
+    # TODO — sugestão: two-way binding [(ngModel)]
+    sourceClaim: ""
+    prompt: ""
+    correctAnswer: ""
+    distractors: []
+    explanation: ""
+
+  - topicSlug: angular-data-binding
+    # TODO — sugestão: diferença property vs attribute binding
+    sourceClaim: ""
+    prompt: ""
+    correctAnswer: ""
+    distractors: []
+    explanation: ""
+
+  - topicSlug: angular-data-binding
+    # TODO — sugestão: class.X e style.X binding
+    sourceClaim: ""
+    prompt: ""
+    correctAnswer: ""
+    distractors: []
+    explanation: ""
+
+  # ─── 4) angular-diretivas ─────────────────────────────────────────
+  - topicSlug: angular-diretivas
+    chunkHeading: "Diretivas estruturais"
+    sourceClaim: "Diretivas estruturais modificam a estrutura do DOM adicionando ou removendo elementos."
+    prompt: "Qual o efeito de uma diretiva estrutural como *ngIf ou @if no DOM?"
+    correctAnswer: "Adiciona ou remove o elemento e seus filhos do DOM com base na condição"
+    distractors:
+      - "Altera apenas as classes CSS do elemento sem mexer na estrutura"
+      - "Cria um observable que emite eventos quando a condição muda"
+      - "Vincula um event handler que dispara quando a condição é avaliada"
+    explanation: "Estruturais adicionam/removem nós do DOM — o elemento simplesmente não existe quando a condição é falsa."
+    difficultyHint: 0.40
+
+  - topicSlug: angular-diretivas
+    # TODO — sugestão: diretiva de atributo (ngClass / ngStyle)
+    sourceClaim: ""
+    prompt: ""
+    correctAnswer: ""
+    distractors: []
+    explanation: ""
+
+  - topicSlug: angular-diretivas
+    # TODO — sugestão: criar diretiva customizada
+    sourceClaim: ""
+    prompt: ""
+    correctAnswer: ""
+    distractors: []
+    explanation: ""
+
+  - topicSlug: angular-diretivas
+    # TODO — sugestão: HostBinding / HostListener
+    sourceClaim: ""
+    prompt: ""
+    correctAnswer: ""
+    distractors: []
+    explanation: ""
+
+  - topicSlug: angular-diretivas
+    # TODO — sugestão: diretiva estrutural * (asterisco) vs ng-template
+    sourceClaim: ""
+    prompt: ""
+    correctAnswer: ""
+    distractors: []
+    explanation: ""
+
+  # ─── 5) angular-pipes ─────────────────────────────────────────────
+  - topicSlug: angular-pipes
+    chunkHeading: "Pipes built-in"
+    sourceClaim: "Pipes transformam dados de exibição no template sem alterar o valor original no componente."
+    prompt: "O que acontece com o valor original da propriedade quando um pipe é aplicado no template?"
+    correctAnswer: "O valor original permanece intacto no componente; o pipe apenas transforma a visualização"
+    distractors:
+      - "O valor é mutado in-place no componente após cada renderização"
+      - "O pipe substitui a propriedade por uma cópia transformada no construtor"
+      - "O ciclo de change detection é desativado para essa propriedade"
+    explanation: "Pipes são funções puras de transformação visual — eles não tocam no estado do componente, só na string renderizada."
+    difficultyHint: 0.45
+
+  - topicSlug: angular-pipes
+    # TODO — sugestão: pipe encadeado (chained)
+    sourceClaim: ""
+    prompt: ""
+    correctAnswer: ""
+    distractors: []
+    explanation: ""
+
+  - topicSlug: angular-pipes
+    # TODO — sugestão: pipe puro vs impuro
+    sourceClaim: ""
+    prompt: ""
+    correctAnswer: ""
+    distractors: []
+    explanation: ""
+
+  - topicSlug: angular-pipes
+    # TODO — sugestão: criar pipe customizado (@Pipe + PipeTransform)
+    sourceClaim: ""
+    prompt: ""
+    correctAnswer: ""
+    distractors: []
+    explanation: ""
+
+  - topicSlug: angular-pipes
+    # TODO — sugestão: parâmetros de pipe (date:'dd/MM/yyyy')
+    sourceClaim: ""
+    prompt: ""
+    correctAnswer: ""
+    distractors: []
+    explanation: ""
+
+  # ─── 6) angular-services ──────────────────────────────────────────
+  - topicSlug: angular-services
+    chunkHeading: "O que é um service"
+    sourceClaim: "Services centralizam lógica que não pertence a um componente específico, como acesso a API ou estado compartilhado."
+    prompt: "Qual o motivo principal de extrair lógica de um componente para um service?"
+    correctAnswer: "Reutilizar a lógica entre componentes e isolar responsabilidades não-visuais"
+    distractors:
+      - "Aumentar o desempenho do change detection do componente"
+      - "Obrigar o Angular a recompilar o módulo a cada mudança"
+      - "Garantir que o componente seja renderizado uma única vez no DOM"
+    explanation: "Services tiram do componente tudo que não é UI — chamadas HTTP, cálculos, estado — e permitem que vários componentes compartilhem essa lógica."
+    difficultyHint: 0.35
+
+  - topicSlug: angular-services
+    # TODO — sugestão: providedIn: 'root'
+    sourceClaim: ""
+    prompt: ""
+    correctAnswer: ""
+    distractors: []
+    explanation: ""
+
+  - topicSlug: angular-services
+    # TODO — sugestão: ciclo de vida do service singleton
+    sourceClaim: ""
+    prompt: ""
+    correctAnswer: ""
+    distractors: []
+    explanation: ""
+
+  - topicSlug: angular-services
+    # TODO — sugestão: service stateful vs stateless
+    sourceClaim: ""
+    prompt: ""
+    correctAnswer: ""
+    distractors: []
+    explanation: ""
+
+  - topicSlug: angular-services
+    # TODO — sugestão: comunicação entre componentes via service
+    sourceClaim: ""
+    prompt: ""
+    correctAnswer: ""
+    distractors: []
+    explanation: ""
+
+  # ─── 7) angular-dependency-injection ──────────────────────────────
+  - topicSlug: angular-dependency-injection
+    chunkHeading: "Como o Angular resolve dependências"
+    sourceClaim: "O Angular resolve dependências de um componente percorrendo a hierarquia de injetores até encontrar o provider compatível."
+    prompt: "O que o Angular faz quando um componente declara uma dependência via inject() ou construtor?"
+    correctAnswer: "Percorre a hierarquia de injetores em busca do provider e injeta a instância no componente"
+    distractors:
+      - "Instancia uma nova cópia da classe a cada renderização do componente"
+      - "Marca a propriedade como undefined até o componente chamar set manualmente"
+      - "Cria um proxy lazy que só resolve a dependência no primeiro acesso"
+    explanation: "DI é resolvido no startup do componente: o injector procura na própria hierarquia (componente → módulo → root) até achar provider e injeta a instância."
+    difficultyHint: 0.55
+
+  - topicSlug: angular-dependency-injection
+    # TODO — sugestão: inject() function vs constructor injection
+    sourceClaim: ""
+    prompt: ""
+    correctAnswer: ""
+    distractors: []
+    explanation: ""
+
+  - topicSlug: angular-dependency-injection
+    # TODO — sugestão: useClass / useValue / useFactory
+    sourceClaim: ""
+    prompt: ""
+    correctAnswer: ""
+    distractors: []
+    explanation: ""
+
+  - topicSlug: angular-dependency-injection
+    # TODO — sugestão: providedIn: 'root' vs providers no component
+    sourceClaim: ""
+    prompt: ""
+    correctAnswer: ""
+    distractors: []
+    explanation: ""
+
+  - topicSlug: angular-dependency-injection
+    # TODO — sugestão: @Optional / @Self / @SkipSelf
+    sourceClaim: ""
+    prompt: ""
+    correctAnswer: ""
+    distractors: []
+    explanation: ""
+
+  # ─── 8) angular-lifecycle-hooks ───────────────────────────────────
+  - topicSlug: angular-lifecycle-hooks
+    chunkHeading: "ngOnInit"
+    sourceClaim: "ngOnInit é chamado uma vez após o Angular inicializar as propriedades vinculadas ao input do componente."
+    prompt: "Por que inicialização de dados que dependem de @Input deve ir em ngOnInit e não no constructor?"
+    correctAnswer: "Os inputs ainda não estão preenchidos no constructor; ngOnInit roda depois que o Angular injeta os valores"
+    distractors:
+      - "ngOnInit é o único lugar onde é possível fazer chamadas HTTP"
+      - "O constructor não pode acessar `this` em componentes Angular"
+      - "ngOnInit é executado em uma thread separada, evitando bloqueio da UI"
+    explanation: "O constructor roda quando a classe é instanciada — antes do Angular setar @Input. ngOnInit roda depois, com os inputs já populados."
+    difficultyHint: 0.50
+
+  - topicSlug: angular-lifecycle-hooks
+    # TODO — sugestão: ngOnChanges com SimpleChanges
+    sourceClaim: ""
+    prompt: ""
+    correctAnswer: ""
+    distractors: []
+    explanation: ""
+
+  - topicSlug: angular-lifecycle-hooks
+    # TODO — sugestão: ngOnDestroy + cleanup
+    sourceClaim: ""
+    prompt: ""
+    correctAnswer: ""
+    distractors: []
+    explanation: ""
+
+  - topicSlug: angular-lifecycle-hooks
+    # TODO — sugestão: AfterViewInit vs AfterContentInit
+    sourceClaim: ""
+    prompt: ""
+    correctAnswer: ""
+    distractors: []
+    explanation: ""
+
+  - topicSlug: angular-lifecycle-hooks
+    # TODO — sugestão: ordem de execução dos hooks no primeiro render
+    sourceClaim: ""
+    prompt: ""
+    correctAnswer: ""
+    distractors: []
+    explanation: ""
+
+  # ─── 9) angular-template-forms ────────────────────────────────────
+  - topicSlug: angular-template-forms
+    chunkHeading: "ngModel"
+    sourceClaim: "[(ngModel)] sincroniza valor entre input do template e propriedade do componente de forma bidirecional."
+    prompt: "O que [(ngModel)] faz em um <input> de formulário template-driven?"
+    correctAnswer: "Sincroniza o valor do input com uma propriedade do componente nos dois sentidos"
+    distractors:
+      - "Marca o campo como obrigatório no validador padrão"
+      - "Adiciona o campo ao FormGroup raiz do componente"
+      - "Cria um observable que emite cada keystroke do usuário"
+    explanation: "[(ngModel)] é açúcar sintático pra property binding [ngModel]=\"x\" + event binding (ngModelChange)=\"x=$event\" — banana box."
+    difficultyHint: 0.45
+
+  - topicSlug: angular-template-forms
+    # TODO — sugestão: FormsModule import obrigatório
+    sourceClaim: ""
+    prompt: ""
+    correctAnswer: ""
+    distractors: []
+    explanation: ""
+
+  - topicSlug: angular-template-forms
+    # TODO — sugestão: required / minlength validators
+    sourceClaim: ""
+    prompt: ""
+    correctAnswer: ""
+    distractors: []
+    explanation: ""
+
+  - topicSlug: angular-template-forms
+    # TODO — sugestão: ngForm + submit
+    sourceClaim: ""
+    prompt: ""
+    correctAnswer: ""
+    distractors: []
+    explanation: ""
+
+  - topicSlug: angular-template-forms
+    # TODO — sugestão: template-driven vs reactive (quando usar cada)
+    sourceClaim: ""
+    prompt: ""
+    correctAnswer: ""
+    distractors: []
+    explanation: ""
+
+  # ─── 10) angular-routing ──────────────────────────────────────────
+  - topicSlug: angular-routing
+    chunkHeading: "router-outlet"
+    sourceClaim: "O <router-outlet> marca o ponto do template onde o componente da rota ativa é renderizado."
+    prompt: "Qual o papel da tag <router-outlet> em um template Angular?"
+    correctAnswer: "Define o local onde o componente correspondente à rota ativa será renderizado"
+    distractors:
+      - "Configura a lista de rotas disponíveis na aplicação"
+      - "Intercepta cliques em links e impede navegação não autorizada"
+      - "Renderiza um menu de navegação automático baseado nas rotas"
+    explanation: "<router-outlet> é o placeholder onde o Router insere o componente da rota atual — sem ele, nenhum componente roteado aparece."
+    difficultyHint: 0.35
+
+  - topicSlug: angular-routing
+    # TODO — sugestão: routerLink vs href
+    sourceClaim: ""
+    prompt: ""
+    correctAnswer: ""
+    distractors: []
+    explanation: ""
+
+  - topicSlug: angular-routing
+    # TODO — sugestão: rotas com parâmetro :id e ActivatedRoute
+    sourceClaim: ""
+    prompt: ""
+    correctAnswer: ""
+    distractors: []
+    explanation: ""
+
+  - topicSlug: angular-routing
+    # TODO — sugestão: lazy loading com loadComponent
+    sourceClaim: ""
+    prompt: ""
+    correctAnswer: ""
+    distractors: []
+    explanation: ""
+
+  - topicSlug: angular-routing
+    # TODO — sugestão: guards funcionais (canActivate)
+    sourceClaim: ""
+    prompt: ""
+    correctAnswer: ""
+    distractors: []
+    explanation: ""

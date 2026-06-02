@@ -9,9 +9,21 @@ using Unravel.API.Hubs;
 using Unravel.API.Middleware;
 using Unravel.Application.Journey.Ports;
 using Unravel.Application.Telemetry;
+using Unravel.Application.Forge.Eval;
+using Unravel.Application.Forge.Ports;
+using Unravel.Application.Knowledge.Ports;
 using Unravel.Infrastructure;
+using Unravel.Infrastructure.Forge.Eval;
 using Unravel.Infrastructure.Knowledge;
 using Unravel.Infrastructure.Persistence;
+
+// PR 33 — CLI branch: roda como ferramenta de eval em vez de servir HTTP.
+// Uso: dotnet run --project src/Unravel.API -- forge:eval [--gold <path>] [--out <dir>]
+// Sai com exit code 0 (sucesso) ou 1 (eval falhou / config inválida).
+if (args.Length > 0 && args[0] == "forge:eval")
+{
+    return await RunForgeEvalAsync(args);
+}
 
 var builder = WebApplication.CreateBuilder(args);
 Console.WriteLine($"ENV: {builder.Environment.EnvironmentName}");
@@ -223,3 +235,126 @@ app.MapControllers();
 app.MapHub<JourneyHub>("/hubs/journey");
 
 app.Run();
+return 0;
+
+// ── CLI: forge:eval ─────────────────────────────────────────────────
+// Roda o ForgeEvaluator (PR 33) sem subir HTTP. Constrói um Host
+// minimal pra reusar o DI completo (DbContext, Embedder, LlmInference,
+// Generator). Carrega o gold YAML, dispara a comparação, escreve
+// out/forge-eval-<timestamp>.html.
+//
+// Exit codes: 0 sucesso, 1 erro de config/IO, 2 nenhum item completo.
+
+static async Task<int> RunForgeEvalAsync(string[] args)
+{
+    // Parse args: --gold <path> --out <dir>
+    // Defaults relativos ao ContentRoot (src/Unravel.API/) sobem 2
+    // níveis pra chegar em backend/.
+    var goldPath = ArgValue(args, "--gold") ?? "../../knowledge/gold-set/angular-fundamentos.yaml";
+    var outDir   = ArgValue(args, "--out")  ?? "../../out";
+
+    // Host minimal: lê appsettings.{env}.json. Aceita
+    // ASPNETCORE_ENVIRONMENT (compat web) ou DOTNET_ENVIRONMENT.
+    var env = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT")
+              ?? Environment.GetEnvironmentVariable("DOTNET_ENVIRONMENT")
+              ?? "Development";
+    var hostBuilder = Host.CreateApplicationBuilder(new HostApplicationBuilderSettings
+    {
+        EnvironmentName = env,
+    });
+    hostBuilder.Logging.ClearProviders().AddSimpleConsole(o => o.SingleLine = true);
+    hostBuilder.Services.AddInfrastructure(hostBuilder.Configuration);
+
+    using var host = hostBuilder.Build();
+    using var scope = host.Services.CreateScope();
+    var sp = scope.ServiceProvider;
+
+    // Resolve gold path relativo ao ContentRoot se não-absoluto.
+    if (!Path.IsPathRooted(goldPath))
+        goldPath = Path.GetFullPath(Path.Combine(hostBuilder.Environment.ContentRootPath, goldPath));
+
+    Console.WriteLine($"[forge:eval] gold = {goldPath}");
+    Console.WriteLine($"[forge:eval] out  = {outDir}");
+
+    GoldSet goldSet;
+    try
+    {
+        goldSet = GoldSetReader.ReadFromFile(goldPath);
+    }
+    catch (Exception ex)
+    {
+        Console.Error.WriteLine($"Failed to read gold set: {ex.Message}");
+        return 1;
+    }
+
+    if (goldSet.Items.Count == 0)
+    {
+        Console.Error.WriteLine(
+            "Nenhum item COMPLETO no gold set — todos os itens estão como placeholder TODO.\n" +
+            $"Edite '{goldPath}' e preencha sourceClaim/prompt/correctAnswer/distractors/explanation.");
+        return 2;
+    }
+
+    Console.WriteLine($"[forge:eval] {goldSet.Items.Count} item(s) completo(s) — começando…");
+
+    // Resolve generator + dependências; tudo configurado pelo
+    // AddInfrastructure quando Llm:Enabled=true.
+    var generator      = sp.GetService<IGroundedQuestionGenerator>();
+    var claimExtractor = sp.GetRequiredService<IClaimExtractor>();
+    var db             = sp.GetRequiredService<ApplicationDbContext>();
+    var embedder       = sp.GetService<IEmbedder>();
+
+    if (generator is null)
+    {
+        Console.Error.WriteLine(
+            "IGroundedQuestionGenerator não registrado — verifique Llm:Enabled=true em appsettings.");
+        return 1;
+    }
+
+    var modelName = hostBuilder.Configuration["Llm:Ollama:Model"]
+                    ?? hostBuilder.Configuration["Llm:ModelPath"]
+                    ?? "unknown";
+
+    var evaluator = new ForgeEvaluator(
+        db, claimExtractor, generator,
+        sp.GetRequiredService<ILogger<ForgeEvaluator>>(),
+        embedder);
+
+    ForgeEvalReport report;
+    try
+    {
+        report = await evaluator.RunAsync(goldSet, modelName);
+    }
+    catch (Exception ex)
+    {
+        Console.Error.WriteLine($"Eval crashou: {ex}");
+        return 1;
+    }
+
+    Directory.CreateDirectory(outDir);
+    var fileName = $"forge-eval-{DateTime.UtcNow:yyyyMMdd-HHmmss}.html";
+    var fullPath = Path.GetFullPath(Path.Combine(outDir, fileName));
+    var html = HtmlReportRenderer.Render(report);
+    await File.WriteAllTextAsync(fullPath, html);
+
+    Console.WriteLine();
+    Console.WriteLine("═══════════════════════════════════════════════════");
+    Console.WriteLine($"  Yield: {report.Overall.YieldPercent:F0}% " +
+                      $"({report.Overall.TotalGeneratedSuccessfully}/{report.Overall.TotalGold})");
+    Console.WriteLine($"  Avg cos prompt: {Pct(report.Overall.AvgPromptCosine)}");
+    Console.WriteLine($"  Avg cos answer: {Pct(report.Overall.AvgAnswerCosine)}");
+    Console.WriteLine($"  Answer matches: {report.Overall.AnswerMatchCount}/{report.Overall.TotalGeneratedSuccessfully}");
+    Console.WriteLine($"  Distractor Jaccard: {Pct(report.Overall.AvgDistractorJaccard)}");
+    Console.WriteLine("═══════════════════════════════════════════════════");
+    Console.WriteLine($"  Report HTML: {fullPath}");
+    Console.WriteLine();
+    return 0;
+
+    static string Pct(double v) => double.IsNaN(v) ? "N/A" : v.ToString("F2");
+}
+
+static string? ArgValue(string[] args, string name)
+{
+    var i = Array.IndexOf(args, name);
+    return (i >= 0 && i + 1 < args.Length) ? args[i + 1] : null;
+}
