@@ -75,19 +75,26 @@ public sealed class MiniLmEmbedder : IEmbedder, IDisposable
         var seqLen = Math.Min(ids.Length, MaxSeqLen);
         var inputIds      = new long[1 * seqLen];
         var attentionMask = new long[1 * seqLen];
+        var tokenTypeIds  = new long[1 * seqLen]; // zeros — single-segment input (BERT convention)
         for (var i = 0; i < seqLen; i++)
         {
             inputIds[i]      = ids[i];
             attentionMask[i] = 1;
+            // tokenTypeIds[i] = 0 já é o default do array novo
         }
 
-        var inputTensor = new DenseTensor<long>(inputIds, new[] { 1, seqLen });
-        var maskTensor  = new DenseTensor<long>(attentionMask, new[] { 1, seqLen });
+        var inputTensor    = new DenseTensor<long>(inputIds,      new[] { 1, seqLen });
+        var maskTensor     = new DenseTensor<long>(attentionMask, new[] { 1, seqLen });
+        var typeIdsTensor  = new DenseTensor<long>(tokenTypeIds,  new[] { 1, seqLen });
 
+        // PR 33b — modelos BERT-like (incl. paraphrase-multilingual-MiniLM)
+        // exigem 3º input token_type_ids. Vetor de zeros = single-segment;
+        // variantes só-EN ignoram esse input mas aceitar não atrapalha.
         var inputs = new List<NamedOnnxValue>
         {
             NamedOnnxValue.CreateFromTensor("input_ids",      inputTensor),
             NamedOnnxValue.CreateFromTensor("attention_mask", maskTensor),
+            NamedOnnxValue.CreateFromTensor("token_type_ids", typeIdsTensor),
         };
 
         // 2. inferência — saída "last_hidden_state" [1, seq, 384].

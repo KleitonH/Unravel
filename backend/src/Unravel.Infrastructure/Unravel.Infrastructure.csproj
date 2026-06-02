@@ -22,6 +22,10 @@
          Ambos com binários nativos pré-compilados pra Linux/Windows/Mac. -->
     <PackageReference Include="Microsoft.ML.OnnxRuntime" Version="1.18.0" />
     <PackageReference Include="Tokenizers.DotNet" Version="1.0.5" />
+    <!-- PR 33b — DLL nativa hf_tokenizers.dll. Sem isso, Tokenizers.DotNet
+         lança DllNotFoundException no primeiro Encode. Mantém só a
+         variante Windows; pra cross-platform adicionar .linux/.osx. -->
+    <PackageReference Include="Tokenizers.DotNet.runtime.win" Version="1.0.5" />
 
     <!-- PR 20 — LLamaSharp (.NET binding p/ llama.cpp). Backend CPU-only
          por default; trocar por Cuda12/Vulkan/Metal sem mudar código. -->

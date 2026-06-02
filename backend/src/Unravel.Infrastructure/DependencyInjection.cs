@@ -80,6 +80,14 @@ public static class DependencyInjection
                                 ?? throw new InvalidOperationException("Embedding:ModelPath obrigatório quando Embedding:Enabled=true.");
             var tokenizerPath = configuration["Embedding:TokenizerPath"]
                                 ?? throw new InvalidOperationException("Embedding:TokenizerPath obrigatório quando Embedding:Enabled=true.");
+
+            // PR 33b — paths relativos resolvidos contra os dois cwds
+            // mais comuns (raiz do repo OU backend/). Encontra o
+            // primeiro que existe. Sem isso, `./models/...` quebrava
+            // quando rodava de subpasta.
+            modelPath     = ResolveExistingPath(modelPath);
+            tokenizerPath = ResolveExistingPath(tokenizerPath);
+
             services.AddSingleton<IEmbedder>(sp => new MiniLmEmbedder(modelPath, tokenizerPath));
             services.AddSingleton<IDistractorPicker, SemanticDistractorPicker>();
         }
@@ -233,5 +241,35 @@ public static class DependencyInjection
         services.AddSingleton<IClaimExtractor, ClaimExtractor>();
 
         return services;
+    }
+
+    /// <summary>
+    /// PR 33b — resolve um path possivelmente relativo procurando em
+    /// ordem: (1) absoluto/cwd, (2) base do executável, (3) subindo até
+    /// 4 níveis a partir do AppContext.BaseDirectory (cobre rodar
+    /// de bin/Debug/net8.0/, backend/, raiz do repo).
+    ///
+    /// Falha cedo se nada existir, com mensagem útil.
+    /// </summary>
+    private static string ResolveExistingPath(string path)
+    {
+        if (Path.IsPathRooted(path) && File.Exists(path)) return path;
+        if (File.Exists(path)) return Path.GetFullPath(path);
+
+        // Tenta relativo ao AppContext.BaseDirectory subindo níveis.
+        var dir = new DirectoryInfo(AppContext.BaseDirectory);
+        for (var i = 0; i < 6 && dir != null; i++, dir = dir.Parent)
+        {
+            // path pode ser "./x/y.onnx" ou "x/y.onnx" — TrimStart elimina ./
+            var trimmed = path.TrimStart('.', '/', '\\');
+            var candidate = Path.Combine(dir.FullName, trimmed);
+            if (File.Exists(candidate)) return candidate;
+        }
+
+        throw new FileNotFoundException(
+            $"Path '{path}' não encontrado. Procurei: cwd ({Directory.GetCurrentDirectory()}) " +
+            $"e subindo até 6 níveis a partir de {AppContext.BaseDirectory}. " +
+            $"Para o MiniLM, rode scripts/download-minilm.sh primeiro.",
+            path);
     }
 }
