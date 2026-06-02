@@ -204,119 +204,414 @@ Padrão atual já existe (CardHeader, CardContent, CardFooter). Onda 1 adiciona:
 
 ---
 
-## 4. Entrega 1: Loja Cosmética
+## 4. Entrega 1: Loja Cosmética — "Toca do NAVI Mercador"
 
 **Arquivo HTML:** `loja.html`
 **Route alvo no React (depois):** `/loja`
 
-### 4.1 Estrutura da tela
+### 4.0 Direção visual (LER PRIMEIRO)
+
+> **Não é um catálogo de e-commerce. É uma cena 2D acolhedora onde um NAVI mercador atende você.**
+
+**Referências mentais** (vibe a invocar):
+- **Stardew Valley — Pierre's General Store**: balcão, vendedor sempre no quadro, ambiente caloroso
+- **Hollow Knight — Salubra/Iselda's shops**: personagem dono carismático, items dispostos ao redor, atmosfera intimista
+- **Animal Crossing — Nook's Cranny**: cenário físico navegável com NPC presente
+- **Hades — Charon's shop**: vendedor único e memorável, items flutuando como ofertas
+- **Tunic — atelier-style** (paleta dark cozy com lanternas)
+
+**Atmosfera:**
+- Cenário ilustrado de fundo: **interior aconchegante de loja de gato** — prateleiras com itens cosméticos, almofadas no chão, lanterna de papel pendurada, cortina, talvez uma janela mostrando céu noturno estrelado
+- Iluminação morna sobreposta ao dark purple base (warm overlay com gradient)
+- Particulas sutis flutuando (poeira mágica, faíscas) pra trazer vida
+
+**Identidade do NAVI Mercador (NPC):**
+- É um **segundo NAVI distinguível do cliente**: cor de pelagem **dourada-amarelada** (vs preto do cliente), com **avental marrom** e **boina de feltro**, óculos meia-lua redondos pendurados na pontinha do nariz
+- Sempre presente atrás de um **balcão de madeira**
+- Postura: braços apoiados no balcão, atento, sorriso amigável
+- Speech bubble dele aparece com fala contextual
+
+**Identidade do NAVI Cliente (você):**
+- O NAVI atual do usuário, **com todos os itens equipados**, em **destaque maior que tudo o resto da tela**
+- Postura: em pé, levemente girado em 3/4, idle animation respirando
+- Quando user **passa hover** num item da lista: NAVI cliente **veste temporariamente o item** com animação suave de overlay aparecendo, e mostra um "spotlight" amarelo embaixo dele
+- Quando user **clica num item**: lock no preview, mostra `Antes ↔ Depois` toggle pequeno
+
+---
+
+### 4.1 Layout da tela (desktop ≥1024px)
 
 ```
-┌─────────────────────────────────────────────────┐
-│  Sidebar      │  🛍️ Loja do NAVI                │
-│   compacta    │  Personalize seu mascote         │
-│   (≥1024)     │                                  │
-│               │  [🪙 1.250]  [💎 18]  [Saldo]    │  ← status chips
-│               │                                  │
-│               │  ┌── Tabs ────────────────────┐  │
-│               │  │ Loja Base │ Minha Coleção │  │
-│               │  └────────────────────────────┘  │
-│               │                                  │
-│               │  Filtros:  [Tudo] [Chapéus]    │
-│               │  [Acessórios] [Pelagens]       │
-│               │  [Expressões] [💰 Moedas]      │
-│               │  [💎 Estrelas] [✨ Exclusivos] │
-│               │                                  │
-│               │  ┌────────┬────────┬────────┐  │
-│               │  │ NAVI   │ NAVI   │ NAVI   │  │  ← preview cards
-│               │  │ com    │ com    │ com    │  │
-│               │  │chapéu1 │chapéu2 │ capa   │  │
-│               │  │        │        │        │  │
-│               │  │Cartola │ Boné   │ Capa   │  │
-│               │  │🪙 200  │🪙 150  │💎 5    │  │
-│               │  │[Comum] │[Raro]  │[Épico] │  │
-│               │  └────────┴────────┴────────┘  │
-│               │                                  │
-│               │  ┌─── Preview NAVI (sticky) ─┐  │
-│               │  │   [NAVI grande com itens  │  │
-│               │  │    selecionados]          │  │
-│               │  │   Equipado: Cartola +     │  │
-│               │  │   Gravata                 │  │
-│               │  │   [   Comprar Cartola  ]  │  │
-│               │  └───────────────────────────┘  │
-└─────────────────────────────────────────────────┘
+┌──────────────────────────────────────────────────────────────────┐
+│ Sidebar │                  CENA COZY (fundo ilustrado)            │
+│ compacta│                                                          │
+│         │  ╔═══════════════════════════════════════════════════╗  │
+│         │  ║  Header transparente sobre cenário                ║  │
+│         │  ║  🛍️ Toca do NAVI       🪙 1.250  💎 18           ║  │
+│         │  ╚═══════════════════════════════════════════════════╝  │
+│         │                                                          │
+│         │  ┌─── ZONA DE PALCO (60-65% width) ─────┐  ┌─PRATELEIRA┐│
+│         │  │                                       │  │ (35-40%)  ││
+│         │  │   ┌───────────┐                       │  │            ││
+│         │  │   │  NAVI     │     ✨                │  │ Tabs:      ││
+│         │  │   │ MERCADOR  │  ┌──────────────┐    │  │ [Loja]     ││
+│         │  │   │ dourado   │  │ Speech:      │    │  │ [Coleção]  ││
+│         │  │   │ c/avental │  │ "Hoje temos  │    │  │            ││
+│         │  │   │ atrás do  │  │ novidade pra │    │  │ Filtros:   ││
+│         │  │   │ balcão    │  │ você! 🐾"    │    │  │ [tudo]     ││
+│         │  │   └───────────┘  └──────────────┘    │  │ [chapéu]   ││
+│         │  │                                       │  │ [acessório]││
+│         │  │           ✨ partículas ✨            │  │ [pelagem]  ││
+│         │  │                                       │  │ [expressão]││
+│         │  │       ┌──────────────────┐            │  │ [✨ excl]  ││
+│         │  │       │                  │            │  │            ││
+│         │  │       │   NAVI CLIENTE   │            │  │ ┌────────┐ ││
+│         │  │       │   (200-280px)    │            │  │ │[card 1]│ ││
+│         │  │       │   com items      │            │  │ │preview │ ││
+│         │  │       │   equipados +    │            │  │ │small   │ ││
+│         │  │       │   hover preview  │            │  │ │+name   │ ││
+│         │  │       │                  │            │  │ │+price  │ ││
+│         │  │       │  ← spotlight ↓   │            │  │ └────────┘ ││
+│         │  │       └──────────────────┘            │  │ ┌────────┐ ││
+│         │  │       ▔▔▔▔▔▔▔▔▔▔▔▔▔▔                │  │ │[card 2]│ ││
+│         │  │                                       │  │ └────────┘ ││
+│         │  │  ┌──── Toolbar do palco ────────┐    │  │ ┌────────┐ ││
+│         │  │  │ [Antes ↔ Depois]  [↻ Reset]  │    │  │ │ ...    │ ││
+│         │  │  │ Equipado: Cartola + Gravata  │    │  │ │        │ ││
+│         │  │  └──────────────────────────────┘    │  │ │ scroll │ ││
+│         │  │                                       │  │ │ vert.  │ ││
+│         │  │  ┌── CTA grande quando item selec ─┐ │  │ │        │ ││
+│         │  │  │  🪙 200   Comprar Cartola       │ │  │ └────────┘ ││
+│         │  │  └─────────────────────────────────┘ │  │            ││
+│         │  └──────────────────────────────────────┘  └────────────┘│
+│         │                                                          │
+└──────────────────────────────────────────────────────────────────┘
 ```
 
-### 4.2 Componentes-chave
+**Princípios de layout:**
 
-#### Cosmetic Card
+1. **Zona de palco** (60-65% width) — o "espaço da loja" com fundo ilustrado, NAVI mercador, NAVI cliente em destaque, toolbar abaixo
+2. **Prateleira lateral** (35-40% width) — lista vertical scrollable de items, agrupados/filtráveis
+3. **Sem grid 4x4 chato** — a lista lateral é vertical (1 ou 2 colunas), com **cards menores que o foco do NAVI**
+4. **Hierarquia visual**: NAVI cliente > NAVI mercador > items na prateleira (em decrescente de tamanho/proeminência)
+5. **Sem header tradicional** — Status chips flutuam translúcidos sobre o cenário (top-right)
+
+---
+
+### 4.2 Cenário de fundo (CRÍTICO pra vibe)
+
+**Como ilustrar** (entregue como inline SVG no HTML, estilo geométrico-soft):
+
+Camadas (do fundo pro frente):
+1. **Parede de fundo**: gradient roxo dark `#1a1438 → #0e0a1e` com algumas estrelas pintadas (pequenos dots brancos)
+2. **Janela** (canto esquerdo ou direito): retângulo com céu noturno (azul escuro + lua crescente amarela suave) — opcional, dá charm
+3. **Prateleiras decorativas** (não funcionais, só decoração): 2-3 prateleiras horizontais com silhuetas de potes/livros/novelos
+4. **Lanterna de papel** pendurada do teto (círculo amarelo suave com glow leve `--warning/30`)
+5. **Balcão de madeira** em primeiro plano (~30% da altura, ocupa toda largura) — gradient `#5a3520 → #3a2310`, com textura sutil de tábua (linhas verticais finas mais escuras)
+6. **Partículas flutuando**: 8-12 pontos brancos/amarelos `opacity 0.4`, animação de subir lentamente em loop (4-8s cada), reset ao topo
+
+**Cor overlay morno** sobreposto ao tudo: `radial-gradient(ellipse at center, transparent 0%, rgba(255, 180, 100, 0.05) 60%, rgba(0,0,0,0.3) 100%)` — vinheta + warm tint sutil
+
+---
+
+### 4.3 NAVI Mercador (NPC) — design
+
+**Como renderizar** (inline SVG):
 
 ```
-┌──────────────────────┐
-│                      │
-│   [NAVI preview      │
-│    com este item]    │  ← 120x120, fundo gradient
-│                      │     leve da raridade
-│                      │
-├──────────────────────┤
-│  Cartola Premium     │  ← Syne 16px bold
-│  🪙 200              │  ← price chip
-│  [Comum]             │  ← rarity badge
-└──────────────────────┘
+Diferenciação visual do NAVI cliente:
+- Pelagem: laranja-dourada (#d4a045) em vez de preta
+- Avental: marrom escuro (#5a3520) com bolsinho frontal
+- Boina de feltro: verde-musgo (#5a7340) inclinada
+- Óculos: meia-lua dourados (#fbbf24) pendurados na pontinha do nariz
+- Postura: braços apoiados no balcão, gato sentado/agachado atrás
+- Expressão: olhos fechados de sorriso (^_^), boca em sorriso suave
+- Animação idle: respiração leve (chest pulse 4s) + cauda balançando 2s
 ```
 
-**Estados visuais:**
-- **Disponível**: card normal, hover scale 1.03 + glow leve
-- **Selecionado** (preview ativo): border 2px `--primary`, glow forte
-- **Já possuído**: badge "✓ Adquirido" canto superior direito, opacity 0.7
-- **Insuficiente saldo**: opacity 0.5, ícone 🔒 sobreposto, tooltip "Faltam X moedas"
-- **Exclusivo bloqueado**: lock icon dourado, tooltip "Obtido em [evento/streak/arena]"
+**Speech bubble** ao lado dele (à direita, com seta apontando):
+- Card pequeno fundo `--card` + border 1px `--primary/40`, padding 12px, max-width 220px
+- Texto Syne 14px
+- **Falas contextuais rotativas** (troca a cada 8s ou em eventos):
+  - Idle: *"Bem-vindo à Toca! Dá uma olhada nos novos itens, viu? 🐾"*
+  - Quando item raro está selecionado: *"Oh! Esse aí é especial mesmo!"*
+  - Quando user passa hover muitas vezes: *"Já se decidiu? Sem pressa, viu!"*
+  - Após compra: *"Boa escolha! Combinou demais com você!"*
+  - Saldo insuficiente: *"Hmm, parece que falta um pouquinho de moeda..."*
 
-#### Preview do NAVI (sticky bottom)
+---
 
-Card fixo (no mobile vira bottom-sheet, no desktop vira sticky à direita ou bottom de tela):
-- NAVI grande (200px)
-- Lista de itens **selecionados temporariamente** (não comprados ainda) com X pra remover
-- Lista de itens **equipados** (já comprados)
-- Botão "Comprar" se algo selecionado novo, "Equipar/Desequipar" se já tem
-- Animação: ao selecionar um chapéu, ele "voa" do card pra cabeça do NAVI
+### 4.4 NAVI Cliente — preview ao vivo
 
-### 4.3 Categorias e raridade (cores)
+**O foco principal da tela.** Renderizar 240-280px de altura, centralizado na zona de palco, postura 3/4 voltada pra esquerda (olhando pra mercador).
+
+**Estados:**
+
+| Estado | O que mostra | Animação |
+|--------|--------------|----------|
+| **Idle** (sem hover/click) | NAVI com itens **atualmente equipados** | Respiração 4s + blink ocasional |
+| **Hover** num item da prateleira | NAVI **veste temporariamente o item** | Fade-in do overlay 0.3s + glow amarelo embaixo do NAVI |
+| **Click** (item lockado pra preview) | Como hover, mas persistente | Toolbar "Antes ↔ Depois" aparece |
+| **Antes** (toggle) | Volta pra equipados originais | Crossfade 0.3s |
+| **Depois** (toggle) | Mostra com item selecionado | Crossfade 0.3s |
+| **Comprou item** | NAVI faz **bounce + spin** com confetti | Reward modal abre |
+| **Saldo insuficiente** | NAVI fica triste 😿 por 1s | Shake leve + bubble do mercador |
+
+**Spotlight no chão**:
+- Elipse `rgba(255, 200, 100, 0.25)` abaixo dos pés do NAVI, blur 8px
+- Pulsa suave quando item lockado pra preview (scale 1.0 ↔ 1.05 em 2s loop)
+
+**"Sticker" do item flutuando** (visual feedback):
+- Quando user passa hover num card da prateleira, mini-thumbnail do item **voa do card até a posição correspondente no NAVI** (ex: chapéu voa pra cabeça, gravata pro pescoço) com Bezier curve em 0.4s
+- No mouseleave, **volta** com mesma animação invertida
+
+---
+
+### 4.5 Toolbar abaixo do palco
+
+Aparece quando item está **lockado em preview** (após click):
+
+```
+┌──────────────────────────────────────────────────────────┐
+│ [Antes ↔ Depois]  [↻ Reset]  Equipado: Cartola + Gravata │
+└──────────────────────────────────────────────────────────┘
+```
+
+- **Antes ↔ Depois**: toggle entre estado atual vs preview do item
+- **Reset**: limpa preview, volta pro idle
+- **Lista equipado**: chips pequenos com X pra desequipar (se já é item da coleção)
+
+Abaixo da toolbar, quando item NOVO está preview:
+
+```
+┌──────────────────────────────────────────────┐
+│  🪙 200                                       │
+│  ┌────────────────────────────────────────┐  │
+│  │  ✨ Comprar Cartola Premium             │  │  ← btn grande
+│  └────────────────────────────────────────┘  │
+└──────────────────────────────────────────────┘
+```
+
+Botão **grande** (full-width da zona de palco), `--primary` com glow, ícone moeda à esquerda do texto, animation pulse sutil pra atrair atenção.
+
+Quando user **já tem** o item:
+```
+┌────────────┬────────────────┐
+│ ✓ Você tem │  Equipar agora │
+└────────────┴────────────────┘
+```
+
+Quando user **não tem saldo**:
+```
+┌────────────────────────────────────────┐
+│  🔒 Faltam 50 moedas                    │
+│     [Continue estudando pra ganhar!]   │
+└────────────────────────────────────────┘
+```
+Botão desabilitado, tooltip explicando.
+
+---
+
+### 4.6 Prateleira lateral (lista de items)
+
+**Layout:** scroll vertical, 1 coluna no desktop estreito ou 2 colunas no desktop largo.
+
+**Estrutura:**
+
+```
+┌─────────────────────────────┐
+│  📑 Tabs                     │
+│  [Loja Base] [Coleção]      │
+│                              │
+│  Filtros chip-style:         │
+│  [Tudo] [👒] [👔]            │
+│  [🎨 Pelagens] [😺 Expr]    │
+│  [✨ Exclusivos]             │
+│                              │
+│  Ordenar: [↓ Preço] [Recente]│
+│                              │
+│  ▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰    │
+│  ┌──────────────────────┐    │
+│  │ [icon item]          │    │  ← card menor (não tem
+│  │ Cartola Premium      │    │     preview do NAVI dentro)
+│  │ 🪙 200    [Comum]    │    │
+│  └──────────────────────┘    │
+│  ┌──────────────────────┐    │
+│  │ [icon item]          │    │
+│  │ Boné Programador     │    │
+│  │ 🪙 150    [Raro]     │    │
+│  └──────────────────────┘    │
+│  ... (scroll vertical)        │
+└─────────────────────────────┘
+```
+
+**Cada card da prateleira (NÃO mostra NAVI dentro — apenas o item):**
+
+```
+┌──────────────────────────────────┐
+│ ┌───┐                            │
+│ │ 👒│  Cartola Premium           │  ← ícone item 40x40 (left)
+│ └───┘  Acessório de cabeça       │  ← Syne 14px / DM 11px muted
+│        🪙 200       [Comum]      │
+└──────────────────────────────────┘
+```
+
+**Estados visuais do card:**
+
+| Estado | Visual |
+|--------|--------|
+| Normal | fundo `--card`, border 1px `--border` |
+| **Hover** | scale 1.02, border `--primary/60`, glow leve, mini-thumb do item **voa pro NAVI** |
+| **Click** (selecionado/lockado) | border 2px `--primary`, glow forte, ícone "✓" canto superior direito |
+| **Já possuído** | badge fitinha verde "✓ Adquirido" canto superior esquerdo, opacity 0.85 |
+| **Saldo insuficiente** | opacity 0.55, ícone 🔒 sobreposto no ícone do item |
+| **Exclusivo (bloqueado)** | overlay dourado + cadeado, click abre tooltip "Como obter" |
+
+**Raridade no card:**
+- Border-left 3px na cor da raridade
+- Badge canto inferior-direito: `[Comum]` cinza, `[Raro]` azul, `[Épico]` roxo com glow, `[Lendário]` dourado com shimmer, `[Exclusivo]` rosa
+- **Lendário/Exclusivo**: card tem `box-shadow` colorido pulsando 3s loop
+
+---
+
+### 4.7 Aba "Minha Coleção"
+
+Mesma prateleira lateral, mas **só itens já adquiridos**, com botão de ação no card:
+
+```
+┌──────────────────────────────────┐
+│ ┌───┐                            │
+│ │ 👒│  Cartola Premium           │
+│ └───┘  ⚡ Equipado                │  ← badge "equipado" verde
+│        [Desequipar]              │
+└──────────────────────────────────┘
+```
+
+**Filtros adicionais:** `[Equipados] [Não equipados] [Recentes]`.
+
+NAVI cliente continua no palco mostrando o que está equipado.
+
+NAVI mercador muda fala: *"Sua coleção tá ficando bonita! Quer trocar de visual?"*
+
+---
+
+### 4.8 Empty state da coleção
+
+Quando user não tem nada adquirido:
+
+```
+┌──────────────────────────────────────────┐
+│       [NAVI cliente sem acessórios]      │
+│                                          │
+│        "Hmm, vazio por aqui..."          │  ← Syne 18px
+│   Que tal dar uma cara nova pro NAVI?    │  ← DM 14px muted
+│                                          │
+│        [   ✨ Visitar a Loja   ]         │  ← btn primary
+└──────────────────────────────────────────┘
+```
+
+NAVI mercador acena: *"Volta sempre, viu? Sempre tenho novidade!"*
+
+---
+
+### 4.9 Mobile (<1024px)
+
+Layout muda radicalmente — espaço não permite cena cozy completa. Adaptação:
+
+```
+┌──────────────────────────────┐
+│ ← Toca do NAVI    🪙 1.250  │
+├──────────────────────────────┤
+│                              │
+│   [NAVI cliente em foco]     │  ← topo 40% da tela
+│   (sem cenário elaborado,    │
+│    fundo gradient simples)   │
+│                              │
+│   [Antes ↔ Depois] [↻]       │
+│                              │
+│   ┌────────────────────┐     │
+│   │ 🪙 200 Comprar     │     │  ← CTA fixo
+│   └────────────────────┘     │
+├──────────────────────────────┤
+│ [Loja] [Coleção]   📑 Tabs   │
+│ [Tudo][👒][👔][🎨][😺][✨]   │  ← filtros scroll horizontal
+├──────────────────────────────┤
+│  ┌──────────────────┐         │
+│  │ [card item]      │         │  ← lista vertical
+│  └──────────────────┘         │
+│  ┌──────────────────┐         │
+│  │ [card item]      │         │
+│  └──────────────────┘         │
+│  ... (scroll)                 │
+└──────────────────────────────┘
+```
+
+NAVI mercador no mobile: **fica como speech bubble flutuante** (FAB no canto superior direito com avatar pequeno do mercador) — click expande pra mostrar fala completa. Não ocupa espaço no palco principal.
+
+---
+
+### 4.10 Categorias e raridade (cores e efeitos)
 
 ```css
 --rarity-common:    #9ca3af;  /* cinza */
---rarity-rare:      #60a5fa;  /* azul */
+--rarity-rare:      #60a5fa;  /* azul claro */
 --rarity-epic:      #c084fc;  /* roxo claro */
 --rarity-legendary: #fbbf24;  /* dourado */
---rarity-exclusive: #f472b6;  /* rosa (eventos) */
+--rarity-exclusive: #f472b6;  /* rosa neon */
 ```
 
-Cada raridade tem:
-- Cor de borda
-- Cor do badge
-- (Legendary) shimmer animation no card a cada 5s
+**Tratamento hierárquico (importante):**
 
-### 4.4 Aba "Minha Coleção"
+| Raridade | Border | Badge | Background card | Animation |
+|----------|--------|-------|-----------------|-----------|
+| Comum | 1px cinza | chip cinza | `--card` | nenhuma |
+| Raro | 2px azul | chip azul | `--card` + leve tint azul `linear-gradient(...transparente, rgba(96,165,250,0.05))` | nenhuma |
+| Épico | 2px roxo | chip roxo | tint roxo + **2-3 partículas roxas flutuando** dentro do card | partículas loop 4s |
+| Lendário | 2px dourado | chip dourado | tint dourado + **shimmer diagonal** atravessa o card | shimmer 3s loop |
+| Exclusivo | 2px rosa | chip rosa | **moldura ornamentada** (corner brackets dourados) | leve "respiração" scale 1.0↔1.02 4s |
 
-Mesma grid layout, mas só com itens já adquiridos. Cada card tem botão `[Equipar]` ou `[Desequipar]` (se já equipado).
+---
 
-Filtros adicionais: "Equipados" / "Não equipados" / "Recentes".
+### 4.11 Animações detalhadas (ordem de prioridade)
 
-### 4.5 Empty state
+1. **Hover em card da prateleira** → ícone do item voa pro NAVI cliente, NAVI veste, glow embaixo (300ms)
+2. **Mouseleave** → ícone volta pro card, NAVI desveste (300ms reverso)
+3. **Click em card** → lock; toolbar Antes/Depois aparece com slide-up; mercador fala "Boa escolha!"
+4. **Botão Comprar** → moedas voam do chip de saldo (top-right) pro botão; botão dá scale 0.95→1.0; confetti dispara; NAVI bounce 2x; reward modal abre 0.4s depois com item conquistado
+5. **Equipar item já possuído** → ícone voa do card pra NAVI; NAVI bounce 1x; toast "✓ Equipado!"
+6. **Saldo insuficiente** → tentativa de comprar dá shake no botão + NAVI cliente fica triste 0.8s + speech bubble mercador
+7. **Switch entre tabs Loja/Coleção** → crossfade dos cards da prateleira; NAVI mercador troca de fala
+8. **Loading inicial** → mercador "puxa caixa de items debaixo do balcão" (animação stagger dos cards aparecendo)
 
-Quando user não tem nada na coleção:
-```
-   🐱
-   "Seu NAVI ainda está sem acessórios!"
-   [   Visitar a loja   ]
-```
+---
 
-### 4.6 Comportamentos a renderizar
+### 4.12 Comportamentos a renderizar no HTML showcase
 
-- **Hover em card**: scale + glow + tooltip com descrição completa
-- **Click**: seleciona pro preview
-- **Comprar**: animation "moedas voam pra fora" da carteira + reward modal pequeno
-- **Equipar**: animation do item flutuando pro NAVI + toast "✓ Equipado"
+Pra o Claude Design implementar JS mínimo demonstrativo:
+
+- [ ] Hover em qualquer card → ícone voa pra cabeça/pescoço/etc do NAVI cliente (transform animado)
+- [ ] Click em card → lock no preview, toolbar aparece
+- [ ] Click em "Comprar" → moedas voam, confetti, reward modal abre
+- [ ] Toggle "Antes ↔ Depois" → crossfade do NAVI cliente
+- [ ] Click no NAVI mercador → cycle pelas falas contextuais
+- [ ] Click em ícone de raridade no card → tooltip explica o que significa
+- [ ] Click em filtro → highlight ativo, mockar filtragem da prateleira
+
+---
+
+### 4.13 Checklist de qualidade
+
+A entrega só está OK se:
+
+- [ ] **Cenário ilustrado** (não fundo liso) — balcão + janela/lanterna + prateleiras decorativas
+- [ ] **NAVI Mercador presente e claramente distinto** do cliente (cor + acessório + posição)
+- [ ] **NAVI Cliente é o maior elemento da tela**, em pose 3/4, com items equipados visíveis
+- [ ] **Speech bubble do mercador funcional** (rotativa)
+- [ ] **Hover em item produz preview imediato** no NAVI cliente (transform suave do item indo pra ele)
+- [ ] **CTA de compra é grande, dourado-roxo, glow** — não um botão genérico tipo "Comprar"
+- [ ] **Raridade tem 5 tratamentos visuais distintos** (não só cor de borda)
+- [ ] **Partículas flutuantes sutis** no cenário (3-10) sem ser distração
+- [ ] **Mobile colapsa pra layout funcional** mantendo NAVI cliente em foco
 
 ---
 
