@@ -104,12 +104,20 @@ public sealed class LlmGroundedQuestionGenerator : IGroundedQuestionGenerator
                 // Loga em Info (não Debug) pra diagnóstico: gerador real
                 // produziu o JSON, validator rejeitou — útil pra calibrar
                 // thresholds. Reduzir pra Debug quando o pool maturar.
+                // PR 33e+: guarda quando correctIndex é inválido (Schema
+                // pode falhar JUSTAMENTE por correctIndex fora; antes
+                // acessar Options[CorrectIndex] crashava o logging).
+                var answerSafe = (question.Options is { Length: > 0 } opts
+                                  && question.CorrectIndex >= 0
+                                  && question.CorrectIndex < opts.Length)
+                    ? Truncate(opts[question.CorrectIndex], 80)
+                    : "(invalid index)";
                 _log.LogInformation(
                     "Question rejected by {Validator}: {Reason} ({Detail}). " +
                     "Prompt was: \"{Prompt}\" / Answer was: \"{Answer}\"",
                     validator.GetType().Name, failure.Value.Reason, failure.Value.Detail,
-                    Truncate(question.Prompt, 120),
-                    Truncate(question.Options[question.CorrectIndex], 80));
+                    Truncate(question.Prompt ?? string.Empty, 120),
+                    answerSafe);
                 return GroundedGenerationResult.Fail(failure.Value.Reason, failure.Value.Detail);
             }
         }
