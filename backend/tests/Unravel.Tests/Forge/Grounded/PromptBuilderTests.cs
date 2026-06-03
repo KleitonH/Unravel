@@ -27,9 +27,14 @@ public class PromptBuilderTests
         Assert.Contains("\"options\"", prompt);
         Assert.Contains("\"correctIndex\"", prompt);
         Assert.Contains("\"explanation\"", prompt);
-        // Instruções críticas
-        Assert.Contains("APENAS as informações", prompt);
-        Assert.Contains("NÃO repita a resposta", prompt);
+        // PR 33e: regras críticas calibradas pelo eval real
+        Assert.Contains("FIDELIDADE", prompt);
+        Assert.Contains("NÃO VAZAMENTO", prompt);
+        Assert.Contains("RESPOSTA SUBSTANTIVA", prompt);
+        Assert.Contains("DISTRATORES", prompt);
+        // Few-shot example presente
+        Assert.Contains("PERGUNTA RUIM", prompt);
+        Assert.Contains("PERGUNTA BOA", prompt);
     }
 
     [Fact]
@@ -41,9 +46,10 @@ public class PromptBuilderTests
         var prompt = PromptBuilder.Build("Title", claim);
 
         Assert.Contains("…", prompt);
-        // Prompt total deve ficar abaixo do limite + overhead
-        Assert.True(prompt.Length < 5_500,
-            $"Prompt deveria caber em <5500 chars com chunk truncado, ficou {prompt.Length}");
+        // PR 33e: cap do chunk em 3000 + few-shot ~3000 chars de overhead
+        // = ~6500 chars total no pior caso. Antes era 5500 sem few-shot.
+        Assert.True(prompt.Length < 7_000,
+            $"Prompt deveria caber em <7000 chars com chunk truncado, ficou {prompt.Length}");
     }
 
     [Fact]

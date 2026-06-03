@@ -72,10 +72,17 @@ public sealed class AnswerLeakageValidator : IQuestionValidator
     /// não vazamento real. Inclui variantes PT/EN porque LLMs ocasionalmente
     /// misturam (ex: "@Component" usa "Component" em inglês mesmo no
     /// PT-BR).
+    ///
+    /// <para>PR 33e: expandida com base no eval real de 50 items.
+    /// Falsos positivos detectados: "selector", "interpolação",
+    /// "encapsulamento", "palavras-chave" — todos termos que são
+    /// TEMA da pergunta (não vazamento). Pra evitar whack-a-mole
+    /// infinito, política nova: token só é "leak" se aparecer em
+    /// MÚLTIPLAS posições da resposta E do prompt (ver Validate).</para>
     /// </summary>
     private static readonly HashSet<string> Stopwords = new(StringComparer.OrdinalIgnoreCase)
     {
-        // PT
+        // PT — termos genéricos de software
         "componente", "componentes",
         "diretiva",   "diretivas",
         "decorator",  "decorators",
@@ -90,14 +97,43 @@ public sealed class AnswerLeakageValidator : IQuestionValidator
         "propriedade","propriedades",
         "elemento",   "elementos",
         "interface",  "interfaces",
-        // EN (LLM ocasionalmente vaza)
+
+        // PT — termos Angular específicos (PR 33e: vinham como tema da pergunta)
+        "selector",   "selectors",
+        "interpolação", "interpolacao",
+        "encapsulamento",
+        "palavras",   "palavra",          // pra "palavras-chave"
+        "expressão",  "expressao", "expressões", "expressoes",
+        "atributo",   "atributos",
+        "evento",     "eventos",
+        "diretivas",
+        "pipe",       "pipes",
+        "service",    "services", "serviço", "serviços",
+        "módulo",     "modulo", "módulos", "modulos",
+        "rota",       "rotas",
+        "formulário", "formulario", "formulários", "formularios",
+        "componente", "componentes",
+        "input",      "inputs",
+        "output",     "outputs",
+        "lifecycle",
+        "signal",     "signals",
+        "observable", "observables",
+        "router",
+        "navegação",  "navegacao",
+        "renderização", "renderizacao",
+
+        // EN — LLM ocasionalmente vaza inglês mesmo em PT-BR
         "component",  "components",
         "directive",  "directives",
-        "service",    "services",
         "module",     "modules",
         "binding",    "bindings",
         "property",   "properties",
-        // Angular API names (não são "vazamento" — são identidade)
+        "expression", "expressions",
+        "keyword",    "keywords",
+        "render",     "renders",
+        "event",      "events",
+
+        // Identidade
         "angular",
     };
 }

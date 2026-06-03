@@ -174,19 +174,28 @@ public static class DependencyInjection
             // Embedding:Enabled=true (caso contrário IEmbedder não está no DI).
             if (embeddingEnabled)
             {
-                var groundingThreshold = configuration.GetValue("Llm:Grounding:Threshold", 0.55);
+                // PR 33e — threshold calibrado em 0.45 (era 0.55). O eval
+                // real com 50 items mostrou que ~8 perguntas legítimas
+                // ficavam em 0.45-0.55: respostas curtas ("O selector") ou
+                // de exclusão ("qual NÃO é"). 0.45 mantém rejeição de
+                // alucinações (<0.30) e aceita paráfrases moderadas.
+                var groundingThreshold = configuration.GetValue("Llm:Grounding:Threshold", 0.45);
                 services.AddSingleton<Unravel.Infrastructure.Forge.Llm.Grounded.Validators.IQuestionValidator>(sp =>
                     new Unravel.Infrastructure.Forge.Llm.Grounded.Validators.AnswerGroundednessValidator(
                         sp.GetRequiredService<IEmbedder>(), groundingThreshold));
+                // PR 33e — maxJaccardVsAnswer 0.60 → 0.75. Perguntas de
+                // ordenação/lista têm distratores que são reorderings dos
+                // mesmos termos (Jaccard naturalmente alto). 0.75 ainda
+                // bloqueia distratores que são literal-cópias da resposta.
                 services.AddSingleton<Unravel.Infrastructure.Forge.Llm.Grounded.Validators.IQuestionValidator>(sp =>
                     new Unravel.Infrastructure.Forge.Llm.Grounded.Validators.DistractorDiversityValidator(
-                        sp.GetService<IEmbedder>()));
+                        sp.GetService<IEmbedder>(), maxJaccardVsAnswer: 0.75));
             }
             else
             {
-                // Sem embedder: só a check de Jaccard nos distratores roda.
                 services.AddSingleton<Unravel.Infrastructure.Forge.Llm.Grounded.Validators.IQuestionValidator>(sp =>
-                    new Unravel.Infrastructure.Forge.Llm.Grounded.Validators.DistractorDiversityValidator(embedder: null));
+                    new Unravel.Infrastructure.Forge.Llm.Grounded.Validators.DistractorDiversityValidator(
+                        embedder: null, maxJaccardVsAnswer: 0.75));
             }
             services.AddSingleton<IGroundedQuestionGenerator,
                 Unravel.Infrastructure.Forge.Llm.Grounded.LlmGroundedQuestionGenerator>();

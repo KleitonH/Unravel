@@ -75,9 +75,13 @@ public class AnswerLeakageValidatorTests
     [Fact]
     public void Validate_CaseInsensitive()
     {
+        // PR 33e: "encapsulamento" virou stopword (era falso positivo
+        // recorrente no eval real). Usar palavra non-stopword pra
+        // testar case-insensitive (POLIMORFISMO é jargão técnico
+        // que não aparece como tema-de-pergunta).
         var q = Q(
-            "Qual é o ENCAPSULAMENTO usado?",
-            "encapsulamento padrão emulated",
+            "Qual é o POLIMORFISMO usado nesse contexto?",
+            "polimorfismo paramétrico via generics em TypeScript",
             "x", "y", "z");
         Assert.NotNull(_sut.Validate(q, _dummyClaim));
     }
