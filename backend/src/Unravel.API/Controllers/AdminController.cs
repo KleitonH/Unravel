@@ -7,6 +7,7 @@ using Microsoft.EntityFrameworkCore;
 using Unravel.Application.Forge.Ports;
 using Unravel.Application.Journey;
 using Unravel.Application.Knowledge.Ports;
+using Unravel.Domain.Entities;
 using Unravel.Domain.Forge;
 using Unravel.Infrastructure.Knowledge;
 using Unravel.Infrastructure.Persistence;
@@ -299,6 +300,289 @@ public sealed class AdminController(
         return NoContent();
     }
 
+    // ─── PR 35 — Trilhas custom de moderador ────────────────────────
+
+    /// <summary>
+    /// Lista trilhas custom do moderador autenticado. Trilhas Git são
+    /// excluídas (gerenciadas via filesystem, não via API).
+    /// </summary>
+    [HttpGet("trails")]
+    public async Task<IActionResult> ListMyTrails(
+        [FromServices] ApplicationDbContext db,
+        CancellationToken ct)
+    {
+        var ownerId = UserId();
+        var trails = await db.Trail
+            .AsNoTracking()
+            .Where(t => t.Source == ContentSource.ModeratorCustom && t.OwnerUserId == ownerId)
+            .OrderByDescending(t => t.CreatedAt)
+            .Select(t => new CustomTrailDto(
+                t.Id, t.Slug, t.Name, t.Description, t.Icon, t.AccentColor,
+                (int)t.Level, t.IsActive, t.IsPublished, t.CreatedAt,
+                t.Contents.Count(c => c.IsActive)))
+            .ToListAsync(ct);
+        return Ok(trails);
+    }
+
+    /// <summary>
+    /// Cria trilha custom. Slug é opcional; se omitido, gera a partir
+    /// do nome (lowercase + hifens). Slug deve ser globalmente único.
+    /// </summary>
+    [HttpPost("trails")]
+    public async Task<IActionResult> CreateTrail(
+        [FromBody] CreateCustomTrailRequest dto,
+        [FromServices] ApplicationDbContext db,
+        CancellationToken ct)
+    {
+        if (string.IsNullOrWhiteSpace(dto.Name))
+            return BadRequest(new { message = "Name é obrigatório." });
+
+        var slug = string.IsNullOrWhiteSpace(dto.Slug) ? Slugify(dto.Name) : dto.Slug.Trim().ToLowerInvariant();
+        if (await db.Trail.AnyAsync(t => t.Slug == slug, ct))
+            return Conflict(new { message = $"Slug '{slug}' já está em uso." });
+
+        var trail = new Trail
+        {
+            Slug        = slug,
+            Name        = dto.Name.Trim(),
+            Description = dto.Description?.Trim() ?? string.Empty,
+            Icon        = string.IsNullOrWhiteSpace(dto.Icon)        ? "📘"      : dto.Icon.Trim(),
+            AccentColor = string.IsNullOrWhiteSpace(dto.AccentColor) ? "#7038f2" : dto.AccentColor.Trim(),
+            Level       = ParseLevel(dto.Level),
+            Source      = ContentSource.ModeratorCustom,
+            OwnerUserId = UserId(),
+            IsActive    = true,
+            IsPublished = false,  // rascunho por default — moderador publica explicitamente
+            CreatedAt   = DateTime.UtcNow,
+        };
+        db.Trail.Add(trail);
+        await db.SaveChangesAsync(ct);
+
+        return CreatedAtAction(nameof(ListMyTrails), null,
+            new CustomTrailDto(trail.Id, trail.Slug, trail.Name, trail.Description, trail.Icon,
+                trail.AccentColor, (int)trail.Level, trail.IsActive, trail.IsPublished,
+                trail.CreatedAt, 0));
+    }
+
+    /// <summary>Edita metadados de trilha custom. Bloqueia edição de trilhas Git.</summary>
+    [HttpPatch("trails/{trailId:int}")]
+    public async Task<IActionResult> UpdateTrail(
+        int trailId,
+        [FromBody] UpdateCustomTrailRequest dto,
+        [FromServices] ApplicationDbContext db,
+        CancellationToken ct)
+    {
+        var trail = await db.Trail.FindAsync(new object[] { trailId }, ct);
+        if (trail is null) return NotFound();
+        if (trail.Source != ContentSource.ModeratorCustom)
+            return Forbid();
+        if (trail.OwnerUserId != UserId())
+            return Forbid();
+
+        if (dto.Name is not null) trail.Name = dto.Name.Trim();
+        if (dto.Description is not null) trail.Description = dto.Description.Trim();
+        if (dto.Icon is not null) trail.Icon = dto.Icon.Trim();
+        if (dto.AccentColor is not null) trail.AccentColor = dto.AccentColor.Trim();
+        if (dto.Level is not null) trail.Level = ParseLevel(dto.Level);
+        if (dto.IsPublished is bool pub) trail.IsPublished = pub;
+
+        await db.SaveChangesAsync(ct);
+        return NoContent();
+    }
+
+    /// <summary>Soft-delete (IsActive=false). Trilha desaparece pros alunos
+    /// mas perguntas/respostas históricas ficam.</summary>
+    [HttpDelete("trails/{trailId:int}")]
+    public async Task<IActionResult> DeleteTrail(
+        int trailId,
+        [FromServices] ApplicationDbContext db,
+        CancellationToken ct)
+    {
+        var trail = await db.Trail.FindAsync(new object[] { trailId }, ct);
+        if (trail is null) return NotFound();
+        if (trail.Source != ContentSource.ModeratorCustom) return Forbid();
+        if (trail.OwnerUserId != UserId()) return Forbid();
+
+        trail.IsActive = false;
+        await db.SaveChangesAsync(ct);
+        return NoContent();
+    }
+
+    // ─── PR 35 — Contents custom de moderador ───────────────────────
+
+    /// <summary>
+    /// Lista contents de uma trilha (custom). Inclui body completo —
+    /// pra editor markdown carregar.
+    /// </summary>
+    [HttpGet("trails/{trailId:int}/contents")]
+    public async Task<IActionResult> ListContents(
+        int trailId,
+        [FromServices] ApplicationDbContext db,
+        CancellationToken ct)
+    {
+        var trail = await db.Trail
+            .AsNoTracking()
+            .FirstOrDefaultAsync(t => t.Id == trailId, ct);
+        if (trail is null) return NotFound();
+        if (trail.Source != ContentSource.ModeratorCustom) return Forbid();
+        if (trail.OwnerUserId != UserId()) return Forbid();
+
+        var contents = await db.Content
+            .AsNoTracking()
+            .Where(c => c.TrailId == trailId)
+            .OrderBy(c => c.Order).ThenBy(c => c.Id)
+            .Select(c => new CustomContentDto(
+                c.Id, c.Slug, c.Title, c.Body, c.Order,
+                (int)c.Level, c.IsActive, c.CreatedAt, c.EditedAt))
+            .ToListAsync(ct);
+        return Ok(contents);
+    }
+
+    /// <summary>
+    /// Cria content custom dentro de trilha custom. Body é markdown raw;
+    /// chunks/claims são extraídos on-the-fly no momento de gerar perguntas
+    /// (não precisa de processing prévio).
+    /// </summary>
+    [HttpPost("trails/{trailId:int}/contents")]
+    public async Task<IActionResult> CreateContent(
+        int trailId,
+        [FromBody] CreateCustomContentRequest dto,
+        [FromServices] ApplicationDbContext db,
+        CancellationToken ct)
+    {
+        var trail = await db.Trail.FindAsync(new object[] { trailId }, ct);
+        if (trail is null) return NotFound(new { message = $"Trail {trailId} não existe." });
+        if (trail.Source != ContentSource.ModeratorCustom) return Forbid();
+        if (trail.OwnerUserId != UserId()) return Forbid();
+
+        if (string.IsNullOrWhiteSpace(dto.Title))
+            return BadRequest(new { message = "Title é obrigatório." });
+        if (string.IsNullOrWhiteSpace(dto.Body))
+            return BadRequest(new { message = "Body (markdown) é obrigatório." });
+
+        var slug = string.IsNullOrWhiteSpace(dto.Slug) ? Slugify(dto.Title) : dto.Slug.Trim().ToLowerInvariant();
+        if (await db.Content.AnyAsync(c => c.Slug == slug, ct))
+            return Conflict(new { message = $"Slug '{slug}' já está em uso (slug é único globalmente)." });
+
+        // Order: se não passado, vai pro fim
+        var order = dto.Order ?? await db.Content
+            .Where(c => c.TrailId == trailId)
+            .Select(c => (int?)c.Order)
+            .MaxAsync(ct) ?? 0;
+        if (dto.Order is null) order += 1;
+
+        var content = new Content
+        {
+            Slug      = slug,
+            Title     = dto.Title.Trim(),
+            Body      = dto.Body,  // markdown raw, não trim — preserva indentação de code blocks
+            TrailId   = trailId,
+            Order     = order,
+            Level     = ParseLevel(dto.Level),
+            Type      = ContentType.Article,
+            Source    = ContentSource.ModeratorCustom,
+            IsActive  = true,
+            CreatedAt = DateTime.UtcNow,
+        };
+        db.Content.Add(content);
+        await db.SaveChangesAsync(ct);
+
+        return CreatedAtAction(nameof(ListContents), new { trailId },
+            new CustomContentDto(content.Id, content.Slug, content.Title, content.Body,
+                content.Order, (int)content.Level, content.IsActive, content.CreatedAt, null));
+    }
+
+    /// <summary>
+    /// Edita content custom. Se o body mudou, marca perguntas existentes
+    /// como <c>IsActive=false</c> (reset conservador — moderador roda
+    /// forge bulk de novo pra repopular). Versão futura: hash-diff por
+    /// chunk preservando perguntas de chunks inalterados.
+    /// </summary>
+    [HttpPatch("contents/{contentId:int}")]
+    public async Task<IActionResult> UpdateContent(
+        int contentId,
+        [FromBody] UpdateCustomContentRequest dto,
+        [FromServices] ApplicationDbContext db,
+        CancellationToken ct)
+    {
+        var content = await db.Content.FirstOrDefaultAsync(c => c.Id == contentId, ct);
+        if (content is null) return NotFound();
+        if (content.Source != ContentSource.ModeratorCustom) return Forbid();
+
+        var trail = await db.Trail.FindAsync(new object[] { content.TrailId }, ct);
+        if (trail?.OwnerUserId != UserId()) return Forbid();
+
+        var bodyChanged = dto.Body is not null && dto.Body != content.Body;
+
+        if (dto.Title is not null) content.Title = dto.Title.Trim();
+        if (dto.Body  is not null) content.Body  = dto.Body;
+        if (dto.Order is int ord)  content.Order = ord;
+        if (dto.Level is not null) content.Level = ParseLevel(dto.Level);
+        if (dto.IsActive is bool act) content.IsActive = act;
+
+        if (bodyChanged)
+        {
+            content.EditedAt       = DateTime.UtcNow;
+            content.EditedByUserId = UserId();
+
+            // Reset conservador: invalida pool. Moderador roda
+            // POST /forge/{contentId} pra repopular. Garante que aluno
+            // não veja pergunta gerada contra texto antigo.
+            await db.GeneratedChallenge
+                .Where(gc => gc.ContentId == contentId && gc.IsActive)
+                .ExecuteUpdateAsync(s => s.SetProperty(gc => gc.IsActive, false), ct);
+        }
+
+        await db.SaveChangesAsync(ct);
+        return NoContent();
+    }
+
+    /// <summary>Soft-delete de content custom.</summary>
+    [HttpDelete("contents/{contentId:int}")]
+    public async Task<IActionResult> DeleteContent(
+        int contentId,
+        [FromServices] ApplicationDbContext db,
+        CancellationToken ct)
+    {
+        var content = await db.Content.FirstOrDefaultAsync(c => c.Id == contentId, ct);
+        if (content is null) return NotFound();
+        if (content.Source != ContentSource.ModeratorCustom) return Forbid();
+
+        var trail = await db.Trail.FindAsync(new object[] { content.TrailId }, ct);
+        if (trail?.OwnerUserId != UserId()) return Forbid();
+
+        content.IsActive = false;
+        await db.SaveChangesAsync(ct);
+        return NoContent();
+    }
+
+    // ─── Helpers ────────────────────────────────────────────────────
+
+    /// <summary>Slugify simples: lowercase + remove diacríticos + colapsa
+    /// não-alfanuméricos em hífen. "Banco de Dados Avançado" → "banco-de-dados-avancado".</summary>
+    private static string Slugify(string s)
+    {
+        var normalized = s.Normalize(System.Text.NormalizationForm.FormD);
+        var sb = new System.Text.StringBuilder(normalized.Length);
+        foreach (var c in normalized)
+        {
+            var cat = System.Globalization.CharUnicodeInfo.GetUnicodeCategory(c);
+            if (cat == System.Globalization.UnicodeCategory.NonSpacingMark) continue;
+            if (char.IsLetterOrDigit(c)) sb.Append(char.ToLowerInvariant(c));
+            else if (sb.Length > 0 && sb[^1] != '-') sb.Append('-');
+        }
+        return sb.ToString().Trim('-');
+    }
+
+    private static DifficultyLevel ParseLevel(string? level) =>
+        (level ?? "Beginner").Trim().ToLowerInvariant() switch
+        {
+            "beginner"     or "iniciante"     => DifficultyLevel.Beginner,
+            "intermediate" or "intermediario" or "intermediário" => DifficultyLevel.Intermediate,
+            "advanced"     or "avancado"      or "avançado"      => DifficultyLevel.Advanced,
+            _ => DifficultyLevel.Beginner,
+        };
+
     private Guid UserId() => Guid.Parse(
         User.FindFirstValue(JwtRegisteredClaimNames.Sub)
         ?? User.FindFirstValue(ClaimTypes.NameIdentifier)!);
@@ -325,3 +609,59 @@ public record GoldDto(
     string?   Explanation,
     double?   DifficultyHint,
     DateTime  CreatedAt);
+
+// PR 35 — Trail/Content custom DTOs
+
+public record CreateCustomTrailRequest(
+    string  Name,
+    string? Slug,
+    string? Description,
+    string? Icon,
+    string? AccentColor,
+    string? Level);
+
+public record UpdateCustomTrailRequest(
+    string? Name,
+    string? Description,
+    string? Icon,
+    string? AccentColor,
+    string? Level,
+    bool?   IsPublished);
+
+public record CustomTrailDto(
+    int      Id,
+    string?  Slug,
+    string   Name,
+    string   Description,
+    string   Icon,
+    string   AccentColor,
+    int      Level,
+    bool     IsActive,
+    bool     IsPublished,
+    DateTime CreatedAt,
+    int      ContentsCount);
+
+public record CreateCustomContentRequest(
+    string  Title,
+    string  Body,
+    string? Slug,
+    int?    Order,
+    string? Level);
+
+public record UpdateCustomContentRequest(
+    string? Title,
+    string? Body,
+    int?    Order,
+    string? Level,
+    bool?   IsActive);
+
+public record CustomContentDto(
+    int       Id,
+    string?   Slug,
+    string    Title,
+    string    Body,
+    int       Order,
+    int       Level,
+    bool      IsActive,
+    DateTime  CreatedAt,
+    DateTime? EditedAt);

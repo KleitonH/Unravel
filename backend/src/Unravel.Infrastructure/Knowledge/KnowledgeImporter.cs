@@ -106,9 +106,19 @@ public sealed class KnowledgeImporter(
         var trailWasCreated = false;
         if (trail is null)
         {
-            trail = new Trail { Slug = manifest.Slug };
+            trail = new Trail { Slug = manifest.Slug, Source = ContentSource.Git };
             db.Trail.Add(trail);
             trailWasCreated = true;
+        }
+        else if (trail.Source != ContentSource.Git)
+        {
+            // PR 35: proteção — não sobrescrever trilha custom de moderador
+            // mesmo que o slug colida com pasta no filesystem. Log e segue.
+            log.LogWarning(
+                "Pulando trilha '{Slug}': existe no DB com Source={Source}, " +
+                "não pode ser sobrescrita pelo KnowledgeImporter.",
+                manifest.Slug, trail.Source);
+            return new TrailImportSummary(false, 0, 0);
         }
         trail.Name        = manifest.Name;
         trail.Description = manifest.Description ?? string.Empty;
@@ -116,6 +126,7 @@ public sealed class KnowledgeImporter(
         trail.AccentColor = manifest.AccentColor ?? "#7038f2";
         trail.Level       = ParseLevel(manifest.Level);
         trail.IsActive    = true;
+        trail.IsPublished = true;
 
         // Forçar Id pra disponibilizar pro FK dos Contents (caso seja
         // trilha nova). Sem isso, o FK fica 0 e o save quebra.
@@ -138,9 +149,19 @@ public sealed class KnowledgeImporter(
             var content = await db.Content.FirstOrDefaultAsync(c => c.Slug == doc.Slug, ct);
             if (content is null)
             {
-                content = new Content { Slug = doc.Slug };
+                content = new Content { Slug = doc.Slug, Source = ContentSource.Git };
                 db.Content.Add(content);
                 created++;
+            }
+            else if (content.Source != ContentSource.Git)
+            {
+                // PR 35: mesma proteção do Trail — slug colidiu com content
+                // custom no DB. Não sobrescreve.
+                log.LogWarning(
+                    "Pulando content '{Slug}': existe no DB com Source={Source}, " +
+                    "não pode ser sobrescrito pelo KnowledgeImporter.",
+                    doc.Slug, content.Source);
+                continue;
             }
             else
             {
@@ -153,7 +174,8 @@ public sealed class KnowledgeImporter(
             content.Level    = ParseLevel(doc.Level);
             content.Type     = ContentType.Article;
             content.IsActive = true;
-            // ExternalUrl e CreatedAt não tocam — defaults já cobrem.
+            // ExternalUrl, CreatedAt, EditedAt, EditedByUserId não tocam —
+            // pra Git, EditedAt fica null (não houve edição via API).
         }
 
         return new TrailImportSummary(trailWasCreated, created, updated);

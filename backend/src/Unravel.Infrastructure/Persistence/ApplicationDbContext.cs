@@ -40,6 +40,13 @@ public partial class ApplicationDbContext(DbContextOptions<ApplicationDbContext>
             e.Property(t => t.Icon).HasMaxLength(10);
             e.Property(t => t.AccentColor).HasMaxLength(20);
             e.Property(t => t.Level).HasConversion<int>();
+
+            // PR 35: Source + OwnerUserId pra trilhas custom de moderador.
+            // Índice filtrado pra acelerar "minhas trilhas" do moderador
+            // sem onerar queries comuns que ignoram esses campos.
+            e.Property(t => t.Source).HasConversion<int>();
+            e.HasIndex(t => new { t.Source, t.OwnerUserId })
+             .HasFilter("\"owner_user_id\" IS NOT NULL");
         });
 
         mb.Entity<Content>(e =>
@@ -55,6 +62,10 @@ public partial class ApplicationDbContext(DbContextOptions<ApplicationDbContext>
             e.Property(c => c.ExternalUrl).HasMaxLength(500);
             e.Property(c => c.Type).HasConversion<int>();
             e.Property(c => c.Level).HasConversion<int>();
+
+            // PR 35: Source pra contents custom. KnowledgeImporter filtra
+            // por Source=Git ao re-importar (ver KnowledgeImporter.cs).
+            e.Property(c => c.Source).HasConversion<int>();
 
             e.HasOne(c => c.Trail)
              .WithMany(t => t.Contents)

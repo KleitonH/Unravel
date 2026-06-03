@@ -20,6 +20,30 @@ public class Trail
     public bool   IsActive    { get; set; } = true;
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
+    /// <summary>
+    /// PR 35 — origem da trilha. <see cref="ContentSource.Git"/> (default)
+    /// é seedada via filesystem e protegida contra edição via API.
+    /// <see cref="ContentSource.ModeratorCustom"/> é criada via UI admin
+    /// e pode ser editada/deletada pelo dono ou role Admin.
+    /// </summary>
+    public ContentSource Source { get; set; } = ContentSource.Git;
+
+    /// <summary>
+    /// PR 35 — moderador autor da trilha (preenchido só pra <c>Source =
+    /// ModeratorCustom</c>). Null pra trilhas Git (não há dono individual).
+    /// Aluno vê trilhas Git globais + custom publicadas (tenancy futura
+    /// pode restringir por owner).
+    /// </summary>
+    public Guid? OwnerUserId { get; set; }
+
+    /// <summary>
+    /// PR 35 — trilhas custom começam como rascunho não-publicado.
+    /// Aluno só vê trilhas <c>IsPublished=true AND IsActive=true</c>.
+    /// Trilhas Git são sempre publicadas (controle é via flag IsActive
+    /// no manifest).
+    /// </summary>
+    public bool IsPublished { get; set; } = true;
+
     public ICollection<Content>   Contents   { get; set; } = new List<Content>();
     public ICollection<UserTrail> UserTrails { get; set; } = new List<UserTrail>();
 }

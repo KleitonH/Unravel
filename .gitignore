@@ -38,3 +38,4 @@ Thumbs.db
 *.swp
 out/
 frontend/public/forge-eval-*.html
+models/

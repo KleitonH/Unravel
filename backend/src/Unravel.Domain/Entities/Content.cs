@@ -23,6 +23,28 @@ public class Content
     public bool    IsActive   { get; set; } = true;
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
+    /// <summary>
+    /// PR 35 — origem do conteúdo. <see cref="ContentSource.Git"/> é
+    /// upsertado pelo <c>KnowledgeImporter</c>. <see cref="ContentSource.ModeratorCustom"/>
+    /// é criado via API e <b>ignorado</b> pelo re-import (pra não ser
+    /// sobrescrito acidentalmente quando o filesystem não tem nada
+    /// correspondente).
+    /// </summary>
+    public ContentSource Source { get; set; } = ContentSource.Git;
+
+    /// <summary>
+    /// PR 35 — última edição via API (null pra Git, populado em PATCH
+    /// de Content custom). Usado pra invalidar/reprocessar perguntas
+    /// que podem ter ficado desalinhadas com o chunk editado.
+    /// </summary>
+    public DateTime? EditedAt { get; set; }
+
+    /// <summary>
+    /// PR 35 — quem fez a última edição via API. Auditoria simples;
+    /// histórico completo de revisões fica fora do MVP.
+    /// </summary>
+    public Guid? EditedByUserId { get; set; }
+
     public int   TrailId { get; set; }
     public Trail Trail   { get; set; } = null!;
 
