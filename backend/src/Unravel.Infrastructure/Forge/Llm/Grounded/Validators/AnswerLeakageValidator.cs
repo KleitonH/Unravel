@@ -20,6 +20,14 @@ public sealed class AnswerLeakageValidator : IQuestionValidator
 
     private const int MinSubstringMatch = 6;
 
+    /// <summary>Mínimo de tokens significativos da resposta que precisam
+    /// aparecer no prompt pra contar como leak. Antes era 1 — gerava
+    /// falsos positivos toda vez que o prompt mencionava o TEMA da
+    /// pergunta (ex: "...sobre selector...") e a resposta também usava
+    /// (ex: "O selector define..."). PR 33h: 2 tokens é o sweet spot
+    /// pra capturar vazamento de FRASE sem barrar coincidência única.</summary>
+    private const int MinLeakingTokens = 2;
+
     public (GenerationFailureReason Reason, string Detail)? Validate(
         GroundedQuestion question, ClaimCandidate _)
     {
@@ -27,22 +35,36 @@ public sealed class AnswerLeakageValidator : IQuestionValidator
         var promptLow = question.Prompt.ToLowerInvariant();
         var answerLow = answer.ToLowerInvariant();
 
-        // Match literal exato → vazou.
+        // Match literal exato → vazou (caso óbvio e indiscutível).
         if (promptLow.Contains(answerLow))
             return (GenerationFailureReason.AnswerLeakage,
                 $"Resposta literal aparece no prompt: \"{answer}\"");
 
-        // Match de substring "significativo": pega tokens da resposta
-        // com 6+ chars e checa se algum aparece no prompt. Filtra
-        // stopwords/conectivos comuns pra não dar falso positivo.
-        var tokens = TokenizeMeaningful(answerLow);
+        // PR 33h: regra de N tokens. Exige ≥2 tokens significativos
+        // da resposta presentes no prompt pra considerar leak.
+        // 1 token isolado é coincidência (tema da pergunta); 2+ tokens
+        // distintos compartilhados é sinal real de vazamento.
+        // Tokens MUITO longos (≥12 chars) ainda contam isoladamente —
+        // termo técnico raro vazando uma vez já é leak claro.
+        var tokens         = TokenizeMeaningful(answerLow).ToList();
+        var leakedTokens   = new List<string>();
+        var longLeakedRare = new List<string>();
         foreach (var token in tokens)
         {
             if (token.Length < MinSubstringMatch) continue;
-            if (promptLow.Contains(token))
-                return (GenerationFailureReason.AnswerLeakage,
-                    $"Token '{token}' da resposta aparece no prompt");
+            if (!promptLow.Contains(token)) continue;
+            leakedTokens.Add(token);
+            if (token.Length >= 12) longLeakedRare.Add(token);
         }
+
+        if (longLeakedRare.Count > 0)
+            return (GenerationFailureReason.AnswerLeakage,
+                $"Token raro '{longLeakedRare[0]}' (≥12 chars) da resposta aparece no prompt");
+
+        if (leakedTokens.Count >= MinLeakingTokens)
+            return (GenerationFailureReason.AnswerLeakage,
+                $"{leakedTokens.Count} tokens da resposta aparecem no prompt: " +
+                string.Join(", ", leakedTokens.Take(3).Select(t => $"'{t}'")));
 
         return null;
     }

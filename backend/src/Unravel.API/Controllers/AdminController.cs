@@ -107,6 +107,74 @@ public sealed class AdminController(
         return Ok(status);
     }
 
+    /// <summary>
+    /// PR 33h — bulk: enfileira jobs pra TODOS os Contents ativos de uma
+    /// trilha (ou de todas, se trailSlug não passado).
+    /// Útil pra encher o pool de uma vez só, em vez de chamar
+    /// POST forge/{contentId} N vezes manualmente.
+    /// </summary>
+    [HttpPost("forge/bulk")]
+    public async Task<IActionResult> EnqueueForgeBulk(
+        [FromQuery] string? trailSlug = null,
+        [FromQuery] int max = 20,
+        [FromQuery] bool urgent = false,
+        [FromServices] ApplicationDbContext db = null!,
+        [FromServices] IClaimExtractor extractor = null!,
+        [FromServices] IQuestionForgeQueue queue = null!,
+        CancellationToken ct = default)
+    {
+        // Filtra Contents da trilha (ou todos, se sem filtro)
+        var contentsQuery = db.Content.Where(c => c.IsActive);
+        if (!string.IsNullOrWhiteSpace(trailSlug))
+            contentsQuery = contentsQuery.Where(c => c.Trail.Slug == trailSlug);
+
+        var contents = await contentsQuery
+            .Select(c => new { c.Id, c.Title, c.Body })
+            .ToListAsync(ct);
+
+        if (contents.Count == 0)
+            return NotFound(new { message = trailSlug is null
+                ? "Nenhum Content ativo no DB."
+                : $"Nenhum Content ativo na trilha '{trailSlug}'." });
+
+        var perContent  = new List<object>(contents.Count);
+        var totalQueued = 0;
+
+        foreach (var content in contents)
+        {
+            ct.ThrowIfCancellationRequested();
+            var claims = extractor.Extract(content.Body)
+                .OrderByDescending(c => c.Score)
+                .Take(max)
+                .ToList();
+
+            if (claims.Count == 0)
+            {
+                perContent.Add(new { contentId = content.Id, contentTitle = content.Title,
+                    claimsCandidates = 0, enqueued = 0 });
+                continue;
+            }
+
+            var enqueued = await queue.EnqueueForContentAsync(
+                content.Id, claims,
+                urgent ? ForgeJobPriority.Urgent : ForgeJobPriority.Normal,
+                ct);
+            totalQueued += enqueued;
+            perContent.Add(new { contentId = content.Id, contentTitle = content.Title,
+                claimsCandidates = claims.Count, enqueued });
+        }
+
+        return Ok(new
+        {
+            trailSlug,
+            maxPerContent = max,
+            urgent,
+            totalContents = contents.Count,
+            totalQueued,
+            perContent,
+        });
+    }
+
     // ─── PR 33d — Moderator-curated gold ────────────────────────────
 
     /// <summary>Lista gold curado por moderador pra um Content.</summary>

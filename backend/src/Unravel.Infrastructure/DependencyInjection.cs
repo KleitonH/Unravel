@@ -214,15 +214,22 @@ public static class DependencyInjection
                 // ordenação/lista têm distratores que são reorderings dos
                 // mesmos termos (Jaccard naturalmente alto). 0.75 ainda
                 // bloqueia distratores que são literal-cópias da resposta.
+                //
+                // PR 33h — minCosineVsChunk 0.35 → 0.20. Eval gpt-4o-mini
+                // mostrou 17/50 DistractorsPoor por distratores levemente
+                // off-topic (~0.25-0.35 cosine). Esses são distratores
+                // VÁLIDOS pedagógicamente — testam se aluno distingue
+                // conceito principal vs conceitos relacionados de outras
+                // áreas. 0.20 ainda bloqueia distratores que são banana.
                 services.AddSingleton<Unravel.Infrastructure.Forge.Llm.Grounded.Validators.IQuestionValidator>(sp =>
                     new Unravel.Infrastructure.Forge.Llm.Grounded.Validators.DistractorDiversityValidator(
-                        sp.GetService<IEmbedder>(), maxJaccardVsAnswer: 0.75));
+                        sp.GetService<IEmbedder>(), maxJaccardVsAnswer: 0.75, minCosineVsChunk: 0.20));
             }
             else
             {
                 services.AddSingleton<Unravel.Infrastructure.Forge.Llm.Grounded.Validators.IQuestionValidator>(sp =>
                     new Unravel.Infrastructure.Forge.Llm.Grounded.Validators.DistractorDiversityValidator(
-                        embedder: null, maxJaccardVsAnswer: 0.75));
+                        embedder: null, maxJaccardVsAnswer: 0.75, minCosineVsChunk: 0.20));
             }
             services.AddSingleton<IGroundedQuestionGenerator,
                 Unravel.Infrastructure.Forge.Llm.Grounded.LlmGroundedQuestionGenerator>();

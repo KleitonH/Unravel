@@ -37,7 +37,10 @@ public sealed class LlmHealthCheck(
                 log.LogInformation("LLM health check: pinging…");
                 var sw = System.Diagnostics.Stopwatch.StartNew();
                 var response = await llm.CompleteAsync(
-                    "Responda apenas 'OK' em uma palavra.",
+                    // PR 33h: prompt deve mencionar "json" pra OpenAI
+                    // aceitar com response_format=json_object — exigência
+                    // da API. Ollama ignora a palavra mas roda igual.
+                    "Responda em JSON com a chave \"status\" e valor \"ok\".",
                     cts.Token);
                 sw.Stop();
 
