@@ -4,6 +4,8 @@
     <TargetFramework>net8.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
+    <!-- PR 33g — user-secrets pra OpenAI ApiKey (não commitar). -->
+    <UserSecretsId>unravel-api-dev</UserSecretsId>
   </PropertyGroup>
 
   <ItemGroup>

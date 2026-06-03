@@ -144,7 +144,34 @@ public static class DependencyInjection
                         sp.GetRequiredService<ILogger<OllamaInference>>());
                 });
             }
-            else
+            else if (provider.Equals("OpenAI", StringComparison.OrdinalIgnoreCase))
+            {
+                // PR 33g — OpenAI Chat Completions. API key via user-secrets
+                // ou env var OPENAI_API_KEY (NUNCA commitar em appsettings).
+                var baseUrl = configuration["Llm:OpenAi:BaseUrl"] ?? "https://api.openai.com/";
+                var model   = configuration["Llm:OpenAi:Model"] ?? "gpt-4o-mini";
+                var apiKey  = configuration["Llm:OpenAi:ApiKey"]
+                              ?? Environment.GetEnvironmentVariable("OPENAI_API_KEY")
+                              ?? throw new InvalidOperationException(
+                                  "Llm:OpenAi:ApiKey ausente. Configure via " +
+                                  "`dotnet user-secrets set \"Llm:OpenAi:ApiKey\" \"sk-...\"` " +
+                                  "(em backend/src/Unravel.API/) ou env var OPENAI_API_KEY.");
+                var forceJson = configuration.GetValue("Llm:OpenAi:ForceJson", true);
+
+                services.AddHttpClient<OpenAiInference>(c =>
+                {
+                    c.BaseAddress = new Uri(baseUrl.TrimEnd('/') + "/");
+                });
+
+                services.AddSingleton<ILlmInference>(sp =>
+                {
+                    var http = sp.GetRequiredService<IHttpClientFactory>().CreateClient(nameof(OpenAiInference));
+                    http.BaseAddress = new Uri(baseUrl.TrimEnd('/') + "/");
+                    return new OpenAiInference(http, apiKey, model, temp, maxTok, forceJson,
+                        sp.GetRequiredService<ILogger<OpenAiInference>>());
+                });
+            }
+            else // LLamaSharp (default — retrocompat com PR 20)
             {
                 var modelPath = configuration["Llm:ModelPath"]
                                 ?? throw new InvalidOperationException("Llm:ModelPath obrigatório quando Llm:Provider=LLamaSharp.");
