@@ -290,6 +290,9 @@ static async Task<int> RunForgeEvalAsync(string[] args)
     // PR 33d — mescla com gold curado por moderador no DB.
     // Mesma trilha, items aparecem como se viessem do YAML.
     var db             = sp.GetRequiredService<ApplicationDbContext>();
+    // Garante schema atualizado (CLI não passa por app.Run() que migra
+    // automaticamente; sem isso, migration nova quebra a query).
+    await db.Database.MigrateAsync();
     var goldFromDb     = await ModeratorGoldReader.ReadForTrailAsync(db, goldSetYaml.Trail);
     var allItems       = goldSetYaml.Items.Concat(goldFromDb).ToList();
     var goldSet        = new GoldSet(goldSetYaml.Trail, allItems);
