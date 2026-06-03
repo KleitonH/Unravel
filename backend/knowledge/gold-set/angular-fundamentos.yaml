@@ -52,36 +52,52 @@ items:
     difficultyHint: 0.35
 
   - topicSlug: angular-componentes
-    # TODO completar — sugestão de foco: o que o selector define?
-    sourceClaim: ""
-    prompt: ""
-    correctAnswer: ""
-    distractors: []
-    explanation: ""
+    chunkHeading: "Selector — convenções"
+    sourceClaim: "O selector define o nome da tag HTML usada para inserir o componente em outros templates."
+    prompt: "O que a propriedade selector do decorator @Component determina?"
+    correctAnswer: "O nome da tag (ou seletor CSS) usado para inserir o componente em outros templates"
+    distractors:
+      - "O caminho do arquivo de template HTML associado ao componente"
+      - "O nome da rota que carregará esse componente no router-outlet"
+      - "O escopo de injeção de dependências aplicado às instâncias"
+    explanation: "selector é o seletor CSS (geralmente uma tag kebab-case) que o Angular procura no HTML para instanciar o componente."
+    difficultyHint: 0.30
 
   - topicSlug: angular-componentes
-    # TODO completar — sugestão: diferença entre standalone e ngModule
-    sourceClaim: ""
-    prompt: ""
-    correctAnswer: ""
-    distractors: []
-    explanation: ""
+    chunkHeading: "Componentes Standalone"
+    sourceClaim: "Um componente standalone declara suas dependências diretamente na propriedade imports do decorator, sem precisar de NgModule."
+    prompt: "Como um componente standalone disponibiliza diretivas e pipes externos para seu template?"
+    correctAnswer: "Declarando essas dependências no array imports do próprio decorator @Component"
+    distractors:
+      - "Adicionando-as ao array declarations de um NgModule pai"
+      - "Importando-as automaticamente — standalone não exige declaração explícita"
+      - "Registrando-as via providers no bootstrapApplication da aplicação"
+    explanation: "Standalone substitui o NgModule colocando o array imports dentro do próprio @Component, onde se listam CommonModule, FormsModule, outros componentes etc."
+    difficultyHint: 0.50
 
   - topicSlug: angular-componentes
-    # TODO completar — sugestão: templates inline vs externos
-    sourceClaim: ""
-    prompt: ""
-    correctAnswer: ""
-    distractors: []
-    explanation: ""
+    chunkHeading: "Template inline vs templateUrl"
+    sourceClaim: "Templates inline usam a propriedade template; templates externos usam templateUrl apontando para um arquivo .html."
+    prompt: "Quando é preferível usar templateUrl em vez de template inline?"
+    correctAnswer: "Quando o HTML é grande o suficiente para se beneficiar de highlight do editor e separação em arquivo próprio"
+    distractors:
+      - "Sempre que o componente for standalone, pois template inline não funciona com standalone"
+      - "Apenas quando o template precisa ser internacionalizado, pois inline não suporta i18n"
+      - "Quando o template usa interpolação, que só funciona em arquivos externos"
+    explanation: "Ambas formas são válidas; templateUrl é mais prático para templates maiores por separação de arquivos e melhor suporte do editor."
+    difficultyHint: 0.40
 
   - topicSlug: angular-componentes
-    # TODO completar — sugestão: ViewEncapsulation
-    sourceClaim: ""
-    prompt: ""
-    correctAnswer: ""
-    distractors: []
-    explanation: ""
+    chunkHeading: "Encapsulamento de estilos"
+    sourceClaim: "ViewEncapsulation.None remove o isolamento de estilos, fazendo as regras CSS do componente se tornarem globais."
+    prompt: "Qual o efeito de configurar encapsulation: ViewEncapsulation.None em um componente?"
+    correctAnswer: "Os estilos definidos no componente vazam e passam a valer globalmente para toda a aplicação"
+    distractors:
+      - "Os estilos passam a usar Shadow DOM real do navegador para isolamento mais forte"
+      - "Os estilos do componente são totalmente desabilitados e não aplicados"
+      - "Os estilos só são aplicados ao componente raiz e ignorados em filhos"
+    explanation: "None desativa o mecanismo de atributos únicos do Angular, então qualquer seletor declarado vira regra global do documento."
+    difficultyHint: 0.65
 
   # ─── 2) angular-templates ─────────────────────────────────────────
   - topicSlug: angular-templates
@@ -97,36 +113,52 @@ items:
     difficultyHint: 0.30
 
   - topicSlug: angular-templates
-    # TODO — sugestão: @if vs *ngIf
-    sourceClaim: ""
-    prompt: ""
-    correctAnswer: ""
-    distractors: []
-    explanation: ""
+    chunkHeading: "Novo controle de fluxo: @if, @for, @switch"
+    sourceClaim: "@if é a sintaxe nativa de fluxo de controle introduzida no Angular 17 que substitui *ngIf, sem exigir importação de CommonModule."
+    prompt: "Qual vantagem prática @if tem sobre a diretiva estrutural *ngIf?"
+    correctAnswer: "Dispensa importar CommonModule e é mais rápido em runtime que o equivalente *ngIf"
+    distractors:
+      - "Suporta expressões assíncronas nativamente sem o pipe async"
+      - "Faz a interpolação ser executada em uma thread separada"
+      - "Habilita injeção de dependências dentro do bloco condicional"
+    explanation: "A nova sintaxe @if é built-in da linguagem de template do Angular 17+ — não precisa de CommonModule e é otimizada em compilação."
+    difficultyHint: 0.35
 
   - topicSlug: angular-templates
-    # TODO — sugestão: @for e track
-    sourceClaim: ""
-    prompt: ""
-    correctAnswer: ""
-    distractors: []
-    explanation: ""
+    chunkHeading: "Novo controle de fluxo: @if, @for, @switch"
+    sourceClaim: "A função track em @for é obrigatória e serve para o Angular identificar cada item de forma única."
+    prompt: "Por que a cláusula track é obrigatória em um bloco @for?"
+    correctAnswer: "Para que o Angular identifique cada item unicamente e evite recriar todos os nós DOM a cada atualização"
+    distractors:
+      - "Para registrar event listeners únicos em cada item iterado"
+      - "Para definir a ordem de exibição quando o array está fora de ordem"
+      - "Para limitar quantos itens podem ser renderizados simultaneamente"
+    explanation: "track dá ao Angular uma chave estável por item, permitindo reaproveitar nós DOM existentes quando o array muda em vez de recriar tudo."
+    difficultyHint: 0.55
 
   - topicSlug: angular-templates
-    # TODO — sugestão: template reference variable (#var)
-    sourceClaim: ""
-    prompt: ""
-    correctAnswer: ""
-    distractors: []
-    explanation: ""
+    chunkHeading: "Referências de template com hash"
+    sourceClaim: "Uma referência de template criada com #nome aponta para o HTMLElement quando aplicada a um elemento HTML padrão."
+    prompt: "Em <input #campo type=\"text\" />, o que a variável campo representa quando usada em outro lugar do mesmo template?"
+    correctAnswer: "Uma referência ao HTMLInputElement correspondente, permitindo acessar suas propriedades como value"
+    distractors:
+      - "Uma cópia bidirecional do valor digitado, equivalente a [(ngModel)]"
+      - "Uma instância de FormControl gerada automaticamente para validação"
+      - "Um observable que emite cada vez que o usuário digita no campo"
+    explanation: "#campo em um elemento HTML padrão aponta para o próprio HTMLElement; usando-o em expressões dá acesso direto a propriedades do DOM."
+    difficultyHint: 0.50
 
   - topicSlug: angular-templates
-    # TODO — sugestão: ng-template / ng-container
-    sourceClaim: ""
-    prompt: ""
-    correctAnswer: ""
-    distractors: []
-    explanation: ""
+    chunkHeading: "Expressões de template — o que é permitido"
+    sourceClaim: "Operadores de atribuição, new, typeof, instanceof, ++ e -- não são permitidos em expressões de template Angular."
+    prompt: "Qual dessas expressões é INVÁLIDA em uma interpolação Angular?"
+    correctAnswer: "{{ contador++ }}"
+    distractors:
+      - "{{ items.length }}"
+      - "{{ ativo ? 'on' : 'off' }}"
+      - "{{ calcularTotal(carrinho) }}"
+    explanation: "Templates não permitem operadores que mutam estado (++, --, =); expressões devem ser puras de leitura — ternários e chamadas de método são permitidos."
+    difficultyHint: 0.70
 
   # ─── 3) angular-data-binding ──────────────────────────────────────
   - topicSlug: angular-data-binding
@@ -142,36 +174,52 @@ items:
     difficultyHint: 0.40
 
   - topicSlug: angular-data-binding
-    # TODO — sugestão: event binding (click)
-    sourceClaim: ""
-    prompt: ""
-    correctAnswer: ""
-    distractors: []
-    explanation: ""
+    chunkHeading: "Event binding com parênteses"
+    sourceClaim: "Em event binding, a variável especial $event carrega o objeto do evento DOM ou o valor emitido por um EventEmitter."
+    prompt: "Em (click)=\"selecionar($event)\", o que $event representa quando o evento vem de um botão HTML nativo?"
+    correctAnswer: "O objeto MouseEvent disparado pelo navegador no clique"
+    distractors:
+      - "O valor anterior da propriedade do componente antes do clique"
+      - "Uma referência ao próprio botão, equivalente a uma template variable"
+      - "Uma promise que resolve quando o clique termina de propagar"
+    explanation: "Em eventos DOM nativos $event é o próprio objeto do evento (MouseEvent, KeyboardEvent etc.); em outputs de componente é o valor emitido pelo EventEmitter."
+    difficultyHint: 0.40
 
   - topicSlug: angular-data-binding
-    # TODO — sugestão: two-way binding [(ngModel)]
-    sourceClaim: ""
-    prompt: ""
-    correctAnswer: ""
-    distractors: []
-    explanation: ""
+    chunkHeading: "Two-way binding com banana-in-a-box"
+    sourceClaim: "[(propriedade)] é açúcar sintático para [propriedade]=\"x\" combinado com (propriedadeChange)=\"x = $event\"."
+    prompt: "Para que um componente próprio aceite a sintaxe [(meuValor)], qual convenção ele precisa seguir?"
+    correctAnswer: "Expor um @Input() meuValor e um @Output() meuValorChange seguindo a convenção de nomes"
+    distractors:
+      - "Importar FormsModule e implementar a interface ControlValueAccessor"
+      - "Declarar a propriedade como signal pública dentro da classe"
+      - "Estender uma classe base abstrata TwoWayBinding do @angular/core"
+    explanation: "O Angular reconhece [(x)] quando o componente tem @Input x e @Output xChange — a convenção de sufixo Change ativa o açúcar sintático."
+    difficultyHint: 0.65
 
   - topicSlug: angular-data-binding
-    # TODO — sugestão: diferença property vs attribute binding
-    sourceClaim: ""
-    prompt: ""
-    correctAnswer: ""
-    distractors: []
-    explanation: ""
+    chunkHeading: "Attribute binding"
+    sourceClaim: "Atributos HTML que não têm propriedade DOM correspondente, como aria-label ou colspan, exigem o prefixo attr. no binding."
+    prompt: "Por que [colspan]=\"n\" não funciona em <td> e é necessário escrever [attr.colspan]=\"n\"?"
+    correctAnswer: "Porque colspan é um atributo HTML puro sem propriedade DOM correspondente, então property binding falha"
+    distractors:
+      - "Porque o Angular reserva [colspan] para uso interno do CDK de tabela"
+      - "Porque colspan só pode ser definido estaticamente, nunca por binding"
+      - "Porque td só aceita bindings dentro de uma diretiva customizada"
+    explanation: "Property binding atualiza propriedades do objeto DOM; quando o atributo não tem propriedade equivalente (colspan, aria-*, atributos SVG) usa-se [attr.nome]."
+    difficultyHint: 0.70
 
   - topicSlug: angular-data-binding
-    # TODO — sugestão: class.X e style.X binding
-    sourceClaim: ""
-    prompt: ""
-    correctAnswer: ""
-    distractors: []
-    explanation: ""
+    chunkHeading: "Class binding e style binding"
+    sourceClaim: "[class.nome]=\"condicao\" adiciona ou remove a classe com base em uma expressão booleana, sem afetar outras classes do elemento."
+    prompt: "Qual a diferença entre [class.ativo]=\"x\" e [class]=\"'ativo'\" em um mesmo elemento?"
+    correctAnswer: "[class.ativo] toggla apenas a classe ativo; [class]=\"...\" substitui toda a lista de classes do elemento"
+    distractors:
+      - "[class.ativo] aplica em runtime, [class] aplica em build — sem diferença visual"
+      - "Ambas são equivalentes; a forma com ponto é apenas mais legível"
+      - "[class.ativo] só funciona dentro de ngClass, [class] funciona standalone"
+    explanation: "[class.nome] opera incrementalmente em uma classe específica; [class] aceita string ou objeto e substitui a lista inteira de classes."
+    difficultyHint: 0.55
 
   # ─── 4) angular-diretivas ─────────────────────────────────────────
   - topicSlug: angular-diretivas
@@ -187,36 +235,52 @@ items:
     difficultyHint: 0.40
 
   - topicSlug: angular-diretivas
-    # TODO — sugestão: diretiva de atributo (ngClass / ngStyle)
-    sourceClaim: ""
-    prompt: ""
-    correctAnswer: ""
-    distractors: []
-    explanation: ""
+    chunkHeading: "Diretivas de atributo"
+    sourceClaim: "ngClass aplica classes condicionalmente a partir de um objeto, string ou array, sem alterar a estrutura do DOM."
+    prompt: "O que diferencia uma diretiva de atributo como ngClass de uma diretiva estrutural?"
+    correctAnswer: "ngClass altera aparência do elemento existente sem adicionar ou remover nós do DOM"
+    distractors:
+      - "ngClass cria um novo elemento filho para hospedar as classes aplicadas"
+      - "ngClass só funciona em conjunto com *ngIf para condicionar a aplicação"
+      - "ngClass dispara change detection manualmente, diferente de estruturais"
+    explanation: "Diretivas de atributo (ngClass, ngStyle) modificam o elemento hospedeiro; diretivas estruturais (ngIf, ngFor) adicionam/removem elementos do DOM."
+    difficultyHint: 0.35
 
   - topicSlug: angular-diretivas
-    # TODO — sugestão: criar diretiva customizada
-    sourceClaim: ""
-    prompt: ""
-    correctAnswer: ""
-    distractors: []
-    explanation: ""
+    chunkHeading: "Criando uma diretiva de atributo customizada"
+    sourceClaim: "Uma diretiva de atributo customizada é uma classe TypeScript decorada com @Directive que pode receber o elemento hospedeiro via injeção de ElementRef."
+    prompt: "Como uma diretiva de atributo customizada obtém acesso ao elemento DOM onde foi aplicada?"
+    correctAnswer: "Injetando ElementRef no construtor e usando a propriedade nativeElement"
+    distractors:
+      - "Chamando document.querySelector com o seletor da diretiva"
+      - "Recebendo o elemento como parâmetro do método ngOnInit"
+      - "Implementando a interface HostElementAccessor do @angular/core"
+    explanation: "Diretivas recebem o elemento hospedeiro por DI via ElementRef; nativeElement dá acesso direto ao HTMLElement."
+    difficultyHint: 0.55
 
   - topicSlug: angular-diretivas
-    # TODO — sugestão: HostBinding / HostListener
-    sourceClaim: ""
-    prompt: ""
-    correctAnswer: ""
-    distractors: []
-    explanation: ""
+    chunkHeading: "Criando uma diretiva de atributo customizada"
+    sourceClaim: "HostListener registra um handler para eventos do elemento hospedeiro; HostBinding atualiza propriedades do elemento hospedeiro."
+    prompt: "Em uma diretiva customizada, qual decorator usar para reagir ao evento mouseenter do próprio elemento hospedeiro?"
+    correctAnswer: "@HostListener('mouseenter')"
+    distractors:
+      - "@HostBinding('mouseenter')"
+      - "@Output('mouseenter')"
+      - "@ViewChild('mouseenter')"
+    explanation: "@HostListener escuta eventos do elemento hospedeiro; @HostBinding faz o oposto — vincula propriedades da diretiva a propriedades/atributos do host."
+    difficultyHint: 0.60
 
   - topicSlug: angular-diretivas
-    # TODO — sugestão: diretiva estrutural * (asterisco) vs ng-template
-    sourceClaim: ""
-    prompt: ""
-    correctAnswer: ""
-    distractors: []
-    explanation: ""
+    chunkHeading: "Armadilhas comuns"
+    sourceClaim: "Não é possível usar mais de uma diretiva estrutural com asterisco no mesmo elemento; a solução é envolver com ng-container."
+    prompt: "Por que <li *ngIf=\"mostrar\" *ngFor=\"let x of itens\"> dispara erro de compilação?"
+    correctAnswer: "Angular não permite duas diretivas estruturais no mesmo elemento; é preciso aninhar com ng-container"
+    distractors:
+      - "A ordem está errada — *ngFor deve sempre vir antes de *ngIf"
+      - "*ngIf não funciona dentro de elementos de lista como li"
+      - "Falta importar BrowserModule, que registra a combinação dessas diretivas"
+    explanation: "Cada diretiva com * desugar-iza para um <ng-template> wrapping — duas no mesmo elemento gerariam ambiguidade, então o compilador rejeita."
+    difficultyHint: 0.70
 
   # ─── 5) angular-pipes ─────────────────────────────────────────────
   - topicSlug: angular-pipes
@@ -232,36 +296,52 @@ items:
     difficultyHint: 0.45
 
   - topicSlug: angular-pipes
-    # TODO — sugestão: pipe encadeado (chained)
-    sourceClaim: ""
-    prompt: ""
-    correctAnswer: ""
-    distractors: []
-    explanation: ""
+    chunkHeading: "Parâmetros e encadeamento"
+    sourceClaim: "Pipes encadeados são lidos da esquerda para a direita, com a saída de cada um servindo de entrada para o próximo."
+    prompt: "Qual o resultado da expressão {{ 'CLAUDIA' | lowercase | slice:0:3 }}?"
+    correctAnswer: "cla"
+    distractors:
+      - "CLA"
+      - "Cla"
+      - "claudia"
+    explanation: "Pipes encadeiam da esquerda pra direita: lowercase transforma em \"claudia\", depois slice:0:3 corta para \"cla\"."
+    difficultyHint: 0.55
 
   - topicSlug: angular-pipes
-    # TODO — sugestão: pipe puro vs impuro
-    sourceClaim: ""
-    prompt: ""
-    correctAnswer: ""
-    distractors: []
-    explanation: ""
+    chunkHeading: "Pipes puros vs impuros"
+    sourceClaim: "Um pipe puro só é reavaliado quando o Angular detecta mudança de referência ou de valor primitivo na entrada."
+    prompt: "Por que um pipe puro não reage quando você faz this.lista.push(item) no componente?"
+    correctAnswer: "Porque push muta o array in-place e a referência continua a mesma, então o pipe não reavalia"
+    distractors:
+      - "Porque pipes puros têm cache permanente desabilitado para arrays"
+      - "Porque push retorna undefined, e undefined desativa o pipe"
+      - "Porque pipes puros só funcionam com valores primitivos, nunca arrays"
+    explanation: "Pipes puros reavaliam por mudança de referência ou primitivo; mutações in-place (push) preservam a referência então o pipe não dispara — use [...arr, item]."
+    difficultyHint: 0.70
 
   - topicSlug: angular-pipes
-    # TODO — sugestão: criar pipe customizado (@Pipe + PipeTransform)
-    sourceClaim: ""
-    prompt: ""
-    correctAnswer: ""
-    distractors: []
-    explanation: ""
+    chunkHeading: "Criando um pipe customizado"
+    sourceClaim: "Um pipe customizado é uma classe decorada com @Pipe que implementa a interface PipeTransform com o método transform."
+    prompt: "Qual interface uma classe deve implementar para funcionar como pipe customizado?"
+    correctAnswer: "PipeTransform, fornecendo o método transform(valor, ...args)"
+    distractors:
+      - "OnPipe, fornecendo o método ngOnPipe"
+      - "PipeHandler, fornecendo o método handle"
+      - "Transformable, fornecendo o método apply"
+    explanation: "Todo pipe customizado implementa PipeTransform e define transform(value, ...args), retornando o valor transformado."
+    difficultyHint: 0.30
 
   - topicSlug: angular-pipes
-    # TODO — sugestão: parâmetros de pipe (date:'dd/MM/yyyy')
-    sourceClaim: ""
-    prompt: ""
-    correctAnswer: ""
-    distractors: []
-    explanation: ""
+    chunkHeading: "Parâmetros e encadeamento"
+    sourceClaim: "Pipes aceitam parâmetros passados após o nome, separados por dois pontos, como em date:'dd/MM/yyyy'."
+    prompt: "Como passar dois parâmetros ao pipe date para formatar como 'dd/MM/yyyy' e usar locale pt-BR?"
+    correctAnswer: "{{ data | date:'dd/MM/yyyy':'UTC':'pt-BR' }} — parâmetros adicionais separados por dois pontos"
+    distractors:
+      - "{{ data | date('dd/MM/yyyy', 'pt-BR') }} — vírgula entre parâmetros"
+      - "{{ data | date 'dd/MM/yyyy' 'pt-BR' }} — espaços entre parâmetros"
+      - "{{ data | date | locale:'pt-BR' }} — encadeando outro pipe locale"
+    explanation: "Parâmetros de pipe são separados por dois pontos após o nome, na sintaxe pipe:p1:p2:p3."
+    difficultyHint: 0.45
 
   # ─── 6) angular-services ──────────────────────────────────────────
   - topicSlug: angular-services
@@ -277,36 +357,52 @@ items:
     difficultyHint: 0.35
 
   - topicSlug: angular-services
-    # TODO — sugestão: providedIn: 'root'
-    sourceClaim: ""
-    prompt: ""
-    correctAnswer: ""
-    distractors: []
-    explanation: ""
+    chunkHeading: "A classe injetável"
+    sourceClaim: "providedIn: 'root' registra o service como singleton compartilhado por toda a aplicação."
+    prompt: "Qual o efeito de @Injectable({ providedIn: 'root' }) em um service?"
+    correctAnswer: "Cria uma única instância singleton compartilhada por toda a aplicação"
+    distractors:
+      - "Cria uma instância nova a cada injeção no construtor"
+      - "Limita o service para uso apenas no componente raiz AppComponent"
+      - "Impede que o service seja sobrescrito por providers de componente"
+    explanation: "providedIn: 'root' registra o service no injector raiz da aplicação como singleton, compartilhado por todos os consumidores."
+    difficultyHint: 0.30
 
   - topicSlug: angular-services
-    # TODO — sugestão: ciclo de vida do service singleton
-    sourceClaim: ""
-    prompt: ""
-    correctAnswer: ""
-    distractors: []
-    explanation: ""
+    chunkHeading: "Usando services em componentes"
+    sourceClaim: "A função inject() precisa ser chamada em contexto de inicialização da classe (campos de instância ou construtor) e não em métodos arbitrários."
+    prompt: "Onde a função inject() pode ser chamada em um componente?"
+    correctAnswer: "Em campos de instância ou no construtor — qualquer contexto de inicialização da classe"
+    distractors:
+      - "Em qualquer método da classe, incluindo callbacks de subscribe"
+      - "Apenas em métodos marcados com o decorator @Inject"
+      - "Em qualquer lugar, desde que dentro de um arquivo .ts standalone"
+    explanation: "inject() depende do contexto de injeção do Angular, disponível em campos de classe e dentro do construtor; chamá-la em outros lugares lança erro em runtime."
+    difficultyHint: 0.65
 
   - topicSlug: angular-services
-    # TODO — sugestão: service stateful vs stateless
-    sourceClaim: ""
-    prompt: ""
-    correctAnswer: ""
-    distractors: []
-    explanation: ""
+    chunkHeading: "Services com estado e signals"
+    sourceClaim: "Services podem expor estado compartilhado usando signals, sendo uma alternativa moderna ao BehaviorSubject do RxJS."
+    prompt: "Qual a vantagem de usar signals em vez de BehaviorSubject para estado compartilhado em um service?"
+    correctAnswer: "Leitura síncrona e mais simples no template, sem precisar do pipe async ou de subscribe"
+    distractors:
+      - "Signals são automaticamente persistidos no localStorage do navegador"
+      - "Signals só podem ser modificados pelo componente raiz, garantindo imutabilidade"
+      - "Signals dispensam o decorator @Injectable no service"
+    explanation: "Signals são síncronos e o template lê chamando como função (sinal()), sem precisar de subscribe ou pipe async como com observables."
+    difficultyHint: 0.55
 
   - topicSlug: angular-services
-    # TODO — sugestão: comunicação entre componentes via service
-    sourceClaim: ""
-    prompt: ""
-    correctAnswer: ""
-    distractors: []
-    explanation: ""
+    chunkHeading: "Armadilhas comuns"
+    sourceClaim: "Instanciar um service manualmente com new MeuService() quebra o sistema de dependency injection do Angular."
+    prompt: "Por que criar uma instância de service com new MeuService() é considerado erro em Angular?"
+    correctAnswer: "Bypassa o DI, então as dependências do service não são injetadas e ele não é singleton compartilhado"
+    distractors:
+      - "Porque o TypeScript bloqueia new em classes decoradas com @Injectable"
+      - "Porque a instância ficaria fora do change detection do Angular"
+      - "Porque o garbage collector não consegue limpar instâncias manuais"
+    explanation: "DI resolve dependências aninhadas e compartilha instâncias; new bypassa isso, quebrando injeções internas do service e perdendo o singleton."
+    difficultyHint: 0.70
 
   # ─── 7) angular-dependency-injection ──────────────────────────────
   - topicSlug: angular-dependency-injection
@@ -322,36 +418,52 @@ items:
     difficultyHint: 0.55
 
   - topicSlug: angular-dependency-injection
-    # TODO — sugestão: inject() function vs constructor injection
-    sourceClaim: ""
-    prompt: ""
-    correctAnswer: ""
-    distractors: []
-    explanation: ""
+    chunkHeading: "Conceitos: injector, provider, token"
+    sourceClaim: "InjectionToken é usado para injetar valores que não têm identidade de classe, como configurações ou strings."
+    prompt: "Por que usar InjectionToken em vez de uma string como chave de DI para fornecer uma URL de API?"
+    correctAnswer: "Preserva a inferência de tipo via generics e evita colisão de chaves entre diferentes providers"
+    distractors:
+      - "InjectionToken é mais rápido em runtime que strings literais"
+      - "Strings não podem ser usadas como providers em Angular"
+      - "InjectionToken faz o valor ser automaticamente serializado em JSON"
+    explanation: "InjectionToken<T> traz o tipo via generic e usa identidade de objeto como chave, evitando ambiguidade entre tokens com mesmo texto."
+    difficultyHint: 0.65
 
   - topicSlug: angular-dependency-injection
-    # TODO — sugestão: useClass / useValue / useFactory
-    sourceClaim: ""
-    prompt: ""
-    correctAnswer: ""
-    distractors: []
-    explanation: ""
+    chunkHeading: "Provendo dependências"
+    sourceClaim: "useFactory configura um provider usando uma função criadora que pode receber outras dependências via o array deps."
+    prompt: "Quando faz sentido usar useFactory em vez de useClass ao configurar um provider?"
+    correctAnswer: "Quando a criação da dependência exige lógica condicional ou depende de outros valores em runtime"
+    distractors:
+      - "Quando se quer evitar o uso da função inject() em qualquer parte do código"
+      - "Quando a classe a ser injetada não tem construtor público"
+      - "Sempre — useFactory é a forma recomendada para todos os providers"
+    explanation: "useFactory dá controle programático na criação — útil para escolher implementação por ambiente, ler configuração externa ou montar objetos complexos."
+    difficultyHint: 0.55
 
   - topicSlug: angular-dependency-injection
-    # TODO — sugestão: providedIn: 'root' vs providers no component
-    sourceClaim: ""
-    prompt: ""
-    correctAnswer: ""
-    distractors: []
-    explanation: ""
+    chunkHeading: "A hierarquia de injetores"
+    sourceClaim: "Declarar providers no array providers de um componente cria uma instância isolada para esse componente e seus filhos."
+    prompt: "O que acontece quando um componente declara providers: [LogService] no decorator?"
+    correctAnswer: "Esse componente e seus filhos recebem uma instância nova de LogService, isolada do singleton da aplicação"
+    distractors:
+      - "O LogService da aplicação inteira é substituído pelo declarado no componente"
+      - "O Angular falha em runtime se já existe providedIn: 'root' do mesmo service"
+      - "Nada muda — providers em componente é apenas alias para providedIn: 'root'"
+    explanation: "providers no componente cria um novo escopo de injetor — o componente e seus filhos recebem instância isolada; o resto da app mantém a do root."
+    difficultyHint: 0.70
 
   - topicSlug: angular-dependency-injection
-    # TODO — sugestão: @Optional / @Self / @SkipSelf
-    sourceClaim: ""
-    prompt: ""
-    correctAnswer: ""
-    distractors: []
-    explanation: ""
+    chunkHeading: "Modificadores de injeção"
+    sourceClaim: "@Optional() permite que uma dependência seja resolvida como null quando nenhum provider é encontrado, em vez de lançar NullInjectorError."
+    prompt: "Qual modificador permite que inject(LogService) retorne null em vez de lançar erro quando não há provider?"
+    correctAnswer: "{ optional: true } em inject() ou o decorator @Optional() no construtor"
+    distractors:
+      - "{ skipSelf: true } em inject() ou o decorator @SkipSelf()"
+      - "{ self: true } em inject() ou o decorator @Self()"
+      - "{ host: true } em inject() ou o decorator @Host()"
+    explanation: "@Optional()/optional: true sinaliza ao injector que retornar null é aceitável; sem ele, ausência de provider lança NullInjectorError."
+    difficultyHint: 0.55
 
   # ─── 8) angular-lifecycle-hooks ───────────────────────────────────
   - topicSlug: angular-lifecycle-hooks
@@ -367,36 +479,52 @@ items:
     difficultyHint: 0.50
 
   - topicSlug: angular-lifecycle-hooks
-    # TODO — sugestão: ngOnChanges com SimpleChanges
-    sourceClaim: ""
-    prompt: ""
-    correctAnswer: ""
-    distractors: []
-    explanation: ""
+    chunkHeading: "ngOnChanges: reagindo a inputs"
+    sourceClaim: "ngOnChanges detecta apenas mudanças de referência nos inputs, não mutações internas de arrays ou objetos."
+    prompt: "Se o pai passa um array via @Input e adiciona itens com push(), o ngOnChanges do filho dispara?"
+    correctAnswer: "Não — push muta in-place, a referência não muda e ngOnChanges não é chamado"
+    distractors:
+      - "Sim — ngOnChanges sempre dispara em cada ciclo de detecção"
+      - "Sim — Angular faz deep comparison dos inputs automaticamente"
+      - "Só dispara se o array tiver sido marcado como @Input({ deep: true })"
+    explanation: "ngOnChanges checa por mudança de referência (===); mutações internas preservam a referência, então não dispara — use [...lista, novo] para forçar."
+    difficultyHint: 0.70
 
   - topicSlug: angular-lifecycle-hooks
-    # TODO — sugestão: ngOnDestroy + cleanup
-    sourceClaim: ""
-    prompt: ""
-    correctAnswer: ""
-    distractors: []
-    explanation: ""
+    chunkHeading: "ngOnDestroy: limpeza"
+    sourceClaim: "ngOnDestroy é o local apropriado para cancelar assinaturas de observables, evitando vazamento de memória."
+    prompt: "Qual a principal consequência de esquecer de cancelar subscriptions em ngOnDestroy?"
+    correctAnswer: "Vazamento de memória — observables continuam executando callbacks após o componente sair do DOM"
+    distractors:
+      - "O componente não consegue ser recriado depois de destruído"
+      - "Angular lança um erro imediato bloqueando a navegação"
+      - "O change detection do componente é desabilitado permanentemente"
+    explanation: "Subscriptions sem unsubscribe seguram referência ao componente destruído e continuam recebendo emissões, vazando memória silenciosamente."
+    difficultyHint: 0.40
 
   - topicSlug: angular-lifecycle-hooks
-    # TODO — sugestão: AfterViewInit vs AfterContentInit
-    sourceClaim: ""
-    prompt: ""
-    correctAnswer: ""
-    distractors: []
-    explanation: ""
+    chunkHeading: "ngAfterViewInit: acesso ao DOM e a filhos"
+    sourceClaim: "ngAfterViewInit é o primeiro hook em que @ViewChild já está populado e seguro de usar."
+    prompt: "Por que tentar acessar uma referência @ViewChild dentro de ngOnInit retorna undefined?"
+    correctAnswer: "A view do componente ainda não foi inicializada em ngOnInit; @ViewChild só é populado a partir de ngAfterViewInit"
+    distractors:
+      - "ngOnInit roda em uma fase server-side onde DOM não existe"
+      - "@ViewChild precisa ser explicitamente resolvido com await em ngOnInit"
+      - "ngOnInit ignora todos os decorators de query do componente"
+    explanation: "Inicialização de views acontece depois de ngOnInit; queries de view (@ViewChild/@ViewChildren) só ficam prontas em ngAfterViewInit."
+    difficultyHint: 0.55
 
   - topicSlug: angular-lifecycle-hooks
-    # TODO — sugestão: ordem de execução dos hooks no primeiro render
-    sourceClaim: ""
-    prompt: ""
-    correctAnswer: ""
-    distractors: []
-    explanation: ""
+    chunkHeading: "A ordem de execução"
+    sourceClaim: "A ordem de execução no primeiro ciclo é constructor → ngOnChanges → ngOnInit → ngDoCheck → ngAfterContentInit → ngAfterViewInit."
+    prompt: "Qual a ordem CORRETA de execução dos hooks no primeiro render de um componente com @Input?"
+    correctAnswer: "constructor → ngOnChanges → ngOnInit → ngAfterContentInit → ngAfterViewInit"
+    distractors:
+      - "ngOnInit → constructor → ngOnChanges → ngAfterViewInit → ngAfterContentInit"
+      - "constructor → ngOnInit → ngOnChanges → ngAfterViewInit → ngAfterContentInit"
+      - "ngOnChanges → constructor → ngOnInit → ngAfterContentInit → ngAfterViewInit"
+    explanation: "Constructor primeiro, depois Angular seta inputs (ngOnChanges), inicializa (ngOnInit), inicializa conteúdo projetado e por fim a view própria."
+    difficultyHint: 0.75
 
   # ─── 9) angular-template-forms ────────────────────────────────────
   - topicSlug: angular-template-forms
@@ -412,36 +540,52 @@ items:
     difficultyHint: 0.45
 
   - topicSlug: angular-template-forms
-    # TODO — sugestão: FormsModule import obrigatório
-    sourceClaim: ""
-    prompt: ""
-    correctAnswer: ""
-    distractors: []
-    explanation: ""
+    chunkHeading: "FormsModule e o setup inicial"
+    sourceClaim: "Para usar template-driven forms é necessário importar o FormsModule do @angular/forms no array imports do componente standalone."
+    prompt: "O que acontece se você usar [(ngModel)] em um componente standalone sem importar FormsModule?"
+    correctAnswer: "A diretiva ngModel não é reconhecida e o binding bidirecional simplesmente não funciona"
+    distractors:
+      - "Funciona normalmente — FormsModule é importado automaticamente no Angular 17+"
+      - "O componente é renderizado sem template, gerando tela em branco"
+      - "Angular cria automaticamente um ReactiveForm como fallback"
+    explanation: "ngModel pertence ao FormsModule; sem importá-lo no array imports, a diretiva não é registrada e Angular pode inclusive não sinalizar erro óbvio."
+    difficultyHint: 0.30
 
   - topicSlug: angular-template-forms
-    # TODO — sugestão: required / minlength validators
-    sourceClaim: ""
-    prompt: ""
-    correctAnswer: ""
-    distractors: []
-    explanation: ""
+    chunkHeading: "Estados do controle"
+    sourceClaim: "A combinação mais comum para exibir mensagens de erro é controle.invalid && controle.touched, evitando marcar como erro um campo que o usuário ainda não tocou."
+    prompt: "Por que mostrar mensagem de erro só com controle.invalid (sem touched) é considerado má prática?"
+    correctAnswer: "O usuário veria erros assim que o formulário aparece, antes mesmo de interagir com o campo"
+    distractors:
+      - "invalid não funciona até o usuário submeter o formulário pelo menos uma vez"
+      - "Sem touched, Angular bloqueia o evento ngSubmit em todos os botões"
+      - "invalid retorna sempre true em controles com required, mascarando erros reais"
+    explanation: "Campos required ficam invalid no estado inicial; combinar com touched garante que a mensagem só apareça depois que o usuário interagiu com o campo."
+    difficultyHint: 0.55
 
   - topicSlug: angular-template-forms
-    # TODO — sugestão: ngForm + submit
-    sourceClaim: ""
-    prompt: ""
-    correctAnswer: ""
-    distractors: []
-    explanation: ""
+    chunkHeading: "Submissão e reset"
+    sourceClaim: "O evento (ngSubmit) é preferido em vez do evento nativo submit porque o Angular cuida da prevenção do comportamento padrão do navegador."
+    prompt: "Por que usar (ngSubmit) em vez do (submit) nativo em um <form> Angular?"
+    correctAnswer: "ngSubmit já chama preventDefault automaticamente, evitando que o navegador recarregue a página"
+    distractors:
+      - "ngSubmit roda em paralelo com mais performance que submit nativo"
+      - "submit nativo não é compatível com componentes standalone"
+      - "ngSubmit dispara antes da validação, permitindo cancelar"
+    explanation: "ngSubmit é fornecido pelo NgForm e já invoca preventDefault no evento subjacente, evitando o reload típico do submit HTML."
+    difficultyHint: 0.50
 
   - topicSlug: angular-template-forms
-    # TODO — sugestão: template-driven vs reactive (quando usar cada)
-    sourceClaim: ""
-    prompt: ""
-    correctAnswer: ""
-    distractors: []
-    explanation: ""
+    chunkHeading: "Template-driven vs Reactive Forms"
+    sourceClaim: "Reactive forms são preferidos para formulários complexos, dinâmicos ou que mudam estrutura em runtime."
+    prompt: "Quando faz mais sentido escolher Reactive Forms em vez de Template-driven?"
+    correctAnswer: "Em formulários com muitos campos dinâmicos, validações cross-field ou necessidade de testes extensivos"
+    distractors:
+      - "Apenas em formulários que não usam ngModel para nenhum campo"
+      - "Quando o backend exige envio em JSON em vez de form-data"
+      - "Sempre — template-driven foi descontinuado no Angular 17"
+    explanation: "Reactive oferece controle programático via FormGroup/FormControl, ideal para lógica dinâmica e testabilidade; template-driven é mais simples para forms estáticos."
+    difficultyHint: 0.45
 
   # ─── 10) angular-routing ──────────────────────────────────────────
   - topicSlug: angular-routing
@@ -457,33 +601,49 @@ items:
     difficultyHint: 0.35
 
   - topicSlug: angular-routing
-    # TODO — sugestão: routerLink vs href
-    sourceClaim: ""
-    prompt: ""
-    correctAnswer: ""
-    distractors: []
-    explanation: ""
+    chunkHeading: "RouterOutlet e navegação"
+    sourceClaim: "A diretiva routerLink intercepta o clique e atualiza a URL sem recarregar a página, ao contrário do href nativo."
+    prompt: "Qual a consequência de usar <a href=\"/sobre\"> em vez de <a routerLink=\"/sobre\"> em uma SPA Angular?"
+    correctAnswer: "O navegador faz reload completo da página, perdendo o estado e a vantagem de SPA"
+    distractors:
+      - "O link funciona igual — Angular detecta href e converte para roteamento interno"
+      - "O Angular bloqueia a navegação porque href é desabilitado em apps roteadas"
+      - "A URL muda mas o router-outlet não atualiza até um F5 manual"
+    explanation: "href é navegação nativa do browser que dispara reload completo; routerLink usa o Router para navegação client-side preservando o estado da SPA."
+    difficultyHint: 0.40
 
   - topicSlug: angular-routing
-    # TODO — sugestão: rotas com parâmetro :id e ActivatedRoute
-    sourceClaim: ""
-    prompt: ""
-    correctAnswer: ""
-    distractors: []
-    explanation: ""
+    chunkHeading: "Parâmetros de rota"
+    sourceClaim: "Parâmetros de rota dinâmicos são definidos no path com o prefixo : (ex: usuario/:id) e ficam acessíveis via ActivatedRoute.paramMap."
+    prompt: "Como definir uma rota que aceite /usuario/42 e exponha 42 como parâmetro id?"
+    correctAnswer: "{ path: 'usuario/:id', component: UsuarioComponent }"
+    distractors:
+      - "{ path: 'usuario/{id}', component: UsuarioComponent }"
+      - "{ path: 'usuario/$id', component: UsuarioComponent }"
+      - "{ path: 'usuario', params: ['id'], component: UsuarioComponent }"
+    explanation: "Angular usa o prefixo : (estilo Express) para definir segmentos dinâmicos; o valor fica disponível em ActivatedRoute.snapshot.paramMap."
+    difficultyHint: 0.30
 
   - topicSlug: angular-routing
-    # TODO — sugestão: lazy loading com loadComponent
-    sourceClaim: ""
-    prompt: ""
-    correctAnswer: ""
-    distractors: []
-    explanation: ""
+    chunkHeading: "Lazy loading com loadComponent"
+    sourceClaim: "loadComponent recebe uma função que retorna uma promise resolvendo para o componente, habilitando carregamento sob demanda do bundle."
+    prompt: "Qual a forma correta de configurar lazy loading de um componente standalone em uma rota?"
+    correctAnswer: "loadComponent: () => import('./pagina.component').then(m => m.PaginaComponent)"
+    distractors:
+      - "component: () => import('./pagina.component')"
+      - "loadChildren: () => import('./pagina.component').then(m => m.PaginaComponent)"
+      - "lazyComponent: './pagina.component#PaginaComponent'"
+    explanation: "loadComponent espera uma função async que importa o módulo dinamicamente e retorna o componente — o bundler divide o chunk automaticamente."
+    difficultyHint: 0.55
 
   - topicSlug: angular-routing
-    # TODO — sugestão: guards funcionais (canActivate)
-    sourceClaim: ""
-    prompt: ""
-    correctAnswer: ""
-    distractors: []
-    explanation: ""
+    chunkHeading: "Guards: protegendo rotas"
+    sourceClaim: "Um guard funcional CanActivateFn que retorna um UrlTree redireciona o usuário para outra rota em vez de simplesmente bloquear."
+    prompt: "O que acontece quando um CanActivateFn retorna router.createUrlTree(['/login']) em vez de true ou false?"
+    correctAnswer: "A navegação é cancelada e o usuário é redirecionado para a rota descrita pelo UrlTree"
+    distractors:
+      - "Angular ignora o retorno e permite a navegação original"
+      - "A rota original é carregada e /login fica em buffer para a próxima navegação"
+      - "Dispara erro em runtime — guards só podem retornar boolean ou Promise"
+    explanation: "Retornar UrlTree é o padrão moderno de redirect em guards: bloqueia a rota alvo e navega para o destino indicado em um único passo."
+    difficultyHint: 0.70
