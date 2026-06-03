@@ -19,6 +19,7 @@ public partial class ApplicationDbContext(DbContextOptions<ApplicationDbContext>
     public DbSet<GeneratedChallenge> GeneratedChallenge => Set<GeneratedChallenge>();
     public DbSet<JourneySnapshot>    JourneySnapshot    => Set<JourneySnapshot>();
     public DbSet<QuestionForgeJob>   QuestionForgeJob   => Set<QuestionForgeJob>();
+    public DbSet<ModeratorGoldItem>  ModeratorGoldItem  => Set<ModeratorGoldItem>();
 
     protected override void OnModelCreating(ModelBuilder mb)
     {
@@ -112,6 +113,25 @@ public partial class ApplicationDbContext(DbContextOptions<ApplicationDbContext>
             // Dedup: garante que (Content, Chunk, ClaimHash) só existe 1x
             // entre Pending/Running. Permite Done duplicado (histórico).
             e.HasIndex(j => new { j.ContentId, j.ChunkIndex, j.ClaimHash });
+        });
+
+        // PR 33d — ModeratorGoldItem: gold curado por moderador,
+        // complementa o gold YAML estático. Lido pelo ForgeEvaluator
+        // junto com o YAML.
+        mb.Entity<ModeratorGoldItem>(e =>
+        {
+            e.HasKey(g => g.Id);
+            e.Property(g => g.Prompt).IsRequired();
+            e.Property(g => g.CorrectAnswer).IsRequired();
+            e.Property(g => g.DistractorsJson).IsRequired();
+
+            e.HasOne(g => g.Content)
+             .WithMany()
+             .HasForeignKey(g => g.ContentId)
+             .OnDelete(DeleteBehavior.Cascade);
+
+            // Lookup do evaluator: WHERE ContentId IN (...) AND IsActive
+            e.HasIndex(g => new { g.ContentId, g.IsActive });
         });
     }
 }

@@ -276,10 +276,10 @@ static async Task<int> RunForgeEvalAsync(string[] args)
     Console.WriteLine($"[forge:eval] gold = {goldPath}");
     Console.WriteLine($"[forge:eval] out  = {outDir}");
 
-    GoldSet goldSet;
+    GoldSet goldSetYaml;
     try
     {
-        goldSet = GoldSetReader.ReadFromFile(goldPath);
+        goldSetYaml = GoldSetReader.ReadFromFile(goldPath);
     }
     catch (Exception ex)
     {
@@ -287,21 +287,31 @@ static async Task<int> RunForgeEvalAsync(string[] args)
         return 1;
     }
 
+    // PR 33d — mescla com gold curado por moderador no DB.
+    // Mesma trilha, items aparecem como se viessem do YAML.
+    var db             = sp.GetRequiredService<ApplicationDbContext>();
+    var goldFromDb     = await ModeratorGoldReader.ReadForTrailAsync(db, goldSetYaml.Trail);
+    var allItems       = goldSetYaml.Items.Concat(goldFromDb).ToList();
+    var goldSet        = new GoldSet(goldSetYaml.Trail, allItems);
+
+    if (goldFromDb.Count > 0)
+        Console.WriteLine($"[forge:eval] +{goldFromDb.Count} item(s) de moderador (DB) mesclados");
+
     if (goldSet.Items.Count == 0)
     {
         Console.Error.WriteLine(
-            "Nenhum item COMPLETO no gold set — todos os itens estão como placeholder TODO.\n" +
-            $"Edite '{goldPath}' e preencha sourceClaim/prompt/correctAnswer/distractors/explanation.");
+            "Nenhum item COMPLETO no gold set — todos os itens estão como placeholder TODO\n" +
+            $"e nenhum item de moderador no DB pra trail '{goldSetYaml.Trail}'.\n" +
+            $"Edite '{goldPath}' ou adicione gold via POST /api/admin/gold/{{contentId}}.");
         return 2;
     }
 
-    Console.WriteLine($"[forge:eval] {goldSet.Items.Count} item(s) completo(s) — começando…");
+    Console.WriteLine($"[forge:eval] {goldSet.Items.Count} item(s) total ({goldSetYaml.Items.Count} YAML + {goldFromDb.Count} DB) — começando…");
 
     // Resolve generator + dependências; tudo configurado pelo
     // AddInfrastructure quando Llm:Enabled=true.
     var generator      = sp.GetService<IGroundedQuestionGenerator>();
     var claimExtractor = sp.GetRequiredService<IClaimExtractor>();
-    var db             = sp.GetRequiredService<ApplicationDbContext>();
     var embedder       = sp.GetService<IEmbedder>();
 
     if (generator is null)

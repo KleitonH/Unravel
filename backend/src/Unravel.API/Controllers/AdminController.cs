@@ -1,3 +1,6 @@
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
+using System.Text.Json;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -103,4 +106,154 @@ public sealed class AdminController(
         var status = await queue.GetStatusAsync(ct);
         return Ok(status);
     }
+
+    // ─── PR 33d — Moderator-curated gold ────────────────────────────
+
+    /// <summary>Lista gold curado por moderador pra um Content.</summary>
+    [HttpGet("gold/{contentId:int}")]
+    public async Task<IActionResult> ListGold(
+        int contentId,
+        [FromServices] ApplicationDbContext db,
+        CancellationToken ct)
+    {
+        var items = await db.ModeratorGoldItem
+            .AsNoTracking()
+            .Where(g => g.ContentId == contentId && g.IsActive)
+            .OrderByDescending(g => g.CreatedAt)
+            .Select(g => new GoldDto(
+                g.Id,
+                g.SourceGeneratedChallengeId,
+                g.SourceClaim,
+                g.Prompt,
+                g.CorrectAnswer,
+                g.DistractorsJson,
+                g.Explanation,
+                g.DifficultyHint,
+                g.CreatedAt))
+            .ToListAsync(ct);
+        return Ok(items);
+    }
+
+    /// <summary>
+    /// Cria item de gold pro Content. Dois modos:
+    /// <list type="bullet">
+    ///   <item><b>Promover gerada</b>: passe <c>sourceGeneratedChallengeId</c>
+    ///   — o backend copia prompt/options/correctAnswer da pergunta gerada.</item>
+    ///   <item><b>Manual</b>: passe todos os campos — backend valida 3 distratores.</item>
+    /// </list>
+    /// </summary>
+    [HttpPost("gold/{contentId:int}")]
+    public async Task<IActionResult> AddGold(
+        int contentId,
+        [FromBody] AddGoldRequest dto,
+        [FromServices] ApplicationDbContext db,
+        CancellationToken ct)
+    {
+        var content = await db.Content.FindAsync(new object[] { contentId }, ct);
+        if (content is null) return NotFound(new { message = $"Content {contentId} não existe." });
+
+        var curatorId = UserId();
+
+        var item = new ModeratorGoldItem
+        {
+            ContentId    = contentId,
+            CuratorUserId = curatorId,
+            CreatedAt    = DateTime.UtcNow,
+            IsActive     = true,
+        };
+
+        if (dto.SourceGeneratedChallengeId is { } gcId)
+        {
+            // Modo "promover gerada" — copia campos
+            var gc = await db.GeneratedChallenge.FindAsync(new object[] { gcId }, ct);
+            if (gc is null) return NotFound(new { message = $"GeneratedChallenge {gcId} não existe." });
+            if (gc.ContentId != contentId)
+                return BadRequest(new { message = "GeneratedChallenge não pertence ao Content informado." });
+
+            // Re-parse do BodyJson pra extrair options/correctIndex/explanation
+            using var parsed = JsonDocument.Parse(gc.BodyJson);
+            var root = parsed.RootElement;
+            var options = root.GetProperty("options").EnumerateArray()
+                .Select(o => o.GetString() ?? "").ToList();
+            var correctIdx = root.GetProperty("correctIndex").GetInt32();
+            string? explanation = root.TryGetProperty("explanation", out var expEl)
+                ? expEl.GetString() : null;
+
+            if (options.Count != 4) return BadRequest(new { message = "Generated challenge não tem exatamente 4 options." });
+            if (correctIdx < 0 || correctIdx >= 4) return BadRequest(new { message = "correctIndex inválido." });
+
+            var distractors = options.Where((_, i) => i != correctIdx).ToList();
+
+            item.SourceGeneratedChallengeId = gcId;
+            item.SourceClaim       = dto.SourceClaim;   // opcional, moderador pode anexar
+            item.Prompt            = gc.Prompt;
+            item.CorrectAnswer     = options[correctIdx];
+            item.DistractorsJson   = JsonSerializer.Serialize(distractors);
+            item.Explanation       = explanation;
+            item.DifficultyHint    = dto.DifficultyHint ?? gc.EstimatedDifficulty;
+        }
+        else
+        {
+            // Modo manual — exige tudo
+            if (string.IsNullOrWhiteSpace(dto.Prompt))
+                return BadRequest(new { message = "Prompt obrigatório em modo manual." });
+            if (string.IsNullOrWhiteSpace(dto.CorrectAnswer))
+                return BadRequest(new { message = "CorrectAnswer obrigatório em modo manual." });
+            if (dto.Distractors is null || dto.Distractors.Count != 3
+                || dto.Distractors.Any(string.IsNullOrWhiteSpace))
+                return BadRequest(new { message = "Distractors deve ter exatamente 3 strings não-vazias." });
+
+            item.Prompt          = dto.Prompt;
+            item.CorrectAnswer   = dto.CorrectAnswer;
+            item.DistractorsJson = JsonSerializer.Serialize(dto.Distractors);
+            item.Explanation     = dto.Explanation;
+            item.SourceClaim     = dto.SourceClaim;
+            item.DifficultyHint  = dto.DifficultyHint;
+        }
+
+        db.ModeratorGoldItem.Add(item);
+        await db.SaveChangesAsync(ct);
+        return CreatedAtAction(nameof(ListGold), new { contentId }, new { item.Id });
+    }
+
+    /// <summary>Soft-delete: marca item como inativo. Histórico fica.</summary>
+    [HttpDelete("gold/{goldId:int}")]
+    public async Task<IActionResult> RemoveGold(
+        int goldId,
+        [FromServices] ApplicationDbContext db,
+        CancellationToken ct)
+    {
+        var item = await db.ModeratorGoldItem.FindAsync(new object[] { goldId }, ct);
+        if (item is null) return NotFound();
+        item.IsActive  = false;
+        item.UpdatedAt = DateTime.UtcNow;
+        await db.SaveChangesAsync(ct);
+        return NoContent();
+    }
+
+    private Guid UserId() => Guid.Parse(
+        User.FindFirstValue(JwtRegisteredClaimNames.Sub)
+        ?? User.FindFirstValue(ClaimTypes.NameIdentifier)!);
 }
+
+// ── DTOs ────────────────────────────────────────────────────────────
+
+public record AddGoldRequest(
+    int?          SourceGeneratedChallengeId,  // null = modo manual
+    string?       SourceClaim,
+    string?       Prompt,                       // obrig se manual
+    string?       CorrectAnswer,                // obrig se manual
+    List<string>? Distractors,                  // obrig se manual (3 itens)
+    string?       Explanation,
+    double?       DifficultyHint);
+
+public record GoldDto(
+    int       Id,
+    int?      SourceGeneratedChallengeId,
+    string?   SourceClaim,
+    string    Prompt,
+    string    CorrectAnswer,
+    string    DistractorsJson,
+    string?   Explanation,
+    double?   DifficultyHint,
+    DateTime  CreatedAt);
