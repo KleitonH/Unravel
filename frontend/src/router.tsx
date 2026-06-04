@@ -28,7 +28,10 @@ const ProfilePage    = lazy(() => import("@/features/profile/profile-page").then
 const OnboardingPage = lazy(() => import("@/features/onboarding/onboarding-page").then((m) => ({ default: m.OnboardingPage })))
 const JornadaPage    = lazy(() => import("@/features/jornada/jornada-page").then((m) => ({ default: m.JornadaPage })))
 const QuizPage       = lazy(() => import("@/features/quiz/quiz-page").then((m) => ({ default: m.QuizPage })))
-const AdminPage      = lazy(() => import("@/features/admin/admin-page").then((m) => ({ default: m.AdminPage })))
+const AdminPage           = lazy(() => import("@/features/admin/admin-page").then((m) => ({ default: m.AdminPage })))
+const AdminTrailsPage     = lazy(() => import("@/features/admin-custom/trails-list-page").then((m) => ({ default: m.TrailsListPage })))
+const AdminTrailDetail    = lazy(() => import("@/features/admin-custom/trail-detail-page").then((m) => ({ default: m.TrailDetailPage })))
+const AdminContentEditor  = lazy(() => import("@/features/admin-custom/content-editor-page").then((m) => ({ default: m.ContentEditorPage })))
 
 /** Wrapper que serializa Suspense fallback em cada rota lazy.
  *  Skeleton segue identidade visual; nada de spinner branco.
@@ -110,9 +113,12 @@ const trailsRoute     = createRoute({ getParentRoute: () => authedLayoutRoute, p
 const onboardingRoute = createRoute({ getParentRoute: () => authedLayoutRoute, path: "/onboarding",       component: () => <Lazy Component={OnboardingPage} /> })
 const jornadaRoute    = createRoute({ getParentRoute: () => authedLayoutRoute, path: "/jornada/$trailId", component: () => <Lazy Component={JornadaPage} /> })
 const quizRoute       = createRoute({ getParentRoute: () => authedLayoutRoute, path: "/quiz/$contentId",  component: () => <Lazy Component={QuizPage} /> })
-const adminRoute      = createRoute({ getParentRoute: () => authedLayoutRoute, path: "/admin",            component: () => <Lazy Component={AdminPage} /> })
-const profileRoute    = createRoute({ getParentRoute: () => authedLayoutRoute, path: "/profile",          component: () => <Lazy Component={ProfilePage} /> })
-const desafioRoute    = createRoute({ getParentRoute: () => authedLayoutRoute, path: "/desafio",          component: () => <Placeholder title="Desafios" /> })
+const adminRoute              = createRoute({ getParentRoute: () => authedLayoutRoute, path: "/admin",                          component: () => <Lazy Component={AdminPage} /> })
+const adminTrailsRoute        = createRoute({ getParentRoute: () => authedLayoutRoute, path: "/admin/trails",                   component: () => <Lazy Component={AdminTrailsPage} /> })
+const adminTrailDetailRoute   = createRoute({ getParentRoute: () => authedLayoutRoute, path: "/admin/trails/$trailId",          component: () => <Lazy Component={AdminTrailDetail} /> })
+const adminContentEditorRoute = createRoute({ getParentRoute: () => authedLayoutRoute, path: "/admin/contents/$contentId",      component: () => <Lazy Component={AdminContentEditor} /> })
+const profileRoute            = createRoute({ getParentRoute: () => authedLayoutRoute, path: "/profile",                        component: () => <Lazy Component={ProfilePage} /> })
+const desafioRoute            = createRoute({ getParentRoute: () => authedLayoutRoute, path: "/desafio",                        component: () => <Placeholder title="Desafios" /> })
 
 const routeTree = rootRoute.addChildren([
   indexRoute,
@@ -125,6 +131,9 @@ const routeTree = rootRoute.addChildren([
     jornadaRoute,
     quizRoute,
     adminRoute,
+    adminTrailsRoute,
+    adminTrailDetailRoute,
+    adminContentEditorRoute,
     profileRoute,
     desafioRoute,
   ]),
