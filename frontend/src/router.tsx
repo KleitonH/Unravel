@@ -23,7 +23,8 @@ import { Skeleton } from "@/components/ui/skeleton"
 const LoginPage      = lazy(() => import("@/features/auth/login-page").then((m) => ({ default: m.LoginPage })))
 const RegisterPage   = lazy(() => import("@/features/auth/register-page").then((m) => ({ default: m.RegisterPage })))
 const DashboardPage  = lazy(() => import("@/features/dashboard/dashboard-page").then((m) => ({ default: m.DashboardPage })))
-const TrailsPage     = lazy(() => import("@/features/trails/trails-page").then((m) => ({ default: m.TrailsPage })))
+const TrailsPage         = lazy(() => import("@/features/trails/trails-page").then((m) => ({ default: m.TrailsPage })))
+const TrailsDiscoverPage = lazy(() => import("@/features/trails/trails-discover-page").then((m) => ({ default: m.TrailsDiscoverPage })))
 const ProfilePage    = lazy(() => import("@/features/profile/profile-page").then((m) => ({ default: m.ProfilePage })))
 const OnboardingPage = lazy(() => import("@/features/onboarding/onboarding-page").then((m) => ({ default: m.OnboardingPage })))
 const JornadaPage      = lazy(() => import("@/features/trail-map/trail-map-page").then((m) => ({ default: m.TrailMapPage })))
@@ -111,7 +112,8 @@ function Placeholder({ title }: { title: string }) {
 }
 
 const dashboardRoute  = createRoute({ getParentRoute: () => authedLayoutRoute, path: "/dashboard",        component: () => <Lazy Component={DashboardPage} /> })
-const trailsRoute     = createRoute({ getParentRoute: () => authedLayoutRoute, path: "/trails",           component: () => <Lazy Component={TrailsPage} /> })
+const trailsRoute         = createRoute({ getParentRoute: () => authedLayoutRoute, path: "/trails",           component: () => <Lazy Component={TrailsPage} /> })
+const trailsDiscoverRoute = createRoute({ getParentRoute: () => authedLayoutRoute, path: "/trails/discover",  component: () => <Lazy Component={TrailsDiscoverPage} /> })
 const onboardingRoute = createRoute({ getParentRoute: () => authedLayoutRoute, path: "/onboarding",       component: () => <Lazy Component={OnboardingPage} /> })
 const jornadaRoute      = createRoute({ getParentRoute: () => authedLayoutRoute, path: "/jornada/$trailId",   component: () => <Lazy Component={JornadaPage} /> })
 const contentStudyRoute = createRoute({ getParentRoute: () => authedLayoutRoute, path: "/contents/$contentId", component: () => <Lazy Component={ContentStudyPage} /> })
@@ -131,6 +133,7 @@ const routeTree = rootRoute.addChildren([
   authedLayoutRoute.addChildren([
     dashboardRoute,
     trailsRoute,
+    trailsDiscoverRoute,
     onboardingRoute,
     jornadaRoute,
     contentStudyRoute,
