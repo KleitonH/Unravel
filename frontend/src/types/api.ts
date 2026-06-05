@@ -109,6 +109,7 @@ export type PoolChallenge = {
   correctIndex: number       // exposto p/ fallback offline
   explanation: string | null
   estimatedDifficulty: number
+  contentId: number          // PR 37: necessário pro reinforcement quiz rotear submit
 }
 
 export type ChallengePool = {
@@ -140,6 +141,24 @@ export type SubmitPoolChallengeResponse = {
   totalStars: number
   totalLives: number
   streakDays: number
+}
+
+// ── Reinforcement quiz (PR 37) ──────────────────────────────────────
+
+export type WeakTopic = {
+  topicId:            number
+  topicSlug:          string
+  effectiveMastery:   number   // [0,1] — quanto mais baixo, mais fraco
+  questionsAvailable: number   // pool fresco específico desse topic pro user
+}
+
+export type ReinforcementQuiz = {
+  trailId:      number
+  weakTopics:   WeakTopic[]
+  challenges:   PoolChallenge[]
+  moreComing:   boolean        // true se backend disparou jobs de geração
+  jobsEnqueued: number
+  reason:       string | null  // "no_weaknesses" | "pool_exhausted" | "no_content_for_weakness" | null
 }
 
 // ── Admin (PR 7/10) ─────────────────────────────────────────────────

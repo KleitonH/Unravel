@@ -1,6 +1,6 @@
 import { useQuery, useQueries } from "@tanstack/react-query"
 import { Link, useNavigate } from "@tanstack/react-router"
-import { Coins, Flame, Heart, Plus, Star } from "lucide-react"
+import { Brain, Coins, Flame, Heart, Plus, Star } from "lucide-react"
 import { useAuth } from "@/stores/auth"
 import { trailsApi } from "@/api/trails"
 import { journeyApi } from "@/api/journey"
@@ -267,7 +267,19 @@ function TrailCard({ trail, plan, loading }: { trail: Trail; plan: JourneyPlan |
         )}
       </CardContent>
 
-      <CardFooter className="justify-end">
+      <CardFooter className="justify-end gap-2">
+        {/* PR 37 — atalho "Treinar fraquezas". Visível em toda trilha
+            inscrita (backend decide se há fraqueza real e responde
+            no_weaknesses se não houver). Variant ghost pra não competir
+            visualmente com o CTA principal "Ver jornada". */}
+        <Button
+          size="sm"
+          variant="ghost"
+          className="text-accent hover:text-accent hover:bg-accent/10"
+          onClick={() => navigate({ to: "/reinforce/$trailId", params: { trailId: String(trail.id) } })}
+        >
+          <Brain className="h-4 w-4 mr-1" />Reforçar
+        </Button>
         <Button size="sm" onClick={() => navigate({ to: "/jornada/$trailId", params: { trailId: String(trail.id) } })}>
           Ver jornada →
         </Button>

@@ -17,7 +17,8 @@ public sealed record PoolChallengeDto(
     IReadOnlyList<string> Options,
     int                  CorrectIndex,         // exposto p/ frontend exibir gabarito após resposta
     string?              Explanation,
-    double               EstimatedDifficulty
+    double               EstimatedDifficulty,
+    int                  ContentId = 0         // PR 37: quiz normal já sabe o contentId pelo wrapper, mas o reinforcement quiz mistura contents — precisa explícito por challenge pra rotear o submit
 );
 
 // ── Submit (PR 13) ─────────────────────────────────────────────────────

@@ -2,6 +2,7 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Unravel.Application.Forge.UseCases;
 using Unravel.Application.Journey.UseCases;
 
 namespace Unravel.API.Controllers;
@@ -17,12 +18,19 @@ namespace Unravel.API.Controllers;
 [Authorize]
 public sealed class JourneyController : ControllerBase
 {
-    private readonly GetDailyJourneyUseCase _getDaily;
+    private readonly GetDailyJourneyUseCase            _getDaily;
+    private readonly BuildReinforcementQuizUseCase     _reinforcement;
 
     private Guid UserId => Guid.Parse(User.FindFirstValue(JwtRegisteredClaimNames.Sub)
                                       ?? User.FindFirstValue(ClaimTypes.NameIdentifier)!);
 
-    public JourneyController(GetDailyJourneyUseCase getDaily) => _getDaily = getDaily;
+    public JourneyController(
+        GetDailyJourneyUseCase        getDaily,
+        BuildReinforcementQuizUseCase reinforcement)
+    {
+        _getDaily      = getDaily;
+        _reinforcement = reinforcement;
+    }
 
     /// <summary>Plano do dia para o usuário autenticado numa trilha. Calcula
     /// no momento da chamada usando o instante atual como <c>asOf</c>.
@@ -48,5 +56,30 @@ public sealed class JourneyController : ControllerBase
 
         var plan = await _getDaily.ExecuteAsync(UserId, trailId, DateTime.UtcNow, ct);
         return plan is null ? NotFound() : Ok(plan);
+    }
+
+    /// <summary>
+    /// PR 37 — "Treinar fraquezas". Retorna até <paramref name="count"/>
+    /// perguntas focadas nos tópicos com mastery efetiva &lt; 0.6, excluindo
+    /// perguntas que o aluno já respondeu. Se algum tópico fraco tem pool
+    /// fresco insuficiente, dispara replenishment urgent no forge.
+    ///
+    /// <para>Response inclui <c>weakTopics</c> (lista das fraquezas com seus
+    /// scores), <c>moreComing</c> (true se jobs foram enfileirados) e
+    /// <c>reason</c> populado quando <c>challenges</c> volta vazio
+    /// (<c>no_weaknesses</c> | <c>pool_exhausted</c> | <c>no_content_for_weakness</c>).</para>
+    /// </summary>
+    [HttpPost("reinforce/{trailId:int}")]
+    public async Task<IActionResult> Reinforce(
+        int trailId,
+        [FromQuery] int count = 5,
+        CancellationToken ct = default)
+    {
+        if (trailId <= 0) return BadRequest(new { message = "trailId é obrigatório." });
+        if (count is < 1 or > 20)
+            return BadRequest(new { message = "count deve estar entre 1 e 20." });
+
+        var result = await _reinforcement.ExecuteAsync(UserId, trailId, count, ct);
+        return Ok(result);
     }
 }

@@ -32,6 +32,7 @@ const AdminPage           = lazy(() => import("@/features/admin/admin-page").the
 const AdminTrailsPage     = lazy(() => import("@/features/admin-custom/trails-list-page").then((m) => ({ default: m.TrailsListPage })))
 const AdminTrailDetail    = lazy(() => import("@/features/admin-custom/trail-detail-page").then((m) => ({ default: m.TrailDetailPage })))
 const AdminContentEditor  = lazy(() => import("@/features/admin-custom/content-editor-page").then((m) => ({ default: m.ContentEditorPage })))
+const ReinforcePage       = lazy(() => import("@/features/reinforce/reinforce-page").then((m) => ({ default: m.ReinforcePage })))
 
 /** Wrapper que serializa Suspense fallback em cada rota lazy.
  *  Skeleton segue identidade visual; nada de spinner branco.
@@ -117,6 +118,7 @@ const adminRoute              = createRoute({ getParentRoute: () => authedLayout
 const adminTrailsRoute        = createRoute({ getParentRoute: () => authedLayoutRoute, path: "/admin/trails",                   component: () => <Lazy Component={AdminTrailsPage} /> })
 const adminTrailDetailRoute   = createRoute({ getParentRoute: () => authedLayoutRoute, path: "/admin/trails/$trailId",          component: () => <Lazy Component={AdminTrailDetail} /> })
 const adminContentEditorRoute = createRoute({ getParentRoute: () => authedLayoutRoute, path: "/admin/contents/$contentId",      component: () => <Lazy Component={AdminContentEditor} /> })
+const reinforceRoute          = createRoute({ getParentRoute: () => authedLayoutRoute, path: "/reinforce/$trailId",             component: () => <Lazy Component={ReinforcePage} /> })
 const profileRoute            = createRoute({ getParentRoute: () => authedLayoutRoute, path: "/profile",                        component: () => <Lazy Component={ProfilePage} /> })
 const desafioRoute            = createRoute({ getParentRoute: () => authedLayoutRoute, path: "/desafio",                        component: () => <Placeholder title="Desafios" /> })
 
@@ -134,6 +136,7 @@ const routeTree = rootRoute.addChildren([
     adminTrailsRoute,
     adminTrailDetailRoute,
     adminContentEditorRoute,
+    reinforceRoute,
     profileRoute,
     desafioRoute,
   ]),

@@ -29,9 +29,10 @@ namespace Unravel.Application.Forge.UseCases;
 /// </summary>
 public sealed class SubmitPoolChallengeUseCase
 {
-    private readonly IGeneratedChallengeRepository _generated;
-    private readonly IMasteryRepository            _mastery;
-    private readonly IUserGamificationGateway      _gamification;
+    private readonly IGeneratedChallengeRepository  _generated;
+    private readonly IMasteryRepository             _mastery;
+    private readonly IUserGamificationGateway       _gamification;
+    private readonly IUserSeenChallengeRepository?  _seen;
 
     public SubmitPoolChallengeUseCase(
         IGeneratedChallengeRepository generated,
@@ -41,6 +42,20 @@ public sealed class SubmitPoolChallengeUseCase
         _generated    = generated;
         _mastery      = mastery;
         _gamification = gamification;
+        _seen         = null;
+    }
+
+    /// <summary>PR 37 — construtor que recebe o <see cref="IUserSeenChallengeRepository"/>
+    /// pra rastrear perguntas já respondidas (input do Reinforcement Quiz).
+    /// Mantém ctor anterior pra testes que não dependem de rastreio.</summary>
+    public SubmitPoolChallengeUseCase(
+        IGeneratedChallengeRepository generated,
+        IMasteryRepository            mastery,
+        IUserGamificationGateway      gamification,
+        IUserSeenChallengeRepository  seen)
+        : this(generated, mastery, gamification)
+    {
+        _seen = seen;
     }
 
     public async Task<SubmitPoolChallengeResponse?> ExecuteAsync(
@@ -72,6 +87,13 @@ public sealed class SubmitPoolChallengeUseCase
         //    pergunta calibra a magnitude da recompensa.
         var rewards  = RewardCalculator.Compute(gc.EstimatedDifficulty, isCorrect);
         var snapshot = await _gamification.ApplyAsync(userId, rewards, now, ct);
+
+        // 4) PR 37 — registra pergunta como vista pelo user. UPSERT
+        //    idempotente: re-submit (ex: double-click) só atualiza SeenAt.
+        //    Anti-join no Reinforcement Quiz exclui essas perguntas
+        //    do pool de reforço pra evitar repetição.
+        if (_seen is not null)
+            await _seen.MarkAsync(userId, gc.Id, isCorrect, now, ct);
 
         // Telemetria PR 19
         UnravelMetrics.QuizSubmissions.Add(1,

@@ -32,4 +32,10 @@ public interface IGeneratedChallengeRepository
     /// e incrementa <c>ServedCount</c> em 1. SQL atômico — evita race
     /// quando múltiplos users respondem a mesma pergunta simultaneamente.</summary>
     Task RecordOutcomeAsync(int challengeId, bool correct, CancellationToken ct = default);
+
+    /// <summary>PR 37 — pool ativo filtrado por trail + lista de topics
+    /// (fraquezas do user). Ordenado por <c>ServedCount</c> asc + <c>Id</c>
+    /// (priorizar perguntas menos vistas, determinístico nos empates).</summary>
+    Task<IReadOnlyList<GeneratedChallenge>> GetByTrailAndTopicsAsync(
+        int trailId, IReadOnlyCollection<int> topicIds, CancellationToken ct = default);
 }

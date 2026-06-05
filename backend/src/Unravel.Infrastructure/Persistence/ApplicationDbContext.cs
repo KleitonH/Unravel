@@ -18,8 +18,9 @@ public partial class ApplicationDbContext(DbContextOptions<ApplicationDbContext>
     public DbSet<Mastery>            Mastery            => Set<Mastery>();
     public DbSet<GeneratedChallenge> GeneratedChallenge => Set<GeneratedChallenge>();
     public DbSet<JourneySnapshot>    JourneySnapshot    => Set<JourneySnapshot>();
-    public DbSet<QuestionForgeJob>   QuestionForgeJob   => Set<QuestionForgeJob>();
-    public DbSet<ModeratorGoldItem>  ModeratorGoldItem  => Set<ModeratorGoldItem>();
+    public DbSet<QuestionForgeJob>     QuestionForgeJob     => Set<QuestionForgeJob>();
+    public DbSet<ModeratorGoldItem>    ModeratorGoldItem    => Set<ModeratorGoldItem>();
+    public DbSet<UserSeenChallenge>    UserSeenChallenge    => Set<UserSeenChallenge>();
 
     protected override void OnModelCreating(ModelBuilder mb)
     {
@@ -124,6 +125,22 @@ public partial class ApplicationDbContext(DbContextOptions<ApplicationDbContext>
             // Dedup: garante que (Content, Chunk, ClaimHash) só existe 1x
             // entre Pending/Running. Permite Done duplicado (histórico).
             e.HasIndex(j => new { j.ContentId, j.ChunkIndex, j.ClaimHash });
+        });
+
+        // PR 37 — UserSeenChallenge: rastreia perguntas geradas já
+        // respondidas pelo aluno. Anti-join no Reinforcement Quiz.
+        // Chave composta (UserId, GeneratedChallengeId) — UPSERT idempotente.
+        mb.Entity<UserSeenChallenge>(e =>
+        {
+            e.HasKey(s => new { s.UserId, s.GeneratedChallengeId });
+            e.Property(s => s.SeenAt).IsRequired();
+
+            // FK opcional só pra documentar relacionamento — sem cascata
+            // (preservamos histórico mesmo se o challenge for desabilitado).
+            e.HasOne(s => s.GeneratedChallenge)
+             .WithMany()
+             .HasForeignKey(s => s.GeneratedChallengeId)
+             .OnDelete(DeleteBehavior.Cascade);
         });
 
         // PR 33d — ModeratorGoldItem: gold curado por moderador,

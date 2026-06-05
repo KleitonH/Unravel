@@ -58,4 +58,18 @@ public sealed class GeneratedChallengeRepository : IGeneratedChallengeRepository
                     g => (g.CorrectRate * g.ServedCount + outcome) / (g.ServedCount + 1))
                 .SetProperty(g => g.ServedCount, g => g.ServedCount + 1), ct);
     }
+
+    public async Task<IReadOnlyList<GeneratedChallenge>> GetByTrailAndTopicsAsync(
+        int trailId, IReadOnlyCollection<int> topicIds, CancellationToken ct = default)
+    {
+        if (topicIds.Count == 0) return Array.Empty<GeneratedChallenge>();
+        return await _db.GeneratedChallenge
+            .AsNoTracking()
+            .Where(g => g.TrailId == trailId
+                        && g.IsActive
+                        && topicIds.Contains(g.TopicId))
+            .OrderBy(g => g.ServedCount)
+            .ThenBy(g => g.Id)
+            .ToListAsync(ct);
+    }
 }

@@ -150,13 +150,13 @@ public sealed class GetChallengePoolUseCase
             var explanation   = doc.RootElement.TryGetProperty("explanation", out var ex)
                                   ? ex.GetString() : null;
             return new PoolChallengeDto(g.Id, g.Strategy.ToString(), g.Prompt,
-                                         options, correctIndex, explanation, g.EstimatedDifficulty);
+                                         options, correctIndex, explanation, g.EstimatedDifficulty, g.ContentId);
         }
         catch (JsonException)
         {
             return new PoolChallengeDto(g.Id, g.Strategy.ToString(),
                 "[pergunta corrompida; favor reportar]",
-                new[] { "—" }, 0, null, g.EstimatedDifficulty);
+                new[] { "—" }, 0, null, g.EstimatedDifficulty, g.ContentId);
         }
     }
 }
