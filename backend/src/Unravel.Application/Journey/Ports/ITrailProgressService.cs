@@ -68,5 +68,6 @@ public sealed record TrailMapNode(
     int     Order,
     int     ChallengesRequired,
     int     ChallengesCompleted,
-    string  Status              // "Locked" | "Available" | "InProgress" | "Completed"
+    string  Status,             // "Locked" | "Available" | "InProgress" | "Completed"
+    bool    IsRecommended = false  // PR 42b — true se o JourneyPlanner sugeriu pra HOJE
 );

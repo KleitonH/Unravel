@@ -1,7 +1,9 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Unravel.Application.Journey.Ports;
+using Unravel.Application.Journey.UseCases;
 using Unravel.Domain.Entities;
+using Unravel.Domain.Knowledge;
 using Unravel.Infrastructure.Persistence;
 
 namespace Unravel.Infrastructure.Journey;
@@ -18,13 +20,38 @@ namespace Unravel.Infrastructure.Journey;
 /// </summary>
 public sealed class TrailProgressService : ITrailProgressService
 {
-    private readonly ApplicationDbContext _db;
+    private readonly ApplicationDbContext        _db;
+    private readonly IKnowledgeGraphCache?       _graphCache;
+    private readonly IMasteryRepository?         _masteryRepo;
+    private readonly IJourneyPlanner?            _planner;
+    private readonly IJourneyReadModel?          _readModel;
     private readonly ILogger<TrailProgressService>? _log;
 
+    // Ctor legacy — usado pelos testes existentes que não dependem
+    // de recomendações do planner. GetTrailMapAsync ainda funciona,
+    // só não marca IsRecommended (todos os nodes ficam false).
     public TrailProgressService(ApplicationDbContext db, ILogger<TrailProgressService>? log = null)
     {
         _db  = db;
         _log = log;
+    }
+
+    /// <summary>PR 42b — ctor "rico" usado pelo DI. Recebe as peças do
+    /// JourneyPlanner pra enriquecer GetTrailMapAsync com flag IsRecommended
+    /// nas ilhas que o planner sugeriria como meta do dia.</summary>
+    public TrailProgressService(
+        ApplicationDbContext db,
+        IKnowledgeGraphCache graphCache,
+        IMasteryRepository   masteryRepo,
+        IJourneyPlanner      planner,
+        IJourneyReadModel    readModel,
+        ILogger<TrailProgressService>? log = null)
+        : this(db, log)
+    {
+        _graphCache  = graphCache;
+        _masteryRepo = masteryRepo;
+        _planner     = planner;
+        _readModel   = readModel;
     }
 
     public async Task<ProgressUpdate> RecordChallengeAsync(
@@ -139,9 +166,43 @@ public sealed class TrailProgressService : ITrailProgressService
             .Where(uc => uc.UserId == userId && contentIds.Contains(uc.ContentId))
             .ToDictionaryAsync(uc => uc.ContentId, ct);
 
-        // 3. Monta nodes. Ausência de UserContent = Locked.
+        // 3. PR 42b — recomendações do JourneyPlanner pra HOJE. Falha
+        //    silenciosa (planner é augmentação opcional do mapa; se der
+        //    ruim, mapa continua funcionando linear sem badges).
+        var plannerRecommended = await GetRecommendedContentIdsAsync(userId, trailId, ct);
+
+        // 4. Determina quais contents são ACESSÍVEIS hoje pro user
+        //    (Status Available ou InProgress). Filtro essencial: ilha
+        //    Locked nunca pode receber badge "Hoje" — aluno não pode
+        //    sequer clicar nela.
+        var accessibleContentIds = userContents
+            .Where(kv => kv.Value.Status == UserContentStatus.Available
+                      || kv.Value.Status == UserContentStatus.InProgress)
+            .Select(kv => kv.Key)
+            .ToHashSet();
+
+        // Interseção: planner sugere + aluno pode acessar.
+        var effectiveRecommended = plannerRecommended.Intersect(accessibleContentIds).ToHashSet();
+
+        // Fallback: planner usa o KnowledgeGraph com prerequisites inferidos
+        // por keywords; em cold-start ou quando o grafo discorda da ordem
+        // SMW da trilha, a interseção fica vazia. Nesse caso, marcamos a
+        // PRIMEIRA ilha acessível na ordem do mapa — é a "próxima lógica"
+        // pra avançar e o aluno nunca fica sem orientação.
+        if (effectiveRecommended.Count == 0 && accessibleContentIds.Count > 0)
+        {
+            var firstAccessible = contents
+                .Where(c => accessibleContentIds.Contains(c.Id))
+                .OrderBy(c => c.Order).ThenBy(c => c.Id)
+                .Select(c => c.Id)
+                .First();
+            effectiveRecommended.Add(firstAccessible);
+        }
+
+        // 5. Monta nodes. Ausência de UserContent = Locked.
         var nodes = contents.Select(c =>
         {
+            var isRec = effectiveRecommended.Contains(c.Id);
             if (userContents.TryGetValue(c.Id, out var uc))
             {
                 return new TrailMapNode(
@@ -151,7 +212,8 @@ public sealed class TrailProgressService : ITrailProgressService
                     Order:               c.Order,
                     ChallengesRequired:  c.ChallengesRequired,
                     ChallengesCompleted: Math.Min(uc.ChallengesCompleted, c.ChallengesRequired),
-                    Status:              uc.Status.ToString());
+                    Status:              uc.Status.ToString(),
+                    IsRecommended:       isRec);
             }
             return new TrailMapNode(
                 ContentId:           c.Id,
@@ -160,10 +222,56 @@ public sealed class TrailProgressService : ITrailProgressService
                 Order:               c.Order,
                 ChallengesRequired:  c.ChallengesRequired,
                 ChallengesCompleted: 0,
-                Status:              nameof(UserContentStatus.Locked));
+                Status:              nameof(UserContentStatus.Locked),
+                IsRecommended:       false);
         }).ToList();
 
         return new TrailMap(trail.Id, trail.Name, nodes);
+    }
+
+    /// <summary>
+    /// PR 42b — invoca o <see cref="IJourneyPlanner"/> pra obter os
+    /// content IDs sugeridos como meta do DIA pro user na trilha.
+    /// Retorna conjunto vazio se: ctor legacy (sem peças do planner),
+    /// trilha sem grafo construído, user sem masteries, ou qualquer
+    /// erro (planner é augmentação opcional, falha não derruba o mapa).
+    ///
+    /// <para>Usa apenas <c>plan.Today</c> — <c>Upcoming</c> são pra
+    /// dias futuros, recomendar agora confunde o aluno.</para>
+    /// </summary>
+    private async Task<HashSet<int>> GetRecommendedContentIdsAsync(
+        Guid userId, int trailId, CancellationToken ct)
+    {
+        if (_graphCache is null || _masteryRepo is null || _planner is null || _readModel is null)
+            return new HashSet<int>();
+
+        try
+        {
+            var userState = await _readModel.GetUserStateAsync(userId, ct);
+            if (userState is null) return new HashSet<int>();
+
+            var graph     = await _graphCache.GetOrBuildAsync(trailId, ct);
+            if (graph.Topics.Count == 0) return new HashSet<int>();
+
+            var masteries = await _masteryRepo.GetByTrailAsync(userId, trailId, ct);
+
+            var plan = _planner.Plan(new JourneyPlanInput(
+                UserId:         userId,
+                Graph:          graph,
+                Masteries:      masteries,
+                LivesAvailable: userState.Lives,
+                StreakDays:     userState.StreakDays,
+                AsOf:           DateTime.UtcNow));
+
+            return plan.Today.Select(i => i.ContentId).ToHashSet();
+        }
+        catch (Exception ex)
+        {
+            _log?.LogDebug(ex,
+                "JourneyPlanner falhou pro mapa (user={UserId} trail={TrailId}); mapa segue sem recomendações.",
+                userId, trailId);
+            return new HashSet<int>();
+        }
     }
 
     public async Task BootstrapAccessAsync(Guid userId, int trailId, CancellationToken ct = default)

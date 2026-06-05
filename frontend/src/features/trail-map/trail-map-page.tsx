@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query"
 import { Link, useNavigate, useParams } from "@tanstack/react-router"
-import { BookOpen, Brain, Check, ChevronLeft, Lock, MapPin, RefreshCw } from "lucide-react"
+import { BookOpen, Brain, Check, ChevronLeft, Lock, MapPin, RefreshCw, Sparkles } from "lucide-react"
 import { journeyApi } from "@/api/journey"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -35,11 +35,12 @@ export function TrailMapPage() {
     queryFn:  () => journeyApi.map(trailIdNum),
   })
 
-  const map           = mapQuery.data
-  const activeNode    = map?.nodes.find((n) => n.status === "InProgress")
-                      ?? map?.nodes.find((n) => n.status === "Available")
-  const totalNodes    = map?.nodes.length ?? 0
+  const map            = mapQuery.data
+  const activeNode     = map?.nodes.find((n) => n.status === "InProgress")
+                       ?? map?.nodes.find((n) => n.status === "Available")
+  const totalNodes     = map?.nodes.length ?? 0
   const completedNodes = map?.nodes.filter((n) => n.status === "Completed").length ?? 0
+  const recommendedCount = map?.nodes.filter((n) => n.isRecommended).length ?? 0
 
   return (
     <div className="p-6 lg:p-10 max-w-3xl mx-auto space-y-6">
@@ -54,6 +55,14 @@ export function TrailMapPage() {
               ? <>Ilhas conquistadas: <strong>{completedNodes}</strong> de <strong>{totalNodes}</strong></>
               : "Mapa em construção"}
           </p>
+          {recommendedCount > 0 && (
+            <p className="text-xs text-warning mt-1 flex items-center gap-1">
+              <Sparkles className="h-3 w-3" />
+              {recommendedCount === 1
+                ? "1 ilha recomendada pra hoje pelo algoritmo de jornada"
+                : `${recommendedCount} ilhas recomendadas pra hoje pelo algoritmo de jornada`}
+            </p>
+          )}
         </div>
         <div className="flex gap-2 shrink-0">
           <Button
@@ -157,8 +166,21 @@ function IslandRow({
               node.status === "InProgress" && "border-l-warning shadow-md shadow-warning/10",
               node.status === "Completed"  && "border-l-success",
               isActive && "ring-1 ring-warning/40 animate-pop-in",
+              node.isRecommended && "ring-1 ring-warning/30",
             )}
           >
+            {/* PR 42b — fita "RECOMENDADO HOJE" no canto superior da ilha.
+                Mostrada só quando JourneyPlanner sugeriu este content como
+                meta do dia. Backend já filtra pra Status != Locked/Completed. */}
+            {node.isRecommended && (
+              <div
+                className="absolute top-0 right-0 bg-warning text-warning-foreground text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-bl-md flex items-center gap-1 shadow-sm"
+                title="O algoritmo de jornada sugere esta ilha pra hoje (mastery, SRS ou pré-requisito recém-desbloqueado)"
+              >
+                <Sparkles className="h-3 w-3" />
+                Hoje
+              </div>
+            )}
             <CardHeader className="flex flex-row items-start gap-3 space-y-0 pb-2">
               <StatusBadge status={node.status} order={node.order} />
               <div className="min-w-0 flex-1">

@@ -157,6 +157,7 @@ export type TrailMapNode = {
   challengesRequired:  number
   challengesCompleted: number
   status:              UserContentStatus
+  isRecommended:       boolean   // PR 42b — JourneyPlanner marcou pra hoje
 }
 
 export type TrailMap = {
