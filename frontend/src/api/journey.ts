@@ -1,9 +1,18 @@
 import { api } from "./client"
-import type { JourneyPlan, ReinforcementQuiz } from "@/types/api"
+import type { JourneyPlan, ReinforcementQuiz, TrailMap } from "@/types/api"
 
 export const journeyApi = {
   today: (trailId: number) =>
     api.get<JourneyPlan>("/api/journey/today", { params: { trailId } }).then((r) => r.data),
+
+  /**
+   * PR 40 — mapa de progressão SMW: ilhas (Contents) ordenadas com
+   * status (Locked/Available/InProgress/Completed) + progresso de
+   * desafios. Backend faz bootstrap automático (cria UserContent
+   * Available pra 1ª ilha se aluno não tem nenhum).
+   */
+  map: (trailId: number) =>
+    api.get<TrailMap>(`/api/journey/trails/${trailId}/map`).then((r) => r.data),
 
   replan: (trailId: number) =>
     api.post<JourneyPlan>("/api/journey/replan", null, { params: { trailId } }).then((r) => r.data),

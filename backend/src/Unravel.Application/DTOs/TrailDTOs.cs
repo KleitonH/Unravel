@@ -36,7 +36,8 @@ public record ContentResponse(
     string  Type,
     string  Level,
     int     Order,
-    bool    IsCompleted
+    bool    IsCompleted,
+    int     ChallengesRequired = 5   // PR 40 — meta de desafios pra desbloquear próximo
 );
 
 public record CreateContentRequest(

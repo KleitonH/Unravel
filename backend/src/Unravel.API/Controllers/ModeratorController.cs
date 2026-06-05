@@ -41,7 +41,7 @@ public class ModeratorController(ApplicationDbContext db) : ControllerBase
             .Select(c => new ContentResponse(
                 c.Id, c.TrailId, c.Title, c.Body, c.ExternalUrl,
                 c.Type.ToString(), c.Level.ToString(), c.Order,
-                false
+                false, c.ChallengesRequired  // PR 40: passa explícito (LINQ não aceita default)
             ))
             .ToListAsync();
 

@@ -141,6 +141,38 @@ export type SubmitPoolChallengeResponse = {
   totalStars: number
   totalLives: number
   streakDays: number
+  // PR 40 progressão SMW
+  progress: ProgressUpdate | null
+}
+
+// ── Trail Map (PR 40) ───────────────────────────────────────────────
+
+export type UserContentStatus = "Locked" | "Available" | "InProgress" | "Completed"
+
+export type TrailMapNode = {
+  contentId:           number
+  title:               string
+  slug:                string | null
+  order:               number
+  challengesRequired:  number
+  challengesCompleted: number
+  status:              UserContentStatus
+}
+
+export type TrailMap = {
+  trailId:   number
+  trailName: string
+  nodes:     TrailMapNode[]
+}
+
+/** PR 40 — progressão retornada no submit. null se backend não calculou
+ *  (ex: testes legacy sem o ITrailProgressService). */
+export type ProgressUpdate = {
+  contentId:             number
+  challengesCompleted:   number
+  challengesRequired:    number
+  justCompleted:         boolean
+  nextContentIdUnlocked: number | null
 }
 
 // ── Reinforcement quiz (PR 37) ──────────────────────────────────────

@@ -52,7 +52,8 @@ public class ContentService : IContentService
         return contents.Select(c => new ContentResponse(
             c.Id, c.TrailId, c.Title, c.Body, c.ExternalUrl,
             TypeLabel(c.Type), LevelLabel(c.Level), c.Order,
-            completedIds.Contains(c.Id)
+            completedIds.Contains(c.Id),
+            c.ChallengesRequired
         ));
     }
 
@@ -65,7 +66,7 @@ public class ContentService : IContentService
             .AnyAsync(uc => uc.UserId == userId && uc.ContentId == id && uc.IsCompleted);
 
         return new ContentResponse(c.Id, c.TrailId, c.Title, c.Body, c.ExternalUrl,
-            TypeLabel(c.Type), LevelLabel(c.Level), c.Order, isCompleted);
+            TypeLabel(c.Type), LevelLabel(c.Level), c.Order, isCompleted, c.ChallengesRequired);
     }
 
     public async Task<ContentResponse> CreateAsync(CreateContentRequest dto)
@@ -87,7 +88,8 @@ public class ContentService : IContentService
         _graphCache?.Invalidate(content.TrailId);
 
         return new ContentResponse(content.Id, content.TrailId, content.Title, content.Body,
-            content.ExternalUrl, TypeLabel(content.Type), LevelLabel(content.Level), content.Order, false);
+            content.ExternalUrl, TypeLabel(content.Type), LevelLabel(content.Level), content.Order, false,
+            content.ChallengesRequired);
     }
 
     public async Task<ContentResponse?> UpdateAsync(int id, UpdateContentRequest dto, Guid userId)
