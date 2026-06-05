@@ -2,12 +2,15 @@ import { useMemo, useState } from "react"
 import { useQuery } from "@tanstack/react-query"
 import { useNavigate } from "@tanstack/react-router"
 import { toast } from "sonner"
-import { ChevronRight } from "lucide-react"
+import { AlertTriangle, ChevronRight } from "lucide-react"
 import { onboardingApi } from "@/api/onboarding"
 import { trailsApi } from "@/api/trails"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
+import {
+  Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
+} from "@/components/ui/dialog"
 import { Progress } from "@/components/ui/progress"
 import { Skeleton } from "@/components/ui/skeleton"
 import { cn } from "@/lib/utils"
@@ -15,6 +18,7 @@ import type {
   LevelingAnswer,
   OnboardingResult,
   OnboardingTest,
+  Trail,
   TrailLevelEstimate,
 } from "@/types/api"
 
@@ -27,6 +31,11 @@ export function OnboardingPage() {
   const [answers, setAnswers] = useState<Map<number, number>>(new Map())
   const [result, setResult] = useState<OnboardingResult | null>(null)
   const [loading, setLoading] = useState(false)
+
+  /** PR — confirmação antes de sobrescrever mastery existente. Aberto
+   *  pelo submitTest quando há trilhas selecionadas onde o aluno já
+   *  tem progresso. Confirmar continua o flow normal. */
+  const [confirmOpen, setConfirmOpen] = useState(false)
 
   const trailsQuery = useQuery({ queryKey: ["trails"], queryFn: trailsApi.list })
   const navigate = useNavigate()
@@ -58,8 +67,27 @@ export function OnboardingPage() {
     }
   }
 
+  /** Trilhas selecionadas em que o aluno JÁ tem progresso — usado pra
+   *  acender o modal de confirmação antes do submit sobrescrever mastery. */
+  const conflictingTrails = useMemo<Trail[]>(() => {
+    if (!trailsQuery.data) return []
+    return trailsQuery.data.filter((t) => selected.has(t.id) && t.userProgress >= 0)
+  }, [trailsQuery.data, selected])
+
+  /** Submit guard: se algum dos selecionados é trilha já em andamento,
+   *  abre modal. Senão, vai direto. */
+  function handleSubmitClick() {
+    if (!canSubmit) return
+    if (conflictingTrails.length > 0) {
+      setConfirmOpen(true)
+      return
+    }
+    void submitTest()
+  }
+
   async function submitTest() {
     if (!canSubmit) return
+    setConfirmOpen(false)
     setLoading(true)
     try {
       const payload: { answers: LevelingAnswer[] } = {
@@ -199,12 +227,63 @@ export function OnboardingPage() {
           ))}
 
           <div className="flex justify-end pt-2">
-            <Button onClick={submitTest} disabled={!canSubmit || loading}>
+            <Button onClick={handleSubmitClick} disabled={!canSubmit || loading}>
               {loading ? "Calibrando…" : "Finalizar"}
             </Button>
           </div>
         </section>
       )}
+
+      {/* Modal de confirmação — só aparece se o submit vai sobrescrever
+          progresso real. Não bloqueia novas trilhas (path comum, sem fricção). */}
+      <Dialog open={confirmOpen} onOpenChange={setConfirmOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-warning" />
+              Reformular sua jornada?
+            </DialogTitle>
+            <DialogDescription className="pt-2 space-y-3">
+              <span className="block">
+                Você já tem progresso nas trilhas abaixo. Reformular vai
+                <strong> recalibrar a mastery</strong> com base nas respostas
+                que você acabou de dar — sobrescrevendo o histórico atual.
+              </span>
+              <span className="block">
+                Suas perguntas vistas, XP, streak e ilhas completadas
+                <strong> continuam intactos</strong>. Só os scores de
+                domínio dos tópicos são recalculados.
+              </span>
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="my-2 rounded-md border border-warning/30 bg-warning/5 p-3">
+            <p className="text-xs uppercase tracking-wider font-semibold text-warning mb-2">
+              Trilhas afetadas
+            </p>
+            <ul className="space-y-1">
+              {conflictingTrails.map((t) => (
+                <li key={t.id} className="flex items-center gap-2 text-sm">
+                  <span>{t.icon}</span>
+                  <span className="font-medium">{t.name}</span>
+                  <Badge variant="outline" className="text-[10px] ml-auto">
+                    Progresso atual: {t.userProgress}%
+                  </Badge>
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setConfirmOpen(false)}>
+              Cancelar
+            </Button>
+            <Button onClick={submitTest} disabled={loading}>
+              {loading ? "Calibrando…" : "Reformular jornada"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {step === "result" && result && (
         <section className="space-y-4">

@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query"
 import { Link } from "@tanstack/react-router"
-import { Compass, MapPin, Search, Sparkles } from "lucide-react"
+import { Compass, MapPin, RefreshCw, Search, Sparkles } from "lucide-react"
 import { trailsApi } from "@/api/trails"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -37,12 +37,23 @@ export function TrailsPage() {
           </p>
         </div>
         {enrolled.length > 0 && (
-          <Button asChild variant="outline">
-            <Link to="/trails/discover">
-              <Search className="h-4 w-4 mr-1" />
-              Explorar todas
-            </Link>
-          </Button>
+          <div className="flex gap-2 flex-wrap">
+            <Button asChild variant="outline">
+              <Link to="/trails/discover">
+                <Search className="h-4 w-4 mr-1" />
+                Explorar todas
+              </Link>
+            </Button>
+            {/* "Reformular jornada" = entrada pro onboarding pra quem JÁ
+                tem trilhas. Onboarding pede confirmação antes de sobrescrever
+                masteries existentes (modal "ReformulaConfirmDialog"). */}
+            <Button asChild>
+              <Link to="/onboarding">
+                <RefreshCw className="h-4 w-4 mr-1" />
+                Reformular jornada
+              </Link>
+            </Button>
+          </div>
         )}
       </header>
 

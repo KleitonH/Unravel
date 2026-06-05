@@ -1,4 +1,4 @@
-import { BookPlus, Compass, Home, Map, ShieldCheck, Swords, User } from "lucide-react"
+import { BookPlus, Home, Map, ShieldCheck, Swords, User } from "lucide-react"
 import type { LucideIcon } from "lucide-react"
 
 export type NavItem = {
@@ -9,13 +9,20 @@ export type NavItem = {
   requires?: "Moderator"
 }
 
-/** Fonte única dos itens de navegação — usada por sidebar + bottom-nav. */
+/** Fonte única dos itens de navegação — usada por sidebar + bottom-nav.
+ *
+ *  Decisões:
+ *  - Removido item "Jornada" (apontava pra /onboarding mas confundia com
+ *    o conceito "jornada da trilha" do mapa SMW). Hoje "Reformular jornada"
+ *    fica como botão na /trails — entrada contextual, sem ocupar nav fixo.
+ *  - "Desafios" mantido como placeholder pra modo futuro
+ *    (caixinhas/novelo de lã — NAVI themed).
+ *  - "Trilhas" admin renomeado pra "Curadoria" pra não duplicar label. */
 export const navItems: NavItem[] = [
-  { to: "/dashboard",  label: "Início",   Icon: Home },
-  { to: "/trails",     label: "Trilhas",  Icon: Map },
-  { to: "/onboarding", label: "Jornada",  Icon: Compass },
-  { to: "/desafio",    label: "Desafios", Icon: Swords },
-  { to: "/profile",    label: "Perfil",   Icon: User },
-  { to: "/admin",        label: "Admin",    Icon: ShieldCheck, requires: "Moderator" },
-  { to: "/admin/trails", label: "Trilhas",  Icon: BookPlus,    requires: "Moderator" },
+  { to: "/dashboard",  label: "Início",    Icon: Home },
+  { to: "/trails",     label: "Trilhas",   Icon: Map },
+  { to: "/desafio",    label: "Desafios",  Icon: Swords },
+  { to: "/profile",    label: "Perfil",    Icon: User },
+  { to: "/admin",        label: "Admin",     Icon: ShieldCheck, requires: "Moderator" },
+  { to: "/admin/trails", label: "Curadoria", Icon: BookPlus,    requires: "Moderator" },
 ]
