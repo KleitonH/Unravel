@@ -33,6 +33,17 @@ public class Content
     public ContentSource Source { get; set; } = ContentSource.Git;
 
     /// <summary>
+    /// PR 40 — quantidade de desafios que o aluno precisa concluir nesse
+    /// content pra desbloquear o próximo no mapa da trilha. Default 5
+    /// (mesma meta do quiz padrão). Moderador pode override por content
+    /// pra trechos mais densos (ex: "Fundamentos de Modelagem" exige 8).
+    ///
+    /// <para>"Concluir" = responder (acerto não obriga). Mastery do topic
+    /// já gradua qualidade; bloquear por accuracy frustra sem ganho real.</para>
+    /// </summary>
+    public int ChallengesRequired { get; set; } = 5;
+
+    /// <summary>
     /// PR 35 — última edição via API (null pra Git, populado em PATCH
     /// de Content custom). Usado pra invalidar/reprocessar perguntas
     /// que podem ter ficado desalinhadas com o chunk editado.

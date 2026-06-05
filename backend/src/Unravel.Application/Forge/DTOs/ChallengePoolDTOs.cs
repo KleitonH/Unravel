@@ -1,3 +1,5 @@
+using Unravel.Application.Journey.Ports;
+
 namespace Unravel.Application.Forge.DTOs;
 
 /// <summary>Pool de perguntas geradas para um Content, personalizado pelo
@@ -35,18 +37,19 @@ public sealed record SubmitPoolChallengeRequest(
 /// do tópico e <b>ganhos de gamificação</b> (XP/Coins/Stars/Vidas/Streak)
 /// para a UI mostrar feedback rico no quiz.</summary>
 public sealed record SubmitPoolChallengeResponse(
-    bool    IsCorrect,
-    int     CorrectOptionIndex,
-    string? Explanation,
-    double  NewMasteryScore,
-    int     NewMasteryConfidence,
-    int     XpEarned,
-    int     CoinsEarned,
-    int     StarsEarned,
-    int     LifeDelta,        // -1 em erro, 0 em acerto
-    int     TotalXp,
-    int     TotalCoins,
-    int     TotalStars,
-    int     TotalLives,
-    int     StreakDays
+    bool             IsCorrect,
+    int              CorrectOptionIndex,
+    string?          Explanation,
+    double           NewMasteryScore,
+    int              NewMasteryConfidence,
+    int              XpEarned,
+    int              CoinsEarned,
+    int              StarsEarned,
+    int              LifeDelta,        // -1 em erro, 0 em acerto
+    int              TotalXp,
+    int              TotalCoins,
+    int              TotalStars,
+    int              TotalLives,
+    int              StreakDays,
+    ProgressUpdate?  Progress = null   // PR 40 — null se service não foi injetado (testes legacy)
 );

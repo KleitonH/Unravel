@@ -3,6 +3,7 @@ using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Unravel.Application.Forge.UseCases;
+using Unravel.Application.Journey.Ports;
 using Unravel.Application.Journey.UseCases;
 
 namespace Unravel.API.Controllers;
@@ -24,12 +25,16 @@ public sealed class JourneyController : ControllerBase
     private Guid UserId => Guid.Parse(User.FindFirstValue(JwtRegisteredClaimNames.Sub)
                                       ?? User.FindFirstValue(ClaimTypes.NameIdentifier)!);
 
+    private readonly ITrailProgressService _progress;
+
     public JourneyController(
         GetDailyJourneyUseCase        getDaily,
-        BuildReinforcementQuizUseCase reinforcement)
+        BuildReinforcementQuizUseCase reinforcement,
+        ITrailProgressService         progress)
     {
         _getDaily      = getDaily;
         _reinforcement = reinforcement;
+        _progress      = progress;
     }
 
     /// <summary>Plano do dia para o usuário autenticado numa trilha. Calcula
@@ -81,5 +86,24 @@ public sealed class JourneyController : ControllerBase
 
         var result = await _reinforcement.ExecuteAsync(UserId, trailId, count, ct);
         return Ok(result);
+    }
+
+    /// <summary>
+    /// PR 40 — mapa de progressão da trilha pro aluno autenticado.
+    /// Retorna lista ordenada de Contents (ilhas) com Status calculado
+    /// (Locked/Available/InProgress/Completed) + progresso de desafios.
+    ///
+    /// <para>Bootstrap automático: se o aluno ainda não tem nenhum
+    /// UserContent na trilha (caso típico após enroll antigo, antes do
+    /// PR 40), cria UserContent pra 1ª ilha como Available e retorna.</para>
+    /// </summary>
+    [HttpGet("trails/{trailId:int}/map")]
+    public async Task<IActionResult> GetMap(int trailId, CancellationToken ct)
+    {
+        if (trailId <= 0) return BadRequest(new { message = "trailId é obrigatório." });
+
+        await _progress.BootstrapAccessAsync(UserId, trailId, ct);
+        var map = await _progress.GetTrailMapAsync(UserId, trailId, ct);
+        return map is null ? NotFound() : Ok(map);
     }
 }

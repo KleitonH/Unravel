@@ -8,6 +8,8 @@ using Unravel.Application.Telemetry;
 using Unravel.Domain.Gamification;
 using Unravel.Domain.Knowledge;
 
+// ProgressUpdate alias — vem do mesmo namespace via ITrailProgressService.
+
 namespace Unravel.Application.Forge.UseCases;
 
 /// <summary>
@@ -33,6 +35,7 @@ public sealed class SubmitPoolChallengeUseCase
     private readonly IMasteryRepository             _mastery;
     private readonly IUserGamificationGateway       _gamification;
     private readonly IUserSeenChallengeRepository?  _seen;
+    private readonly ITrailProgressService?         _progress;
 
     public SubmitPoolChallengeUseCase(
         IGeneratedChallengeRepository generated,
@@ -43,6 +46,7 @@ public sealed class SubmitPoolChallengeUseCase
         _mastery      = mastery;
         _gamification = gamification;
         _seen         = null;
+        _progress     = null;
     }
 
     /// <summary>PR 37 — construtor que recebe o <see cref="IUserSeenChallengeRepository"/>
@@ -56,6 +60,20 @@ public sealed class SubmitPoolChallengeUseCase
         : this(generated, mastery, gamification)
     {
         _seen = seen;
+    }
+
+    /// <summary>PR 40 — construtor "rico" que recebe o <see cref="ITrailProgressService"/>
+    /// pra avançar o aluno no mapa SMW. Encadeia <c>this()</c> dos
+    /// construtores anteriores pra preservar compat com testes.</summary>
+    public SubmitPoolChallengeUseCase(
+        IGeneratedChallengeRepository generated,
+        IMasteryRepository            mastery,
+        IUserGamificationGateway      gamification,
+        IUserSeenChallengeRepository  seen,
+        ITrailProgressService         progress)
+        : this(generated, mastery, gamification, seen)
+    {
+        _progress = progress;
     }
 
     public async Task<SubmitPoolChallengeResponse?> ExecuteAsync(
@@ -95,6 +113,21 @@ public sealed class SubmitPoolChallengeUseCase
         if (_seen is not null)
             await _seen.MarkAsync(userId, gc.Id, isCorrect, now, ct);
 
+        // 5) PR 40 — avança aluno no mapa da trilha (SMW progression).
+        //    Incrementa ChallengesCompleted do UserContent; se atingiu meta,
+        //    flipa pra Completed e desbloqueia próximo content. Falha aqui
+        //    é logada mas não derruba o submit — UX do quiz é prioridade.
+        ProgressUpdate? progressUpdate = null;
+        if (_progress is not null)
+        {
+            try { progressUpdate = await _progress.RecordChallengeAsync(userId, contentId, ct); }
+            catch (Exception)
+            {
+                // Submit já foi gravado; perder o sinal de progresso é tolerável.
+                // (Log estruturado fica no service que tem ILogger injetado.)
+            }
+        }
+
         // Telemetria PR 19
         UnravelMetrics.QuizSubmissions.Add(1,
             new KeyValuePair<string, object?>("outcome", isCorrect ? "correct" : "wrong"),
@@ -115,7 +148,8 @@ public sealed class SubmitPoolChallengeUseCase
             TotalCoins:           snapshot.Coins,
             TotalStars:           snapshot.Stars,
             TotalLives:           snapshot.Lives,
-            StreakDays:           snapshot.StreakDays);
+            StreakDays:           snapshot.StreakDays,
+            Progress:             progressUpdate);
     }
 
     private static (int correctIndex, string? explanation) ParseBody(string bodyJson)

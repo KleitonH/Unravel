@@ -68,6 +68,10 @@ public partial class ApplicationDbContext(DbContextOptions<ApplicationDbContext>
             // por Source=Git ao re-importar (ver KnowledgeImporter.cs).
             e.Property(c => c.Source).HasConversion<int>();
 
+            // PR 40 — meta de desafios pra desbloquear próximo no mapa.
+            // Default 5 setado na entity; coluna NOT NULL.
+            e.Property(c => c.ChallengesRequired).HasDefaultValue(5);
+
             e.HasOne(c => c.Trail)
              .WithMany(t => t.Contents)
              .HasForeignKey(c => c.TrailId)
@@ -94,6 +98,9 @@ public partial class ApplicationDbContext(DbContextOptions<ApplicationDbContext>
         {
             e.HasKey(uc => uc.Id);
             e.HasIndex(uc => new { uc.UserId, uc.ContentId }).IsUnique();
+
+            // PR 40 — Status persistido pra render do mapa sem JOIN.
+            e.Property(uc => uc.Status).HasConversion<int>().HasDefaultValue(UserContentStatus.Available);
 
             e.HasOne(uc => uc.User)
              .WithMany()

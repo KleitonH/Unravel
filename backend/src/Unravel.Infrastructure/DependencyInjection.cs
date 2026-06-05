@@ -247,6 +247,11 @@ public static class DependencyInjection
         services.AddScoped<IUserSeenChallengeRepository, UserSeenChallengeRepository>();
         services.AddScoped<BuildReinforcementQuizUseCase>();
 
+        // PR 40 — service de progressão SMW (incrementa ChallengesCompleted,
+        // gerencia transições de Status, desbloqueia próximo content).
+        // Plugado no SubmitPoolChallengeUseCase via ctor "rico".
+        services.AddScoped<ITrailProgressService, TrailProgressService>();
+
         // PR 15 — gamificação: XP/Coins/Stars/Vidas + streak no submit do quiz.
         services.AddScoped<IUserGamificationGateway, UserGamificationGateway>();
 
