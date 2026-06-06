@@ -145,6 +145,36 @@ export type SubmitPoolChallengeResponse = {
   progress: ProgressUpdate | null
 }
 
+// ── Mastery Radar (PR 41) ───────────────────────────────────────────
+
+export type MasterySeverity = "Weak" | "Stale" | "Solid"
+
+export type TopicMasteryItem = {
+  topicId:        number
+  topicSlug:      string
+  contentId:      number
+  contentTitle:   string
+  order:          number
+  hasMastery:     boolean
+  rawScore:       number       // [0,1] no LastSeenAt
+  effectiveScore: number       // [0,1] com decay até agora
+  confidence:     number       // n tentativas
+  lastSeenAt:     string | null
+  nextDueAt:      string | null
+  isSrsDue:       boolean
+  severity:       MasterySeverity
+}
+
+export type TrailMasteryReport = {
+  trailId:               number
+  trailName:             string
+  averageEffectiveScore: number
+  weakCount:             number
+  srsDueCount:           number
+  untouchedCount:        number
+  topics:                TopicMasteryItem[]
+}
+
 // ── Trail Map (PR 40) ───────────────────────────────────────────────
 
 export type UserContentStatus = "Locked" | "Available" | "InProgress" | "Completed"

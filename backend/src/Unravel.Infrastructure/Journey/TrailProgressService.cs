@@ -274,6 +274,82 @@ public sealed class TrailProgressService : ITrailProgressService
         }
     }
 
+    public async Task<TrailMasteryReport?> GetTrailMasteryAsync(
+        Guid userId, int trailId, CancellationToken ct = default)
+    {
+        var trail = await _db.Trail
+            .Where(t => t.Id == trailId && t.IsActive)
+            .Select(t => new { t.Id, t.Name })
+            .FirstOrDefaultAsync(ct);
+        if (trail is null) return null;
+
+        // Sem o ctor "rico" não conseguimos calcular effective (precisa do
+        // KnowledgeGraph pra mapear topic→content e do mastery repo).
+        if (_graphCache is null || _masteryRepo is null)
+            return new TrailMasteryReport(trail.Id, trail.Name, 0, 0, 0, 0, Array.Empty<TopicMasteryItem>());
+
+        var now       = DateTime.UtcNow;
+        var graph     = await _graphCache.GetOrBuildAsync(trailId, ct);
+        var masteries = await _masteryRepo.GetByTrailAsync(userId, trailId, ct);
+        var masteryByTopic = masteries.ToDictionary(m => m.TopicId);
+
+        // Map contentId → metadados (Title, Order) pra cada topic do grafo
+        var contentIds = graph.Topics.Select(t => t.ContentId).Where(id => id > 0).Distinct().ToList();
+        var contentMeta = await _db.Content
+            .Where(c => contentIds.Contains(c.Id))
+            .Select(c => new { c.Id, c.Title, c.Order })
+            .ToDictionaryAsync(c => c.Id, ct);
+
+        var items = graph.Topics
+            .Where(t => t.ContentId > 0 && contentMeta.ContainsKey(t.ContentId))
+            .Select(t =>
+            {
+                var meta = contentMeta[t.ContentId];
+                var has  = masteryByTopic.TryGetValue(t.Id, out var m);
+                var eff  = has ? MasteryScoring.EffectiveScore(m!, now) : 0.0;
+                var due  = has && MasteryScoring.IsDueForReview(m!, now);
+                // Severity:
+                // - Weak: effective < 0.6  (incl. untouched)
+                // - Stale: effective ≥ 0.6 mas SRS due  (decay + tempo de revisão)
+                // - Solid: effective ≥ 0.6 e não-due
+                var severity = eff < 0.6 ? "Weak"
+                            : due        ? "Stale"
+                            :              "Solid";
+                return new TopicMasteryItem(
+                    TopicId:        t.Id,
+                    TopicSlug:      t.Slug,
+                    ContentId:      t.ContentId,
+                    ContentTitle:   meta.Title,
+                    Order:          meta.Order,
+                    HasMastery:     has,
+                    RawScore:       has ? Math.Round(m!.Score, 4) : 0,
+                    EffectiveScore: Math.Round(eff, 4),
+                    Confidence:     has ? m!.Confidence : 0,
+                    LastSeenAt:     has ? m!.LastSeenAt : null,
+                    NextDueAt:      has ? m!.NextDueAt  : null,
+                    IsSrsDue:       due,
+                    Severity:       severity);
+            })
+            // Ordenação primária: severity (Weak → Stale → Solid), depois
+            // por score crescente dentro de cada bucket (mais fraco primeiro).
+            .OrderBy(i => i.Severity == "Weak" ? 0 : i.Severity == "Stale" ? 1 : 2)
+            .ThenBy(i => i.EffectiveScore)
+            .ThenBy(i => i.Order)
+            .ToList();
+
+        var touched = items.Where(i => i.HasMastery).ToList();
+        var avg     = touched.Count == 0 ? 0 : touched.Average(i => i.EffectiveScore);
+
+        return new TrailMasteryReport(
+            TrailId:               trail.Id,
+            TrailName:             trail.Name,
+            AverageEffectiveScore: Math.Round(avg, 4),
+            WeakCount:             items.Count(i => i.Severity == "Weak"),
+            SrsDueCount:           items.Count(i => i.IsSrsDue),
+            UntouchedCount:        items.Count(i => !i.HasMastery),
+            Topics:                items);
+    }
+
     public async Task BootstrapAccessAsync(Guid userId, int trailId, CancellationToken ct = default)
     {
         // Idempotente: se já tem qualquer UserContent nessa trilha, nada a fazer.

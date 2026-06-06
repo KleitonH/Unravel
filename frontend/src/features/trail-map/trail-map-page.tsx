@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query"
 import { Link, useNavigate, useParams } from "@tanstack/react-router"
-import { BookOpen, Brain, Check, ChevronLeft, Lock, MapPin, RefreshCw, Sparkles } from "lucide-react"
+import { Activity, BookOpen, Brain, Check, ChevronLeft, Lock, MapPin, RefreshCw, Sparkles } from "lucide-react"
 import { journeyApi } from "@/api/journey"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -65,6 +65,15 @@ export function TrailMapPage() {
           )}
         </div>
         <div className="flex gap-2 shrink-0">
+          {/* PR 41: atalho pro radar — antecede o reforco no fluxo
+              "primeiro vejo onde estou fraco, depois treino". */}
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => navigate({ to: "/trails/$trailId/mastery", params: { trailId } })}
+          >
+            <Activity className="h-4 w-4 mr-1" />Radar
+          </Button>
           <Button
             variant="ghost"
             size="sm"

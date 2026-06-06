@@ -1,5 +1,5 @@
 import { api } from "./client"
-import type { JourneyPlan, ReinforcementQuiz, TrailMap } from "@/types/api"
+import type { JourneyPlan, ReinforcementQuiz, TrailMap, TrailMasteryReport } from "@/types/api"
 
 export const journeyApi = {
   today: (trailId: number) =>
@@ -13,6 +13,13 @@ export const journeyApi = {
    */
   map: (trailId: number) =>
     api.get<TrailMap>(`/api/journey/trails/${trailId}/map`).then((r) => r.data),
+
+  /**
+   * PR 41 — radar de fraquezas: lista de topics com effective mastery,
+   * confidence, SRS state e severity. Ordenado por (severity, score asc).
+   */
+  mastery: (trailId: number) =>
+    api.get<TrailMasteryReport>(`/api/journey/trails/${trailId}/mastery`).then((r) => r.data),
 
   replan: (trailId: number) =>
     api.post<JourneyPlan>("/api/journey/replan", null, { params: { trailId } }).then((r) => r.data),

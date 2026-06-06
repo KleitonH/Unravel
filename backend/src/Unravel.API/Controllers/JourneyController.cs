@@ -106,4 +106,18 @@ public sealed class JourneyController : ControllerBase
         var map = await _progress.GetTrailMapAsync(UserId, trailId, ct);
         return map is null ? NotFound() : Ok(map);
     }
+
+    /// <summary>
+    /// PR 41 — radar de fraquezas: lista de tópicos da trilha com mastery
+    /// efetiva (com decay), confidence, SRS state e severity. Ordenado
+    /// por severidade (Weak primeiro) pra UI rankear sem reprocessar.
+    /// </summary>
+    [HttpGet("trails/{trailId:int}/mastery")]
+    public async Task<IActionResult> GetMastery(int trailId, CancellationToken ct)
+    {
+        if (trailId <= 0) return BadRequest(new { message = "trailId é obrigatório." });
+
+        var report = await _progress.GetTrailMasteryAsync(UserId, trailId, ct);
+        return report is null ? NotFound() : Ok(report);
+    }
 }

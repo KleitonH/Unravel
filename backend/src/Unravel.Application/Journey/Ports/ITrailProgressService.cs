@@ -44,6 +44,15 @@ public interface ITrailProgressService
     /// content, não faz nada.
     /// </summary>
     Task BootstrapAccessAsync(Guid userId, int trailId, CancellationToken ct = default);
+
+    /// <summary>
+    /// PR 41 — relatório de mastery por tópico da trilha pro aluno
+    /// (radar de fraquezas). Inclui effective score com decay, confidence,
+    /// SRS state e classificação por severity. Topics sem mastery ainda
+    /// aparecem (score=0) — útil pra mostrar "ainda não toquei aqui".
+    /// </summary>
+    Task<TrailMasteryReport?> GetTrailMasteryAsync(
+        Guid userId, int trailId, CancellationToken ct = default);
 }
 
 /// <summary>Snapshot retornado após RecordChallengeAsync.</summary>
@@ -59,6 +68,35 @@ public sealed record TrailMap(
     int                          TrailId,
     string                       TrailName,
     IReadOnlyList<TrailMapNode>  Nodes
+);
+
+/// <summary>PR 41 — radar de fraquezas. Cada item é um tópico da trilha
+/// com o score efetivo do user no momento da request, + dados pra UI
+/// rankear por severity (Weak / Stale / Solid).</summary>
+public sealed record TrailMasteryReport(
+    int                              TrailId,
+    string                           TrailName,
+    double                           AverageEffectiveScore,
+    int                              WeakCount,         // effective < 0.6
+    int                              SrsDueCount,       // NextDueAt <= now
+    int                              UntouchedCount,    // sem mastery registrado
+    IReadOnlyList<TopicMasteryItem>  Topics
+);
+
+public sealed record TopicMasteryItem(
+    int       TopicId,
+    string    TopicSlug,
+    int       ContentId,
+    string    ContentTitle,
+    int       Order,
+    bool      HasMastery,
+    double    RawScore,            // score "fresco" no LastSeenAt
+    double    EffectiveScore,      // com decay até now
+    int       Confidence,          // n tentativas
+    DateTime? LastSeenAt,
+    DateTime? NextDueAt,
+    bool      IsSrsDue,
+    string    Severity             // "Weak" | "Stale" | "Solid"
 );
 
 public sealed record TrailMapNode(
