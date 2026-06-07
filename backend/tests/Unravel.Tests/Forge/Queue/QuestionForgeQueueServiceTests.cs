@@ -243,4 +243,79 @@ public class QuestionForgeQueueServiceTests : IDisposable
             QuestionForgeQueueService.HashClaim("foo"),
             QuestionForgeQueueService.HashClaim("  foo  "));
     }
+
+    // ── PR 52a — Batch tracking ────────────────────────────────────
+
+    [Fact]
+    public async Task Enqueue_WithBatchId_PersistsOnAllJobs()
+    {
+        var batchId = Guid.NewGuid();
+        var userId  = Guid.NewGuid();
+        var claims  = new[] { Claim(0, "a"), Claim(1, "b"), Claim(2, "c") };
+
+        var n = await _sut.EnqueueForContentAsync(
+            42, claims,
+            ForgeJobPriority.Urgent,
+            batchId: batchId,
+            enqueuedByUserId: userId);
+
+        Assert.Equal(3, n);
+        var jobs = await _db.QuestionForgeJob.ToListAsync();
+        Assert.All(jobs, j => Assert.Equal(batchId, j.BatchId));
+        Assert.All(jobs, j => Assert.Equal(userId, j.EnqueuedByUserId));
+    }
+
+    [Fact]
+    public async Task Enqueue_WithoutBatchId_DefaultsToNull()
+    {
+        var n = await _sut.EnqueueForContentAsync(42, new[] { Claim(0, "no batch") });
+
+        Assert.Equal(1, n);
+        var job = await _db.QuestionForgeJob.FirstAsync();
+        Assert.Null(job.BatchId);
+        Assert.Null(job.EnqueuedByUserId);
+    }
+
+    [Fact]
+    public async Task Enqueue_DifferentBatches_TrackedSeparately()
+    {
+        var batchA = Guid.NewGuid();
+        var batchB = Guid.NewGuid();
+        var userId = Guid.NewGuid();
+
+        await _sut.EnqueueForContentAsync(1, new[] { Claim(0, "a1"), Claim(1, "a2") },
+            batchId: batchA, enqueuedByUserId: userId);
+        await _sut.EnqueueForContentAsync(2, new[] { Claim(0, "b1") },
+            batchId: batchB, enqueuedByUserId: userId);
+
+        var aJobs = await _db.QuestionForgeJob.Where(j => j.BatchId == batchA).CountAsync();
+        var bJobs = await _db.QuestionForgeJob.Where(j => j.BatchId == batchB).CountAsync();
+
+        Assert.Equal(2, aJobs);
+        Assert.Equal(1, bJobs);
+    }
+
+    [Fact]
+    public async Task Enqueue_DifferentUsers_Isolated()
+    {
+        var user1   = Guid.NewGuid();
+        var user2   = Guid.NewGuid();
+        var batch1  = Guid.NewGuid();
+        var batch2  = Guid.NewGuid();
+
+        await _sut.EnqueueForContentAsync(1, new[] { Claim(0, "user1") },
+            batchId: batch1, enqueuedByUserId: user1);
+        await _sut.EnqueueForContentAsync(2, new[] { Claim(0, "user2") },
+            batchId: batch2, enqueuedByUserId: user2);
+
+        // Filtro "meus batches" não vaza pro outro user
+        var user1Batches = await _db.QuestionForgeJob
+            .Where(j => j.EnqueuedByUserId == user1)
+            .Select(j => j.BatchId)
+            .Distinct()
+            .ToListAsync();
+
+        Assert.Single(user1Batches);
+        Assert.Equal(batch1, user1Batches[0]);
+    }
 }

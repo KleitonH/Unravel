@@ -138,6 +138,15 @@ public partial class ApplicationDbContext(DbContextOptions<ApplicationDbContext>
             // Dedup: garante que (Content, Chunk, ClaimHash) só existe 1x
             // entre Pending/Running. Permite Done duplicado (histórico).
             e.HasIndex(j => new { j.ContentId, j.ChunkIndex, j.ClaimHash });
+
+            // PR 52a — index pra GET /forge/batches/{id} listar jobs
+            // do batch sem table-scan. Filter nullable pra não inchar
+            // o índice com jobs legacy sem batch.
+            e.HasIndex(j => j.BatchId).HasFilter("\"batch_id\" IS NOT NULL");
+            // PR 52a — index pra GET /forge/batches/recent listar batches
+            // do moderador autenticado por EnqueuedAt desc.
+            e.HasIndex(j => new { j.EnqueuedByUserId, j.EnqueuedAt })
+             .HasFilter("\"enqueued_by_user_id\" IS NOT NULL");
         });
 
         // PR 52 — tokens "centímetros de lã" pra moderador.

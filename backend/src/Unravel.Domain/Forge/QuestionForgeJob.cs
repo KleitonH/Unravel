@@ -44,6 +44,25 @@ public class QuestionForgeJob
     /// <summary>ID do GeneratedChallenge criado quando sucesso.
     /// Permite rastrear job → pergunta resultante.</summary>
     public int? GeneratedChallengeId { get; set; }
+
+    /// <summary>
+    /// PR 52a — agrupa jobs disparados na mesma chamada de enqueue
+    /// (POST forge/{id} ou POST forge/bulk). Permite ao moderador ver
+    /// "os jobs DELE" sem misturar com fila global de outros admins ou
+    /// do cron noturno legado.
+    ///
+    /// <para>Opcional pra retrocompat: jobs antigos (pré-52a) ficam null
+    /// e aparecem agrupados em "Sem batch" no admin panel. Não há
+    /// migration de backfill — histórico fica como está.</para>
+    /// </summary>
+    public Guid? BatchId { get; set; }
+
+    /// <summary>
+    /// PR 52a — userId do moderador que disparou o batch. Usado pra
+    /// filtrar batches "meus" no painel admin sem expor batches de
+    /// outros admins. Null pra cron noturno / sistema.
+    /// </summary>
+    public Guid? EnqueuedByUserId { get; set; }
 }
 
 public enum ForgeJobStatus

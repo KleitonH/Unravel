@@ -165,7 +165,7 @@ public sealed class BuildReinforcementQuizUseCase
             if (claims.Count == 0) continue;
 
             var added = await _queue.EnqueueForContentAsync(
-                contentId, claims, ForgeJobPriority.Urgent, ct);
+                contentId, claims, ForgeJobPriority.Urgent, ct: ct);
             jobsEnqueued += added;
             replenished++;
             _log?.LogInformation(

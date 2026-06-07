@@ -20,11 +20,19 @@ public interface IQuestionForgeQueue
     /// <summary>
     /// Enfileira N jobs pra um Content (1 por claim). Retorna número
     /// efetivamente adicionado (dedup pode reduzir).
+    ///
+    /// <para>PR 52a — <paramref name="batchId"/> agrupa jobs disparados
+    /// na mesma chamada do moderador (pra UI de progresso saber quais
+    /// jobs são "dele"). <paramref name="enqueuedByUserId"/> permite
+    /// filtrar batches no admin panel sem expor batches de outros admins.
+    /// Ambos opcionais — null pra cron noturno / sistema.</para>
     /// </summary>
     Task<int> EnqueueForContentAsync(
         int contentId,
         IReadOnlyList<ClaimCandidate> claims,
         ForgeJobPriority priority = ForgeJobPriority.Normal,
+        Guid? batchId = null,
+        Guid? enqueuedByUserId = null,
         CancellationToken ct = default);
 
     /// <summary>

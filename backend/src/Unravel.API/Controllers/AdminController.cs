@@ -111,15 +111,21 @@ public sealed class AdminController(
             });
         }
 
+        // PR 52a — agrupa esse enqueue num batch identificável pra UI
+        // de progresso do moderador.
+        var batchId = Guid.NewGuid();
         var enqueued = await queue.EnqueueForContentAsync(
             contentId, claims,
             urgent ? ForgeJobPriority.Urgent : ForgeJobPriority.Normal,
-            ct);
+            batchId: batchId,
+            enqueuedByUserId: UserId(),
+            ct: ct);
 
         return Ok(new {
             contentId, contentTitle = content.Title,
             claimsCandidates = claims.Count, enqueued,
             tokensSpentCm = totalCost,
+            batchId,
         });
     }
 
@@ -133,6 +139,145 @@ public sealed class AdminController(
     {
         var status = await queue.GetStatusAsync(ct);
         return Ok(status);
+    }
+
+    /// <summary>
+    /// PR 52a — status agregado + jobs detalhados de um batch.
+    /// Permite ao moderador acompanhar o progresso dos jobs que ELE
+    /// disparou (sem misturar com fila global de outros admins/cron).
+    ///
+    /// <para>Retorna 404 se batch não pertence ao moderador autenticado —
+    /// privacidade básica (admin não vê batches de outro admin).</para>
+    /// </summary>
+    [HttpGet("forge/batches/{batchId:guid}")]
+    public async Task<IActionResult> GetBatch(
+        Guid batchId,
+        [FromServices] ApplicationDbContext db,
+        CancellationToken ct)
+    {
+        var userId = UserId();
+        var jobs = await db.QuestionForgeJob.AsNoTracking()
+            .Where(j => j.BatchId == batchId && j.EnqueuedByUserId == userId)
+            .OrderBy(j => j.Id)
+            .ToListAsync(ct);
+
+        if (jobs.Count == 0)
+            return NotFound(new { message = "Batch não encontrado ou não pertence a você." });
+
+        // Recupera prompts/shapes das GeneratedChallenges criadas
+        // (necessário pra UI mostrar "essa pergunta saiu como FillBlank").
+        var challengeIds = jobs.Where(j => j.GeneratedChallengeId.HasValue)
+                               .Select(j => j.GeneratedChallengeId!.Value)
+                               .ToList();
+        var challenges = challengeIds.Count == 0
+            ? new Dictionary<int, GeneratedChallenge>()
+            : await db.GeneratedChallenge.AsNoTracking()
+                .Where(g => challengeIds.Contains(g.Id))
+                .ToDictionaryAsync(g => g.Id, ct);
+
+        // Resolve título do Content (1 query — todos os jobs do batch
+        // costumam pertencer a poucos contents distintos).
+        var contentIds = jobs.Select(j => j.ContentId).Distinct().ToList();
+        var contents = await db.Content.AsNoTracking()
+            .Where(c => contentIds.Contains(c.Id))
+            .ToDictionaryAsync(c => c.Id, c => c.Title, ct);
+
+        var jobDtos = jobs.Select(j => new {
+            id              = j.Id,
+            contentId       = j.ContentId,
+            contentTitle    = contents.GetValueOrDefault(j.ContentId, "(removido)"),
+            status          = j.Status.ToString(),
+            priority        = j.Priority.ToString(),
+            enqueuedAt      = j.EnqueuedAt,
+            startedAt       = j.StartedAt,
+            completedAt     = j.CompletedAt,
+            attemptCount    = j.AttemptCount,
+            lastError       = j.LastError,
+            claimText       = j.ClaimText,
+            generatedChallengeId = j.GeneratedChallengeId,
+            // Shape vem do BodyJson da challenge associada
+            shape = j.GeneratedChallengeId.HasValue
+                && challenges.TryGetValue(j.GeneratedChallengeId.Value, out var ch)
+                ? ExtractShape(ch.BodyJson)
+                : null,
+            prompt = j.GeneratedChallengeId.HasValue
+                && challenges.TryGetValue(j.GeneratedChallengeId.Value, out var ch2)
+                ? ch2.Prompt
+                : null,
+        }).ToList();
+
+        var counts = new {
+            pending = jobs.Count(j => j.Status == ForgeJobStatus.Pending),
+            running = jobs.Count(j => j.Status == ForgeJobStatus.Running),
+            done    = jobs.Count(j => j.Status == ForgeJobStatus.Done),
+            failed  = jobs.Count(j => j.Status == ForgeJobStatus.Failed),
+        };
+
+        // Shape breakdown sobre os Done (válidos)
+        var shapeBreakdown = jobDtos
+            .Where(d => d.shape != null)
+            .GroupBy(d => d.shape!)
+            .ToDictionary(g => g.Key, g => g.Count());
+
+        return Ok(new {
+            batchId,
+            total       = jobs.Count,
+            enqueuedAt  = jobs.Min(j => j.EnqueuedAt),
+            isComplete  = counts.pending == 0 && counts.running == 0,
+            counts,
+            shapeBreakdown,
+            jobs        = jobDtos,
+        });
+    }
+
+    /// <summary>
+    /// PR 52a — lista os últimos N batches do moderador autenticado
+    /// (resumo apenas, sem jobs detalhados). Endpoint pro drawer/chip
+    /// de "Atividade do Forge" no header admin.
+    /// </summary>
+    [HttpGet("forge/batches/recent")]
+    public async Task<IActionResult> RecentBatches(
+        [FromServices] ApplicationDbContext db,
+        [FromQuery] int take = 10,
+        CancellationToken ct = default)
+    {
+        var userId = UserId();
+        take = Math.Clamp(take, 1, 50);
+
+        // Agrega por batchId. Postgres EF traduz GROUP BY direto.
+        var batches = await db.QuestionForgeJob.AsNoTracking()
+            .Where(j => j.EnqueuedByUserId == userId && j.BatchId != null)
+            .GroupBy(j => j.BatchId!.Value)
+            .Select(g => new {
+                batchId    = g.Key,
+                total      = g.Count(),
+                pending    = g.Count(j => j.Status == ForgeJobStatus.Pending),
+                running    = g.Count(j => j.Status == ForgeJobStatus.Running),
+                done       = g.Count(j => j.Status == ForgeJobStatus.Done),
+                failed     = g.Count(j => j.Status == ForgeJobStatus.Failed),
+                enqueuedAt = g.Min(j => j.EnqueuedAt),
+                lastUpdate = g.Max(j => j.CompletedAt ?? j.StartedAt ?? j.EnqueuedAt),
+            })
+            .OrderByDescending(b => b.enqueuedAt)
+            .Take(take)
+            .ToListAsync(ct);
+
+        return Ok(batches);
+    }
+
+    /// <summary>Helper pra extrair "shape" do BodyJson da
+    /// <c>GeneratedChallenge</c>. Retorna null se ausente (rows pré-PR-34a).</summary>
+    private static string? ExtractShape(string bodyJson)
+    {
+        if (string.IsNullOrWhiteSpace(bodyJson)) return null;
+        try
+        {
+            using var doc = System.Text.Json.JsonDocument.Parse(bodyJson);
+            return doc.RootElement.TryGetProperty("shape", out var s)
+                ? s.GetString()
+                : null;
+        }
+        catch { return null; }
     }
 
     /// <summary>
@@ -200,6 +345,12 @@ public sealed class AdminController(
             });
         }
 
+        // PR 52a — UM batch cobre todos os Contents desse bulk. Permite
+        // UI mostrar progresso global ("bulk PHP: 12/30 jobs feitos")
+        // sem fragmentar por content.
+        var batchId = Guid.NewGuid();
+        var userId  = UserId();
+
         foreach (var content in contents)
         {
             ct.ThrowIfCancellationRequested();
@@ -215,7 +366,9 @@ public sealed class AdminController(
             var enqueued = await queue.EnqueueForContentAsync(
                 content.Id, claims,
                 urgent ? ForgeJobPriority.Urgent : ForgeJobPriority.Normal,
-                ct);
+                batchId: batchId,
+                enqueuedByUserId: userId,
+                ct: ct);
             totalQueued += enqueued;
             perContent.Add(new { contentId = content.Id, contentTitle = content.Title,
                 claimsCandidates = claims.Count, enqueued });
@@ -229,6 +382,7 @@ public sealed class AdminController(
             totalContents = contents.Count,
             totalQueued,
             tokensSpentCm = totalCost,
+            batchId,
             perContent,
         });
     }

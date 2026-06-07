@@ -102,7 +102,7 @@ public sealed class GetChallengePoolUseCase
                 if (claims.Count > 0)
                 {
                     var enqueued = await _forgeQueue.EnqueueForContentAsync(
-                        contentId, claims, ForgeJobPriority.Urgent, ct);
+                        contentId, claims, ForgeJobPriority.Urgent, ct: ct);
                     moreComing = enqueued > 0;
                 }
             }

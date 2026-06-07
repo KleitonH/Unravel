@@ -27,6 +27,8 @@ public sealed class QuestionForgeQueueService(
         int contentId,
         IReadOnlyList<ClaimCandidate> claims,
         ForgeJobPriority priority = ForgeJobPriority.Normal,
+        Guid? batchId = null,
+        Guid? enqueuedByUserId = null,
         CancellationToken ct = default)
     {
         if (claims.Count == 0) return 0;
@@ -50,13 +52,15 @@ public sealed class QuestionForgeQueueService(
 
             db.QuestionForgeJob.Add(new QuestionForgeJob
             {
-                ContentId  = contentId,
-                ChunkIndex = claim.ChunkIndex,
-                ClaimText  = claim.ClaimText,
-                ClaimHash  = hash,
-                Status     = ForgeJobStatus.Pending,
-                Priority   = priority,
-                EnqueuedAt = DateTime.UtcNow,
+                ContentId        = contentId,
+                ChunkIndex       = claim.ChunkIndex,
+                ClaimText        = claim.ClaimText,
+                ClaimHash        = hash,
+                Status           = ForgeJobStatus.Pending,
+                Priority         = priority,
+                EnqueuedAt       = DateTime.UtcNow,
+                BatchId          = batchId,
+                EnqueuedByUserId = enqueuedByUserId,
             });
             added++;
         }
