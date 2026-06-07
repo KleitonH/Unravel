@@ -246,6 +246,12 @@ public static class DependencyInjection
         // baseada em ability estimate online (EWMA + zona proximal).
         services.AddScoped<SelectNextAdaptiveChallengeUseCase>();
 
+        // PR 50 — Boss Fight: algoritmo combinatorial (BossFightSelector
+        // puro) + use cases start/submit. Reusa mastery/gamificação/seen.
+        services.AddScoped<IBossFightRepository, BossFightRepository>();
+        services.AddScoped<StartBossFightUseCase>();
+        services.AddScoped<SubmitBossFightUseCase>();
+
         // PR 37 — rastreio de "perguntas geradas já vistas pelo usuário"
         // pra anti-join no Reinforcement Quiz. UPSERT idempotente.
         services.AddScoped<IUserSeenChallengeRepository, UserSeenChallengeRepository>();

@@ -192,6 +192,49 @@ export type TrailMasteryReport = {
   topics:                TopicMasteryItem[]
 }
 
+// ── Boss Fight (PR 50) ──────────────────────────────────────────────
+
+export type BossFightStartResponse = {
+  trailId:        number
+  trailName:      string
+  unlocked:       boolean
+  lockReason:     string | null
+  passThreshold:  number       // ex 7
+  totalQuestions: number
+  attemptCount:   number
+  bestScore:      number
+  firstWonAt:     string | null
+  questions:      PoolChallenge[]
+}
+
+export type BossFightAnswer = {
+  challengeId:         number
+  selectedOptionIndex: number
+}
+
+export type BossFightSubmitRequest = {
+  answers: BossFightAnswer[]
+}
+
+export type BossFightAnswerOutcome = {
+  challengeId:        number
+  isCorrect:          boolean
+  correctOptionIndex: number
+  explanation:        string | null
+}
+
+export type BossFightResultResponse = {
+  trailId:        number
+  score:          number
+  totalQuestions: number
+  passThreshold:  number
+  passed:         boolean
+  isFirstWin:     boolean
+  xpEarned:       number
+  badgeAwarded:   string | null
+  outcomes:       BossFightAnswerOutcome[]
+}
+
 // ── Trail Map (PR 40) ───────────────────────────────────────────────
 
 export type UserContentStatus = "Locked" | "Available" | "InProgress" | "Completed"

@@ -2,6 +2,7 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Unravel.Application.Forge.DTOs;
 using Unravel.Application.Forge.UseCases;
 using Unravel.Application.Journey.Ports;
 using Unravel.Application.Journey.UseCases;
@@ -25,16 +26,22 @@ public sealed class JourneyController : ControllerBase
     private Guid UserId => Guid.Parse(User.FindFirstValue(JwtRegisteredClaimNames.Sub)
                                       ?? User.FindFirstValue(ClaimTypes.NameIdentifier)!);
 
-    private readonly ITrailProgressService _progress;
+    private readonly ITrailProgressService    _progress;
+    private readonly StartBossFightUseCase    _startBoss;
+    private readonly SubmitBossFightUseCase   _submitBoss;
 
     public JourneyController(
         GetDailyJourneyUseCase        getDaily,
         BuildReinforcementQuizUseCase reinforcement,
-        ITrailProgressService         progress)
+        ITrailProgressService         progress,
+        StartBossFightUseCase         startBoss,
+        SubmitBossFightUseCase        submitBoss)
     {
         _getDaily      = getDaily;
         _reinforcement = reinforcement;
         _progress      = progress;
+        _startBoss     = startBoss;
+        _submitBoss    = submitBoss;
     }
 
     /// <summary>Plano do dia para o usuário autenticado numa trilha. Calcula
@@ -119,5 +126,39 @@ public sealed class JourneyController : ControllerBase
 
         var report = await _progress.GetTrailMasteryAsync(UserId, trailId, ct);
         return report is null ? NotFound() : Ok(report);
+    }
+
+    /// <summary>
+    /// PR 50 — inicia uma sessão de Boss Fight. Valida desbloqueio
+    /// (todas as ilhas regulares concluídas) e retorna pacote com
+    /// N=10 perguntas balanceadas + estado atual do user.
+    /// </summary>
+    [HttpPost("trails/{trailId:int}/boss-fight/start")]
+    public async Task<IActionResult> StartBossFight(int trailId, CancellationToken ct)
+    {
+        if (trailId <= 0) return BadRequest(new { message = "trailId é obrigatório." });
+
+        var session = await _startBoss.ExecuteAsync(UserId, trailId, ct);
+        return session is null ? NotFound() : Ok(session);
+    }
+
+    /// <summary>
+    /// PR 50 — submete todas as respostas da sessão Boss Fight (batch).
+    /// Backend corrige, atualiza mastery por topic, registra
+    /// UserSeenChallenge + UserBossFight, aplica recompensas
+    /// (XP/coins/badge) e devolve resultado.
+    /// </summary>
+    [HttpPost("trails/{trailId:int}/boss-fight/submit")]
+    public async Task<IActionResult> SubmitBossFight(
+        int trailId,
+        [FromBody] BossFightSubmitRequest request,
+        CancellationToken ct = default)
+    {
+        if (trailId <= 0) return BadRequest(new { message = "trailId é obrigatório." });
+        if (request?.Answers is null || request.Answers.Count == 0)
+            return BadRequest(new { message = "Pelo menos 1 resposta é necessária." });
+
+        var result = await _submitBoss.ExecuteAsync(UserId, trailId, request, ct);
+        return result is null ? NotFound() : Ok(result);
     }
 }

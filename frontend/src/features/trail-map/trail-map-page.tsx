@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query"
 import { Link, useNavigate, useParams } from "@tanstack/react-router"
-import { Activity, BookOpen, Brain, Check, ChevronLeft, Lock, MapPin, RefreshCw, Sparkles } from "lucide-react"
+import { Activity, BookOpen, Brain, Check, ChevronLeft, Crown, Lock, MapPin, RefreshCw, Sparkles } from "lucide-react"
 import { journeyApi } from "@/api/journey"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -41,6 +41,8 @@ export function TrailMapPage() {
   const totalNodes     = map?.nodes.length ?? 0
   const completedNodes = map?.nodes.filter((n) => n.status === "Completed").length ?? 0
   const recommendedCount = map?.nodes.filter((n) => n.isRecommended).length ?? 0
+  // PR 50: Boss desbloqueado = todas as ilhas regulares Completed.
+  const bossUnlocked   = totalNodes > 0 && completedNodes === totalNodes
 
   return (
     <div className="p-6 lg:p-10 max-w-3xl mx-auto space-y-6">
@@ -124,11 +126,19 @@ export function TrailMapPage() {
               key={node.contentId}
               node={node}
               isLeft={i % 2 === 0}
-              isLast={i === map.nodes.length - 1}
+              isLast={i === map.nodes.length - 1 && !bossUnlocked}
               isActive={activeNode?.contentId === node.contentId}
               onOpen={() => navigate({ to: "/contents/$contentId", params: { contentId: String(node.contentId) } })}
             />
           ))}
+          {/* PR 50 — Ilha do Boss aparece ao final quando todas regulares
+              estão Completed. Linkada à rota /boss/$trailId. */}
+          {bossUnlocked && (
+            <BossIsland
+              isLeft={map.nodes.length % 2 === 0}
+              onOpen={() => navigate({ to: "/boss/$trailId", params: { trailId } })}
+            />
+          )}
         </div>
       )}
     </div>
@@ -283,6 +293,44 @@ function ProgressBar({ done, total, status }: { done: number; total: number; sta
           {done}/{total}
         </Badge>
         <span>desafios</span>
+      </div>
+    </div>
+  )
+}
+
+function BossIsland({ isLeft, onOpen }: { isLeft: boolean; onOpen: () => void }) {
+  return (
+    <div className="relative">
+      <div className={cn("flex items-center", isLeft ? "justify-start" : "justify-end")}>
+        <div className={cn("w-full sm:w-[78%]", isLeft ? "sm:mr-auto" : "sm:ml-auto")}>
+          <Card className="relative overflow-hidden border-l-4 border-l-warning bg-gradient-to-br from-warning/10 via-card to-card shadow-lg shadow-warning/10">
+            <div className="absolute top-0 right-0 bg-warning text-warning-foreground text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-bl-md flex items-center gap-1 shadow-sm">
+              <Crown className="h-3 w-3" />
+              Boss
+            </div>
+            <CardHeader className="flex flex-row items-start gap-3 space-y-0 pb-2">
+              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-warning/20 text-warning border-2 border-warning/40">
+                <Crown className="h-6 w-6" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <h3 className="font-display font-bold text-base">Desafio final da trilha</h3>
+                <p className="text-xs text-muted-foreground mt-1">
+                  10 perguntas cruzando todos os tópicos. Passe com ≥7 pra conquistar o título de Mestre.
+                </p>
+              </div>
+            </CardHeader>
+            <CardContent className="pt-0 flex justify-end">
+              <Button
+                size="sm"
+                onClick={onOpen}
+                className="bg-warning hover:bg-warning/90 text-warning-foreground"
+              >
+                <Crown className="h-4 w-4 mr-1" />
+                Enfrentar Boss
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
       </div>
     </div>
   )

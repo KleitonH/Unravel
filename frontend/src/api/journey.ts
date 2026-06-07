@@ -1,5 +1,8 @@
 import { api } from "./client"
-import type { JourneyPlan, ReinforcementQuiz, TrailMap, TrailMasteryReport } from "@/types/api"
+import type {
+  BossFightResultResponse, BossFightStartResponse, BossFightSubmitRequest,
+  JourneyPlan, ReinforcementQuiz, TrailMap, TrailMasteryReport,
+} from "@/types/api"
 
 export const journeyApi = {
   today: (trailId: number) =>
@@ -20,6 +23,20 @@ export const journeyApi = {
    */
   mastery: (trailId: number) =>
     api.get<TrailMasteryReport>(`/api/journey/trails/${trailId}/mastery`).then((r) => r.data),
+
+  /**
+   * PR 50 — Boss Fight: inicia uma sessão com N=10 perguntas balanceadas
+   * por cobertura + difficulty + strategy mix.
+   */
+  bossFightStart: (trailId: number) =>
+    api
+      .post<BossFightStartResponse>(`/api/journey/trails/${trailId}/boss-fight/start`)
+      .then((r) => r.data),
+
+  bossFightSubmit: (trailId: number, body: BossFightSubmitRequest) =>
+    api
+      .post<BossFightResultResponse>(`/api/journey/trails/${trailId}/boss-fight/submit`, body)
+      .then((r) => r.data),
 
   replan: (trailId: number) =>
     api.post<JourneyPlan>("/api/journey/replan", null, { params: { trailId } }).then((r) => r.data),

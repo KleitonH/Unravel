@@ -21,6 +21,7 @@ public partial class ApplicationDbContext(DbContextOptions<ApplicationDbContext>
     public DbSet<QuestionForgeJob>     QuestionForgeJob     => Set<QuestionForgeJob>();
     public DbSet<ModeratorGoldItem>    ModeratorGoldItem    => Set<ModeratorGoldItem>();
     public DbSet<UserSeenChallenge>    UserSeenChallenge    => Set<UserSeenChallenge>();
+    public DbSet<UserBossFight>        UserBossFight        => Set<UserBossFight>();
 
     protected override void OnModelCreating(ModelBuilder mb)
     {
@@ -132,6 +133,18 @@ public partial class ApplicationDbContext(DbContextOptions<ApplicationDbContext>
             // Dedup: garante que (Content, Chunk, ClaimHash) só existe 1x
             // entre Pending/Running. Permite Done duplicado (histórico).
             e.HasIndex(j => new { j.ContentId, j.ChunkIndex, j.ClaimHash });
+        });
+
+        // PR 50 — UserBossFight: histórico do desafio final da trilha.
+        // Singleton por (UserId, TrailId), preserva melhor score e
+        // data da primeira vitória (>=70%).
+        mb.Entity<UserBossFight>(e =>
+        {
+            e.HasKey(b => new { b.UserId, b.TrailId });
+            e.Property(b => b.AttemptCount).IsRequired();
+            e.Property(b => b.BestScore).IsRequired();
+            e.Property(b => b.LastScore).IsRequired();
+            e.Property(b => b.LastAttemptAt).IsRequired();
         });
 
         // PR 37 — UserSeenChallenge: rastreia perguntas geradas já

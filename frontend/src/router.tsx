@@ -37,6 +37,7 @@ const AdminTrailDetail    = lazy(() => import("@/features/admin-custom/trail-det
 const AdminContentEditor  = lazy(() => import("@/features/admin-custom/content-editor-page").then((m) => ({ default: m.ContentEditorPage })))
 const ReinforcePage       = lazy(() => import("@/features/reinforce/reinforce-page").then((m) => ({ default: m.ReinforcePage })))
 const MasteryPage         = lazy(() => import("@/features/mastery/mastery-page").then((m) => ({ default: m.MasteryPage })))
+const BossFightPage       = lazy(() => import("@/features/boss/boss-fight-page").then((m) => ({ default: m.BossFightPage })))
 
 /** Wrapper que serializa Suspense fallback em cada rota lazy.
  *  Skeleton segue identidade visual; nada de spinner branco.
@@ -127,6 +128,7 @@ const adminTrailDetailRoute   = createRoute({ getParentRoute: () => authedLayout
 const adminContentEditorRoute = createRoute({ getParentRoute: () => authedLayoutRoute, path: "/admin/contents/$contentId",      component: () => <Lazy Component={AdminContentEditor} /> })
 const reinforceRoute          = createRoute({ getParentRoute: () => authedLayoutRoute, path: "/reinforce/$trailId",             component: () => <Lazy Component={ReinforcePage} /> })
 const masteryRoute            = createRoute({ getParentRoute: () => authedLayoutRoute, path: "/trails/$trailId/mastery",        component: () => <Lazy Component={MasteryPage} /> })
+const bossFightRoute          = createRoute({ getParentRoute: () => authedLayoutRoute, path: "/boss/$trailId",                  component: () => <Lazy Component={BossFightPage} /> })
 const profileRoute            = createRoute({ getParentRoute: () => authedLayoutRoute, path: "/profile",                        component: () => <Lazy Component={ProfilePage} /> })
 const desafioRoute            = createRoute({ getParentRoute: () => authedLayoutRoute, path: "/desafio",                        component: () => <Placeholder title="Desafios" /> })
 
@@ -149,6 +151,7 @@ const routeTree = rootRoute.addChildren([
     adminContentEditorRoute,
     reinforceRoute,
     masteryRoute,
+    bossFightRoute,
     profileRoute,
     desafioRoute,
   ]),
