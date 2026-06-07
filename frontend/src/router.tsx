@@ -36,6 +36,7 @@ const AdminTrailsPage     = lazy(() => import("@/features/admin-custom/trails-li
 const AdminTrailDetail    = lazy(() => import("@/features/admin-custom/trail-detail-page").then((m) => ({ default: m.TrailDetailPage })))
 const AdminContentEditor  = lazy(() => import("@/features/admin-custom/content-editor-page").then((m) => ({ default: m.ContentEditorPage })))
 const AdminForgeStats     = lazy(() => import("@/features/admin-custom/forge-stats-page").then((m) => ({ default: m.ForgeStatsPage })))
+const ChapteredQuizPage   = lazy(() => import("@/features/quiz/chaptered-quiz-page").then((m) => ({ default: m.ChapteredQuizPage })))
 const ReinforcePage       = lazy(() => import("@/features/reinforce/reinforce-page").then((m) => ({ default: m.ReinforcePage })))
 const MasteryPage         = lazy(() => import("@/features/mastery/mastery-page").then((m) => ({ default: m.MasteryPage })))
 const BossFightPage       = lazy(() => import("@/features/boss/boss-fight-page").then((m) => ({ default: m.BossFightPage })))
@@ -123,6 +124,7 @@ const jornadaRoute      = createRoute({ getParentRoute: () => authedLayoutRoute,
 const contentStudyRoute = createRoute({ getParentRoute: () => authedLayoutRoute, path: "/contents/$contentId", component: () => <Lazy Component={ContentStudyPage} /> })
 const quizRoute            = createRoute({ getParentRoute: () => authedLayoutRoute, path: "/quiz/$contentId",            component: () => <Lazy Component={QuizPage} /> })
 const adaptiveQuizRoute    = createRoute({ getParentRoute: () => authedLayoutRoute, path: "/quiz/$contentId/adaptive",   component: () => <Lazy Component={AdaptiveQuizPage} /> })
+const studyRoute           = createRoute({ getParentRoute: () => authedLayoutRoute, path: "/study/$contentId",           component: () => <Lazy Component={ChapteredQuizPage} /> })
 const adminRoute              = createRoute({ getParentRoute: () => authedLayoutRoute, path: "/admin",                          component: () => <Lazy Component={AdminPage} /> })
 const adminTrailsRoute        = createRoute({ getParentRoute: () => authedLayoutRoute, path: "/admin/trails",                   component: () => <Lazy Component={AdminTrailsPage} /> })
 const adminTrailDetailRoute   = createRoute({ getParentRoute: () => authedLayoutRoute, path: "/admin/trails/$trailId",          component: () => <Lazy Component={AdminTrailDetail} /> })
@@ -147,6 +149,7 @@ const routeTree = rootRoute.addChildren([
     contentStudyRoute,
     quizRoute,
     adaptiveQuizRoute,
+    studyRoute,
     adminRoute,
     adminTrailsRoute,
     adminTrailDetailRoute,

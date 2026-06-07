@@ -137,16 +137,26 @@ export function ContentStudyPage() {
               </CardDescription>
             </CardHeader>
             <CardContent className="flex flex-wrap gap-2">
+              {/* PR 60-b — "Estudar guiado" é o padrão (Opção A). Aluno
+                  estuda capítulo → pratica → próximo. Modelo Duolingo,
+                  evita decoreba no quiz embaralhado. */}
               <Button
                 size="lg"
-                onClick={() => navigate({ to: "/quiz/$contentId", params: { contentId } })}
+                onClick={() => navigate({ to: "/study/$contentId", params: { contentId } })}
               >
                 <Play className="h-4 w-4 mr-1" />
-                {isCompleted ? "Praticar mais" : "Iniciar desafios"}
+                {isCompleted ? "Revisar capítulos" : "Estudar guiado"}
               </Button>
-              {/* PR 42 — modo CAT: uma pergunta de cada vez, dificuldade
-                  ajustada ao ability estimate online. Não conta pro gating
-                  da ilha (entrega valor sem mudar UX do flow padrão). */}
+              {/* Modo antigo: pra quem já estudou e quer revisão rápida */}
+              <Button
+                size="lg"
+                variant="outline"
+                onClick={() => navigate({ to: "/quiz/$contentId", params: { contentId } })}
+                title="Responde todas perguntas embaralhadas, sem fase de estudo"
+              >
+                Quiz rápido
+              </Button>
+              {/* PR 42 — modo CAT */}
               <Button
                 size="lg"
                 variant="outline"
