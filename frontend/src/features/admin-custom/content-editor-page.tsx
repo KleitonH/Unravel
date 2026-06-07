@@ -13,6 +13,7 @@ import { Label } from "@/components/ui/label"
 import { Skeleton } from "@/components/ui/skeleton"
 import { GenerateQuestionsDialog } from "./generate-questions-dialog"
 import { ForgeActivityChip } from "@/components/forge/forge-activity-chip"
+import { ContentQuestionsManager } from "./content-questions-manager"
 
 /**
  * Editor de markdown pra um Content custom. Mostra preview lado-a-lado
@@ -227,6 +228,9 @@ function EditorForm({
         scopeId={contentId}
         scopeName={title}
       />
+
+      {/* PR 56-a — gerenciador de perguntas (geradas + curadas) */}
+      <ContentQuestionsManager contentId={contentId} />
     </div>
   )
 }

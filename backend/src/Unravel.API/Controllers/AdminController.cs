@@ -601,6 +601,53 @@ public sealed class AdminController(
         return NoContent();
     }
 
+    /// <summary>
+    /// PR 56-a — edita um item de gold existente. Permite ao moderador
+    /// corrigir typos, melhorar distratores ou ajustar explicação sem
+    /// precisar deletar+recriar (perderia histórico de audit).
+    ///
+    /// <para>Mesma validação de manual-create: 3 distratores não-vazios,
+    /// prompt/correctAnswer obrigatórios. <c>SourceGeneratedChallengeId</c>
+    /// e <c>CuratorUserId</c> permanecem intocados — moderador pode
+    /// editar tudo menos a procedência.</para>
+    /// </summary>
+    [HttpPut("gold/{goldId:int}")]
+    public async Task<IActionResult> UpdateGold(
+        int goldId,
+        [FromBody] UpdateGoldRequest dto,
+        [FromServices] ApplicationDbContext db,
+        CancellationToken ct)
+    {
+        var item = await db.ModeratorGoldItem.FindAsync(new object[] { goldId }, ct);
+        if (item is null) return NotFound();
+        if (!item.IsActive) return BadRequest(new { message = "Item já foi removido. Crie um novo." });
+
+        if (string.IsNullOrWhiteSpace(dto.Prompt))
+            return BadRequest(new { message = "Prompt obrigatório." });
+        if (string.IsNullOrWhiteSpace(dto.CorrectAnswer))
+            return BadRequest(new { message = "CorrectAnswer obrigatório." });
+        if (dto.Distractors is null || dto.Distractors.Count != 3
+            || dto.Distractors.Any(string.IsNullOrWhiteSpace))
+            return BadRequest(new { message = "Distractors deve ter exatamente 3 strings não-vazias." });
+
+        // Distintos (case-insensitive) entre si E vs correct
+        var allAnswers = dto.Distractors.Append(dto.CorrectAnswer)
+            .Select(s => s.Trim().ToLowerInvariant()).ToList();
+        if (allAnswers.Distinct().Count() != 4)
+            return BadRequest(new { message = "CorrectAnswer + distractors precisam ser 4 opções distintas." });
+
+        item.Prompt          = dto.Prompt.Trim();
+        item.CorrectAnswer   = dto.CorrectAnswer.Trim();
+        item.DistractorsJson = JsonSerializer.Serialize(dto.Distractors.Select(d => d.Trim()).ToList());
+        item.Explanation     = dto.Explanation?.Trim();
+        item.SourceClaim     = dto.SourceClaim?.Trim();
+        item.DifficultyHint  = dto.DifficultyHint;
+        item.UpdatedAt       = DateTime.UtcNow;
+
+        await db.SaveChangesAsync(ct);
+        return Ok(new { item.Id, item.UpdatedAt });
+    }
+
     // ─── PR 35 — Trilhas custom de moderador ────────────────────────
 
     /// <summary>
@@ -898,6 +945,16 @@ public record AddGoldRequest(
     string?       CorrectAnswer,                // obrig se manual
     List<string>? Distractors,                  // obrig se manual (3 itens)
     string?       Explanation,
+    double?       DifficultyHint);
+
+/// <summary>PR 56-a — payload pra editar gold via PUT. Todos os campos
+/// obrigatórios (Source* e curator permanecem do item original).</summary>
+public record UpdateGoldRequest(
+    string        Prompt,
+    string        CorrectAnswer,
+    List<string>  Distractors,         // 3 itens não-vazios distintos
+    string?       Explanation,
+    string?       SourceClaim,
     double?       DifficultyHint);
 
 public record GoldDto(
