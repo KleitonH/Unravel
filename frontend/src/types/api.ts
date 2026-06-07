@@ -112,6 +112,23 @@ export type PoolChallenge = {
   contentId: number          // PR 37: necessário pro reinforcement quiz rotear submit
 }
 
+// ── Adaptive Quiz (PR 42) ───────────────────────────────────────────
+
+export type AdaptiveHistoryItem = {
+  challengeId: number
+  wasCorrect:  boolean
+}
+
+export type AdaptiveStopReason = "MaxReached" | "Converged" | "PoolExhausted"
+
+export type AdaptiveNextResponse = {
+  done:              boolean
+  stopReason:        AdaptiveStopReason | null
+  abilityEstimate:   number           // [0,1] estimativa atual
+  question:          PoolChallenge | null
+  questionsAnswered: number
+}
+
 export type ChallengePool = {
   contentId: number
   contentTitle: string

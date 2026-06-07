@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query"
 import { Link, useNavigate, useParams } from "@tanstack/react-router"
 import MarkdownPreview from "@uiw/react-markdown-preview"
-import { Check, ChevronLeft, Play, Sparkles } from "lucide-react"
+import { Activity, Check, ChevronLeft, Play, Sparkles } from "lucide-react"
 import { api } from "@/api/client"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -136,13 +136,25 @@ export function ContentStudyPage() {
                   : `Responda ${contentQuery.data.challengesRequired} desafios deste conteúdo pra desbloquear a próxima ilha do mapa.`}
               </CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent className="flex flex-wrap gap-2">
               <Button
                 size="lg"
                 onClick={() => navigate({ to: "/quiz/$contentId", params: { contentId } })}
               >
                 <Play className="h-4 w-4 mr-1" />
                 {isCompleted ? "Praticar mais" : "Iniciar desafios"}
+              </Button>
+              {/* PR 42 — modo CAT: uma pergunta de cada vez, dificuldade
+                  ajustada ao ability estimate online. Não conta pro gating
+                  da ilha (entrega valor sem mudar UX do flow padrão). */}
+              <Button
+                size="lg"
+                variant="outline"
+                onClick={() => navigate({ to: "/quiz/$contentId/adaptive", params: { contentId } })}
+                title="Algoritmo adaptativo: próxima pergunta calibrada pelo seu desempenho na sessão"
+              >
+                <Activity className="h-4 w-4 mr-1" />
+                Modo adaptativo
               </Button>
             </CardContent>
           </Card>

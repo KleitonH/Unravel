@@ -242,6 +242,10 @@ public static class DependencyInjection
         // PR 13 — submit do quiz: valida no servidor, propaga p/ Mastery.
         services.AddScoped<SubmitPoolChallengeUseCase>();
 
+        // PR 42 — CAT-lite stateless: seleção adaptativa da próxima pergunta
+        // baseada em ability estimate online (EWMA + zona proximal).
+        services.AddScoped<SelectNextAdaptiveChallengeUseCase>();
+
         // PR 37 — rastreio de "perguntas geradas já vistas pelo usuário"
         // pra anti-join no Reinforcement Quiz. UPSERT idempotente.
         services.AddScoped<IUserSeenChallengeRepository, UserSeenChallengeRepository>();

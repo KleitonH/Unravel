@@ -19,18 +19,21 @@ namespace Unravel.API.Controllers;
 [Authorize]
 public sealed class ChallengePoolController : ControllerBase
 {
-    private readonly GetChallengePoolUseCase    _pool;
-    private readonly SubmitPoolChallengeUseCase _submit;
+    private readonly GetChallengePoolUseCase             _pool;
+    private readonly SubmitPoolChallengeUseCase          _submit;
+    private readonly SelectNextAdaptiveChallengeUseCase  _adaptive;
 
     private Guid UserId => Guid.Parse(User.FindFirstValue(JwtRegisteredClaimNames.Sub)
                                       ?? User.FindFirstValue(ClaimTypes.NameIdentifier)!);
 
     public ChallengePoolController(
-        GetChallengePoolUseCase    pool,
-        SubmitPoolChallengeUseCase submit)
+        GetChallengePoolUseCase            pool,
+        SubmitPoolChallengeUseCase         submit,
+        SelectNextAdaptiveChallengeUseCase adaptive)
     {
-        _pool   = pool;
-        _submit = submit;
+        _pool     = pool;
+        _submit   = submit;
+        _adaptive = adaptive;
     }
 
     /// <summary>Retorna até <c>targetCount</c> perguntas (default 5) para
@@ -64,6 +67,28 @@ public sealed class ChallengePoolController : ControllerBase
             return BadRequest(new { message = "generatedChallengeId é obrigatório." });
 
         var result = await _submit.ExecuteAsync(UserId, contentId, request, ct);
+        return result is null ? NotFound() : Ok(result);
+    }
+
+    /// <summary>
+    /// PR 42 — CAT-lite: dado o histórico curto da sessão, retorna a
+    /// próxima pergunta calibrada por ability estimate online. Quando
+    /// a sessão deve encerrar (cap atingido, convergiu ou pool esgotado),
+    /// retorna <c>done=true</c> com <c>stopReason</c> populado.
+    /// </summary>
+    [HttpPost("adaptive/next")]
+    public async Task<IActionResult> AdaptiveNext(
+        int contentId,
+        [FromBody] AdaptiveNextRequest request,
+        CancellationToken ct = default)
+    {
+        if (request is null) return BadRequest(new { message = "Body obrigatório." });
+
+        var historyDomain = (request.History ?? Array.Empty<AdaptiveHistoryItem>())
+            .Select(h => new Unravel.Application.Forge.Adaptive.AdaptiveOutcome(h.ChallengeId, h.WasCorrect))
+            .ToList();
+
+        var result = await _adaptive.ExecuteAsync(UserId, contentId, historyDomain, ct);
         return result is null ? NotFound() : Ok(result);
     }
 }
