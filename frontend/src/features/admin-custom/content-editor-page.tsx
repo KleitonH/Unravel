@@ -12,6 +12,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Skeleton } from "@/components/ui/skeleton"
 import { GenerateQuestionsDialog } from "./generate-questions-dialog"
+import { ForgeActivityChip } from "@/components/forge/forge-activity-chip"
 
 /**
  * Editor de markdown pra um Content custom. Mostra preview lado-a-lado
@@ -153,7 +154,8 @@ function EditorForm({
                 </Badge>
               )}
             </CardTitle>
-            <div className="flex gap-2">
+            <div className="flex gap-2 items-center">
+              <ForgeActivityChip />
               <Button
                 variant="outline"
                 onClick={() => setGenOpen(true)}

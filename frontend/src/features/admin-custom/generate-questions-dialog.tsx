@@ -69,8 +69,24 @@ export function GenerateQuestionsDialog({
     onSuccess: (data: any) => {
       const enqueued = data.totalQueued ?? data.enqueued ?? 0
       const spent    = data.tokensSpentCm ?? totalCost
-      toast.success(`${enqueued} jobs enfileirados (−${spent} cm)`)
+      // PR 52a-2 — toast com referência ao batch criado.
+      // O chip "Forge" no header começa a piscar/animar automaticamente
+      // (polling da query ["forge","batches","recent"]) — usuário vê
+      // progresso lá. Aqui só damos o trigger inicial.
+      const short = data.batchId ? String(data.batchId).slice(0, 8) : null
+      toast.success(
+        `${enqueued} jobs enfileirados (−${spent} cm)`,
+        {
+          description: short
+            ? `Batch ${short}… — acompanhe no chip "Forge" do header.`
+            : undefined,
+          duration: 6000,
+        },
+      )
       qc.invalidateQueries({ queryKey: ["tokens"] })
+      // Força refresh imediato do chip do header pra ele já mostrar o
+      // novo batch sem esperar o próximo tick de polling.
+      qc.invalidateQueries({ queryKey: ["forge", "batches", "recent"] })
       onClose()
     },
     onError: (err: any) => {

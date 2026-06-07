@@ -13,6 +13,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Skeleton } from "@/components/ui/skeleton"
 import { GenerateQuestionsDialog } from "./generate-questions-dialog"
+import { ForgeActivityChip } from "@/components/forge/forge-activity-chip"
 import type { CreateCustomContentRequest, CustomContentDto } from "@/types/admin-custom"
 
 /**
@@ -70,7 +71,8 @@ export function TrailDetailPage() {
             )}
           </div>
         </div>
-        <div className="flex gap-2 flex-wrap">
+        <div className="flex gap-2 flex-wrap items-center">
+          <ForgeActivityChip />
           {/* PR 52 — botão de bulk forge da trilha inteira */}
           {(contentsQuery.data?.length ?? 0) > 0 && (
             <Button

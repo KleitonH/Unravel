@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
 import { YarnBall } from "@/components/yarn/yarn-ball"
+import { ForgeActivityChip } from "@/components/forge/forge-activity-chip"
 import { NewTrailDialog } from "./trail-form-dialog"
 import type { CustomTrailDto } from "@/types/admin-custom"
 
@@ -45,7 +46,7 @@ export function TrailsListPage() {
             etc.) são gerenciadas via repositório e não aparecem aqui.
           </p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 flex-wrap">
           {balanceQuery.data && (
             <YarnBall
               tier={balanceQuery.data.tier}
@@ -54,6 +55,7 @@ export function TrailsListPage() {
               size="sm"
             />
           )}
+          <ForgeActivityChip />
           <NewTrailDialog />
         </div>
       </header>
