@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
 import { cn } from "@/lib/utils"
+import { QuestionRenderer } from "@/components/quiz/question-renderer"
 import type {
   AdaptiveHistoryItem,
   AdaptiveNextResponse,
@@ -131,13 +132,6 @@ export function AdaptiveQuizPage() {
     void fetchNext(newHistory)
   }
 
-  function optionClass(i: number): string {
-    if (!answer) return ""
-    if (i === answer.correctIndex) return "border-success bg-success/15"
-    if (answer.selectedIndex === i) return "border-destructive bg-destructive/15"
-    return "opacity-40"
-  }
-
   return (
     <div className="p-6 lg:p-10 max-w-3xl mx-auto space-y-5">
       <Button asChild variant="ghost" size="sm" className="-ml-2">
@@ -201,33 +195,15 @@ export function AdaptiveQuizPage() {
       {!loading && current && (
         <Card>
           <CardContent className="pt-6 space-y-4">
-            <pre className="whitespace-pre-wrap font-sans text-base leading-relaxed bg-popover/40 p-4 rounded-md border border-border">
-              {current.prompt}
-            </pre>
-
-            <ul className="space-y-2">
-              {current.options.map((opt, i) => (
-                <li key={i}>
-                  <button
-                    type="button"
-                    onClick={() => chooseOption(i)}
-                    disabled={!!answer || submitMutation.isPending}
-                    className={cn(
-                      "w-full flex items-center gap-3 rounded-md border px-3 py-3 text-sm text-left transition-all",
-                      !answer && !submitMutation.isPending && "hover:border-primary",
-                      (answer || submitMutation.isPending) && "cursor-default",
-                      optionClass(i),
-                      !answer && "border-border bg-popover/40",
-                    )}
-                  >
-                    <span className="flex-shrink-0 h-7 w-7 rounded-md text-xs font-bold flex items-center justify-center bg-background text-primary">
-                      {["A","B","C","D","E","F"][i]}
-                    </span>
-                    <span>{opt}</span>
-                  </button>
-                </li>
-              ))}
-            </ul>
+            <QuestionRenderer
+              shape={current.shape}
+              prompt={current.prompt}
+              options={current.options}
+              selectedIndex={answer?.selectedIndex ?? null}
+              correctIndex={answer?.correctIndex ?? current.correctIndex}
+              disabled={submitMutation.isPending}
+              onSelect={chooseOption}
+            />
 
             {answer && (
               <FeedbackBlock answer={answer} />

@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
 import { cn } from "@/lib/utils"
+import { QuestionRenderer } from "@/components/quiz/question-renderer"
 import type { PoolChallenge, SubmitPoolChallengeResponse } from "@/types/api"
 
 type AnswerState = {
@@ -97,14 +98,6 @@ export function QuizPage() {
     }
   }
 
-  function optionClass(c: PoolChallenge, i: number): string {
-    const ans = answers.get(c.id)
-    if (!ans) return ""
-    if (i === ans.correctIndex) return "border-success bg-success/15"
-    if (ans.selectedIndex === i) return "border-destructive bg-destructive/15"
-    return "opacity-40"
-  }
-
   return (
     <div className="p-6 lg:p-10 max-w-3xl space-y-5">
       {poolQuery.isLoading && <SkeletonView />}
@@ -142,33 +135,15 @@ export function QuizPage() {
                   </Badge>
                 </div>
 
-                <pre className="whitespace-pre-wrap font-sans text-base leading-relaxed bg-popover/40 p-4 rounded-md border border-border">
-                  {current.prompt}
-                </pre>
-
-                <ul className="space-y-2">
-                  {current.options.map((opt, i) => (
-                    <li key={i}>
-                      <button
-                        type="button"
-                        onClick={() => choose(i)}
-                        disabled={answered || submitting}
-                        className={cn(
-                          "w-full flex items-center gap-3 rounded-md border px-3 py-3 text-sm text-left transition-all",
-                          !answered && !submitting && "hover:border-primary",
-                          (answered || submitting) && "cursor-default",
-                          optionClass(current, i),
-                          !answered && "border-border bg-popover/40",
-                        )}
-                      >
-                        <span className="flex-shrink-0 h-7 w-7 rounded-md text-xs font-bold flex items-center justify-center bg-background text-primary">
-                          {["A","B","C","D","E","F"][i]}
-                        </span>
-                        <span>{opt}</span>
-                      </button>
-                    </li>
-                  ))}
-                </ul>
+                <QuestionRenderer
+                  shape={current.shape}
+                  prompt={current.prompt}
+                  options={current.options}
+                  selectedIndex={currentAnswer?.selectedIndex ?? null}
+                  correctIndex={currentAnswer?.correctIndex ?? current.correctIndex}
+                  disabled={submitting}
+                  onSelect={choose}
+                />
 
                 {currentAnswer && (
                   <FeedbackBlock answer={currentAnswer} />

@@ -101,6 +101,25 @@ export type ChallengeStrategy =
   | "Ordering" | "Match" | "Code"
   | "LlmGrounded"
 
+/**
+ * Formato visual da pergunta (PR 34). Decidido no backend pelo
+ * `IClaimShapeRouter`; o frontend usa pra escolher renderer.
+ *
+ * - `MultipleChoice` (default): cards de opção empilhados (UI clássica)
+ * - `FillInTheBlank`: prompt com `_____` viram chip inline; opções
+ *   como pílulas pequenas
+ * - `TrueFalseGrounded`: reservado pro PR 34a-bis; cai em MCQ enquanto
+ *   prompt/validators não existem
+ *
+ * Backend envia o campo no `BodyJson` (`shape`); `PoolChallengeDto`
+ * sempre devolve string com fallback "MultipleChoice" pra rows
+ * anteriores ao PR 34a (sem migration).
+ */
+export type QuestionShape =
+  | "MultipleChoice"
+  | "FillInTheBlank"
+  | "TrueFalseGrounded"
+
 export type PoolChallenge = {
   id: number
   strategy: ChallengeStrategy
@@ -110,6 +129,7 @@ export type PoolChallenge = {
   explanation: string | null
   estimatedDifficulty: number
   contentId: number          // PR 37: necessário pro reinforcement quiz rotear submit
+  shape?: QuestionShape      // PR 34a: opcional; ausente = "MultipleChoice"
 }
 
 // ── Adaptive Quiz (PR 42) ───────────────────────────────────────────

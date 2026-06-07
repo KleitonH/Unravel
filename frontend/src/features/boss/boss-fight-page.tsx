@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
 import { cn } from "@/lib/utils"
+import { QuestionRenderer } from "@/components/quiz/question-renderer"
 import type { BossFightAnswer, BossFightResultResponse } from "@/types/api"
 
 type Stage = "intro" | "quiz" | "result"
@@ -170,36 +171,19 @@ export function BossFightPage() {
               <Badge variant="secondary" className="text-[10px]">{current.strategy}</Badge>
             </div>
 
-            <pre className="whitespace-pre-wrap font-sans text-base leading-relaxed bg-popover/40 p-4 rounded-md border border-border">
-              {current.prompt}
-            </pre>
-
-            <ul className="space-y-2">
-              {current.options.map((opt, i) => (
-                <li key={i}>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      const next = new Map(answers)
-                      next.set(current.id, i)
-                      setAnswers(next)
-                    }}
-                    className={cn(
-                      "w-full flex items-center gap-3 rounded-md border px-3 py-3 text-sm text-left transition-all hover:border-primary",
-                      selected === i ? "border-warning bg-warning/10" : "border-border bg-popover/40",
-                    )}
-                  >
-                    <span className={cn(
-                      "flex-shrink-0 h-7 w-7 rounded-md text-xs font-bold flex items-center justify-center",
-                      selected === i ? "bg-warning text-warning-foreground" : "bg-background text-primary",
-                    )}>
-                      {["A","B","C","D","E","F"][i]}
-                    </span>
-                    <span>{opt}</span>
-                  </button>
-                </li>
-              ))}
-            </ul>
+            <QuestionRenderer
+              shape={current.shape}
+              prompt={current.prompt}
+              options={current.options}
+              selectedIndex={selected ?? null}
+              correctIndex={current.correctIndex}
+              mode="select-only"
+              onSelect={(i) => {
+                const next = new Map(answers)
+                next.set(current.id, i)
+                setAnswers(next)
+              }}
+            />
 
             <nav className="flex items-center justify-between pt-2">
               <Button
