@@ -152,12 +152,18 @@ public static class DependencyInjection
                 // ou env var OPENAI_API_KEY (NUNCA commitar em appsettings).
                 var baseUrl = configuration["Llm:OpenAi:BaseUrl"] ?? "https://api.openai.com/";
                 var model   = configuration["Llm:OpenAi:Model"] ?? "gpt-4o-mini";
-                var apiKey  = configuration["Llm:OpenAi:ApiKey"]
-                              ?? Environment.GetEnvironmentVariable("OPENAI_API_KEY")
+                // Ordem invertida pra OPENAI_API_KEY ganhar de secrets.json
+                // (que pode estar travado por sync/OneDrive em alguns devs).
+                // Quando moderador seta env var deliberadamente, ela é
+                // sinal explícito de "use essa chave AGORA"; secrets fica
+                // como fallback de desenvolvimento.
+                var apiKey  = Environment.GetEnvironmentVariable("OPENAI_API_KEY")
+                              ?? configuration["Llm:OpenAi:ApiKey"]
                               ?? throw new InvalidOperationException(
-                                  "Llm:OpenAi:ApiKey ausente. Configure via " +
+                                  "Llm:OpenAi:ApiKey ausente. Configure via env var " +
+                                  "OPENAI_API_KEY (preferida) ou " +
                                   "`dotnet user-secrets set \"Llm:OpenAi:ApiKey\" \"sk-...\"` " +
-                                  "(em backend/src/Unravel.API/) ou env var OPENAI_API_KEY.");
+                                  "(em backend/src/Unravel.API/).");
                 var forceJson = configuration.GetValue("Llm:OpenAi:ForceJson", true);
 
                 services.AddHttpClient<OpenAiInference>(c =>
