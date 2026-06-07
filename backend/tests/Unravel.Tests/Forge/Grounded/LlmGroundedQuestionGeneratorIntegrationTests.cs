@@ -72,7 +72,10 @@ public class LlmGroundedQuestionGeneratorIntegrationTests
             new AnswerLeakageValidator(),
         };
         var sut = new LlmGroundedQuestionGenerator(
-            llm, validators, new TestOutputLogger<LlmGroundedQuestionGenerator>(_out));
+            llm,
+            new ClaimShapeRouter(),   // PR 34a — real router; integração não estuba shape
+            validators,
+            new TestOutputLogger<LlmGroundedQuestionGenerator>(_out));
 
         var sw = System.Diagnostics.Stopwatch.StartNew();
         var result = await sut.GenerateAsync(AngularComponentClaim, "Componentes Angular");

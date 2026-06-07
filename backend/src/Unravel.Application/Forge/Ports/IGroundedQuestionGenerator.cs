@@ -1,3 +1,4 @@
+using Unravel.Application.Forge.Llm;
 using Unravel.Application.Knowledge.Ports;
 
 namespace Unravel.Application.Forge.Ports;
@@ -52,11 +53,16 @@ public sealed record GroundedGenerationResult(
 /// — o mapper aplica fora.</para>
 /// </summary>
 public sealed record GroundedQuestion(
-    string   Prompt,
-    string[] Options,
-    int      CorrectIndex,
-    string?  Explanation,
-    int      SourceChunkIndex);
+    string        Prompt,
+    string[]      Options,
+    int           CorrectIndex,
+    string?       Explanation,
+    int           SourceChunkIndex,
+    /// <summary>PR 34a — shape escolhido pelo <see cref="IClaimShapeRouter"/>
+    /// e persistido no <c>BodyJson</c> da <c>GeneratedChallenge</c>. Default
+    /// <see cref="QuestionShape.MultipleChoice"/> pra manter retrocompat com
+    /// rows antigas.</summary>
+    QuestionShape Shape = QuestionShape.MultipleChoice);
 
 /// <summary>Tipos de falha enumerados pra telemetria por bucket
 /// (entender qual validador é o gargalo, ajustar prompt/threshold).</summary>

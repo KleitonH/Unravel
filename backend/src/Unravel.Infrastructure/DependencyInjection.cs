@@ -233,6 +233,10 @@ public static class DependencyInjection
                     new Unravel.Infrastructure.Forge.Llm.Grounded.Validators.DistractorDiversityValidator(
                         embedder: null, maxJaccardVsAnswer: 0.75, minCosineVsChunk: 0.20));
             }
+            // PR 34a — router de shape (heurístico, sem estado). Singleton
+            // porque é puro CPU/regex; nenhuma dependência scoped.
+            services.AddSingleton<IClaimShapeRouter,
+                Unravel.Infrastructure.Forge.Llm.Grounded.ClaimShapeRouter>();
             services.AddSingleton<IGroundedQuestionGenerator,
                 Unravel.Infrastructure.Forge.Llm.Grounded.LlmGroundedQuestionGenerator>();
         }

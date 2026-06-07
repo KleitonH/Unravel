@@ -1,6 +1,8 @@
+using System.Diagnostics;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Microsoft.Extensions.Logging;
+using Unravel.Application.Forge.Llm;
 using Unravel.Application.Forge.Ports;
 using Unravel.Application.Knowledge.Ports;
 using Unravel.Infrastructure.Forge.Llm.Grounded.Validators;
@@ -38,18 +40,27 @@ public sealed class LlmGroundedQuestionGenerator : IGroundedQuestionGenerator
         AllowTrailingCommas         = true,
     };
 
+    /// <summary>Activity source pra telemetria do forge — tags
+    /// <c>forge.shape</c> e <c>forge.shape.reason</c> entram aqui (PR 34a).
+    /// Nome da source casa com o que <c>UnravelMetrics</c> registra no
+    /// Program.cs (OpenTelemetry tracing).</summary>
+    private static readonly ActivitySource Activity = new("Unravel.Forge.Llm");
+
     private readonly ILlmInference _llm;
+    private readonly IClaimShapeRouter _shapeRouter;
     private readonly IQuestionValidator[] _validators;
     private readonly ILogger<LlmGroundedQuestionGenerator> _log;
 
     public LlmGroundedQuestionGenerator(
         ILlmInference llm,
+        IClaimShapeRouter shapeRouter,
         IEnumerable<IQuestionValidator> validators,
         ILogger<LlmGroundedQuestionGenerator> log)
     {
-        _llm        = llm;
-        _validators = validators.OrderBy(v => v.Order).ToArray();
-        _log        = log;
+        _llm         = llm;
+        _shapeRouter = shapeRouter;
+        _validators  = validators.OrderBy(v => v.Order).ToArray();
+        _log         = log;
     }
 
     public async Task<GroundedGenerationResult> GenerateAsync(
@@ -57,7 +68,15 @@ public sealed class LlmGroundedQuestionGenerator : IGroundedQuestionGenerator
         string contentTitle,
         CancellationToken ct = default)
     {
-        var prompt = PromptBuilder.Build(contentTitle, claim);
+        // PR 34a — router escolhe shape antes do prompt; mesma chamada
+        // produz prompt MCQ ou FillBlank conforme o claim. Determinístico.
+        var decision = _shapeRouter.Route(claim);
+        using var activity = Activity.StartActivity("forge.generate");
+        activity?.SetTag("forge.shape",        decision.Shape.ToString());
+        activity?.SetTag("forge.shape.reason", decision.Reason);
+        activity?.SetTag("forge.claim.chunkIndex", claim.ChunkIndex);
+
+        var prompt = PromptBuilder.Build(decision.Shape, contentTitle, claim);
 
         string? raw;
         try
@@ -86,7 +105,8 @@ public sealed class LlmGroundedQuestionGenerator : IGroundedQuestionGenerator
                 Options:          parsed.Options ?? Array.Empty<string>(),
                 CorrectIndex:     parsed.CorrectIndex,
                 Explanation:      parsed.Explanation,
-                SourceChunkIndex: claim.ChunkIndex);
+                SourceChunkIndex: claim.ChunkIndex,
+                Shape:            decision.Shape);
         }
         catch (JsonException ex)
         {

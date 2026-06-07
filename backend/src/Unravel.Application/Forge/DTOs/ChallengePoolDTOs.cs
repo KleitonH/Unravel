@@ -21,7 +21,13 @@ public sealed record PoolChallengeDto(
     int                  CorrectIndex,         // exposto p/ frontend exibir gabarito após resposta
     string?              Explanation,
     double               EstimatedDifficulty,
-    int                  ContentId = 0         // PR 37: quiz normal já sabe o contentId pelo wrapper, mas o reinforcement quiz mistura contents — precisa explícito por challenge pra rotear o submit
+    int                  ContentId = 0,        // PR 37: quiz normal já sabe o contentId pelo wrapper, mas o reinforcement quiz mistura contents — precisa explícito por challenge pra rotear o submit
+    /// <summary>PR 34a — shape visual da pergunta. "MultipleChoice" (default)
+    /// usa cards de opção; "FillInTheBlank" renderiza <c>&lt;InlineBlank /&gt;</c>
+    /// onde <see cref="Prompt"/> contém <c>_____</c> e cada item de
+    /// <see cref="Options"/> é um termo curto. Rows pré-PR-34a serializam
+    /// como "MultipleChoice" via fallback no parser.</summary>
+    string               Shape = "MultipleChoice"
 );
 
 // ── Submit (PR 13) ─────────────────────────────────────────────────────

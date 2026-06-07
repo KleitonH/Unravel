@@ -159,6 +159,11 @@ public sealed class QuestionForgeWorker(
             options      = result.Question!.Options,
             correctIndex = result.Question.CorrectIndex,
             explanation  = result.Question.Explanation,
+            // PR 34a — shape persistido pra UI renderizar (InlineBlank
+            // quando FillInTheBlank, cards padrão quando MultipleChoice).
+            // Rows pré-PR-34a não têm o campo; parsers tratam ausência
+            // como "MultipleChoice".
+            shape        = result.Question.Shape.ToString(),
             // Metadados úteis pra debug:
             sourceChunkIndex = result.Question.SourceChunkIndex,
             generatedBy      = "llm-grounded",
@@ -179,8 +184,8 @@ public sealed class QuestionForgeWorker(
 
         await queue.MarkDoneAsync(job.Id, challenge.Id, ct);
         log.LogInformation(
-            "Job {Id} → challenge {ChallengeId} for content {ContentId} in {Elapsed}ms",
-            job.Id, challenge.Id, job.ContentId, sw.ElapsedMilliseconds);
+            "Job {Id} → challenge {ChallengeId} [shape={Shape}] for content {ContentId} in {Elapsed}ms",
+            job.Id, challenge.Id, result.Question.Shape, job.ContentId, sw.ElapsedMilliseconds);
         return true;
     }
 }

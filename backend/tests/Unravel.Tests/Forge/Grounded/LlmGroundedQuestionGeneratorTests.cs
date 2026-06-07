@@ -1,4 +1,5 @@
 using Microsoft.Extensions.Logging.Abstractions;
+using Unravel.Application.Forge.Llm;
 using Unravel.Application.Forge.Ports;
 using Unravel.Application.Knowledge.Ports;
 using Unravel.Infrastructure.Forge.Llm.Grounded;
@@ -59,8 +60,19 @@ public class LlmGroundedQuestionGeneratorTests
         }
     }
 
+    /// <summary>Stub do router pra forçar shape específico em cada teste
+    /// (default <see cref="QuestionShape.MultipleChoice"/> mantém retrocompat
+    /// com os testes anteriores ao PR 34a).</summary>
+    private sealed class FixedShapeRouter(QuestionShape shape = QuestionShape.MultipleChoice) : IClaimShapeRouter
+    {
+        public ShapeDecision Route(ClaimCandidate claim) => new(shape, "fixed_stub");
+    }
+
     private static LlmGroundedQuestionGenerator Build(StubLlm llm, params IQuestionValidator[] validators) =>
-        new(llm, validators, NullLogger<LlmGroundedQuestionGenerator>.Instance);
+        new(llm, new FixedShapeRouter(), validators, NullLogger<LlmGroundedQuestionGenerator>.Instance);
+
+    private static LlmGroundedQuestionGenerator BuildWithShape(StubLlm llm, QuestionShape shape, params IQuestionValidator[] validators) =>
+        new(llm, new FixedShapeRouter(shape), validators, NullLogger<LlmGroundedQuestionGenerator>.Instance);
 
     private const string ValidJsonResponse = """
         {
@@ -189,6 +201,55 @@ public class LlmGroundedQuestionGeneratorTests
 
         Assert.Contains("Componentes Angular", llm.LastPrompt);
         Assert.Contains("@Component marca a classe", llm.LastPrompt);
+    }
+
+    // ─── PR 34a: shape selection ──────────────────────────────────────
+
+    [Fact]
+    public async Task Generate_PropagatesShapeFromRouter()
+    {
+        var llm = new StubLlm { NextResponse = ValidJsonResponse };
+        var sut = BuildWithShape(llm, QuestionShape.FillInTheBlank, new AlwaysPassValidator(0));
+
+        var result = await sut.GenerateAsync(Claim, "Tema X");
+
+        Assert.True(result.IsSuccess);
+        Assert.Equal(QuestionShape.FillInTheBlank, result.Question!.Shape);
+    }
+
+    [Fact]
+    public async Task Generate_DefaultsToMultipleChoice_WhenRouterSaysSo()
+    {
+        var llm = new StubLlm { NextResponse = ValidJsonResponse };
+        var sut = Build(llm, new AlwaysPassValidator(0));   // FixedShapeRouter default = MultipleChoice
+
+        var result = await sut.GenerateAsync(Claim, "Tema X");
+
+        Assert.True(result.IsSuccess);
+        Assert.Equal(QuestionShape.MultipleChoice, result.Question!.Shape);
+    }
+
+    [Fact]
+    public async Task Generate_FillBlankShape_UsesFillBlankPrompt()
+    {
+        var llm = new StubLlm { NextResponse = ValidJsonResponse };
+        var sut = BuildWithShape(llm, QuestionShape.FillInTheBlank, new AlwaysPassValidator(0));
+
+        await sut.GenerateAsync(Claim, "Tema X");
+
+        // Marker único do FillBlankPrompt (substring estável que NÃO aparece no MCQ).
+        Assert.Contains("preencher a lacuna", llm.LastPrompt);
+    }
+
+    [Fact]
+    public async Task Generate_MultipleChoiceShape_UsesMcqPrompt()
+    {
+        var llm = new StubLlm { NextResponse = ValidJsonResponse };
+        var sut = Build(llm, new AlwaysPassValidator(0));
+
+        await sut.GenerateAsync(Claim, "Tema X");
+
+        Assert.Contains("RESPOSTA SUBSTANTIVA", llm.LastPrompt);
     }
 
     [Fact]

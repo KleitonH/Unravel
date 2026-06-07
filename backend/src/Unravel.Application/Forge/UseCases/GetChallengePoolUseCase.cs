@@ -175,14 +175,21 @@ public sealed class GetChallengePoolUseCase
             var correctIndex  = doc.RootElement.GetProperty("correctIndex").GetInt32();
             var explanation   = doc.RootElement.TryGetProperty("explanation", out var ex)
                                   ? ex.GetString() : null;
+            // PR 34a — shape opcional no BodyJson. Rows antigas (sem o campo)
+            // ficam como "MultipleChoice" pra UI renderizar do jeito clássico.
+            var shape         = doc.RootElement.TryGetProperty("shape", out var sh)
+                                  ? sh.GetString() ?? "MultipleChoice"
+                                  : "MultipleChoice";
             return new PoolChallengeDto(g.Id, g.Strategy.ToString(), g.Prompt,
-                                         options, correctIndex, explanation, g.EstimatedDifficulty, g.ContentId);
+                                         options, correctIndex, explanation, g.EstimatedDifficulty, g.ContentId,
+                                         Shape: shape);
         }
         catch (JsonException)
         {
             return new PoolChallengeDto(g.Id, g.Strategy.ToString(),
                 "[pergunta corrompida; favor reportar]",
-                new[] { "—" }, 0, null, g.EstimatedDifficulty, g.ContentId);
+                new[] { "—" }, 0, null, g.EstimatedDifficulty, g.ContentId,
+                Shape: "MultipleChoice");
         }
     }
 }
