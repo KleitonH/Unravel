@@ -237,6 +237,15 @@ public static class DependencyInjection
             // porque é puro CPU/regex; nenhuma dependência scoped.
             services.AddSingleton<IClaimShapeRouter,
                 Unravel.Infrastructure.Forge.Llm.Grounded.ClaimShapeRouter>();
+
+            // PR 34b — validators específicos pra FillBlank. Cada um faz
+            // early-return pra shapes != FillInTheBlank, então registrá-los
+            // pra todos não impacta o pipeline MCQ.
+            services.AddSingleton<Unravel.Infrastructure.Forge.Llm.Grounded.Validators.IQuestionValidator,
+                Unravel.Infrastructure.Forge.Llm.Grounded.Validators.BlankPlacementValidator>();
+            services.AddSingleton<Unravel.Infrastructure.Forge.Llm.Grounded.Validators.IQuestionValidator,
+                Unravel.Infrastructure.Forge.Llm.Grounded.Validators.DistractorGrammarValidator>();
+
             services.AddSingleton<IGroundedQuestionGenerator,
                 Unravel.Infrastructure.Forge.Llm.Grounded.LlmGroundedQuestionGenerator>();
         }

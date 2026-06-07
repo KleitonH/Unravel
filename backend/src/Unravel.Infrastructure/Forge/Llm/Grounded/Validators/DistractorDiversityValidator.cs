@@ -1,3 +1,4 @@
+using Unravel.Application.Forge.Llm;
 using Unravel.Application.Forge.Ports;
 using Unravel.Application.Knowledge.Ports;
 
@@ -43,6 +44,13 @@ public sealed class DistractorDiversityValidator : IQuestionValidator
     public (GenerationFailureReason Reason, string Detail)? Validate(
         GroundedQuestion question, ClaimCandidate claim)
     {
+        // PR 34b — skip pra FillBlank. Distratores fill-blank são termos
+        // curtos (1-4 palavras) cujo cosine vs chunk médio é naturalmente
+        // baixo, e Jaccard vs resposta também (termos curtos têm poucos
+        // tokens em comum por construção). DistractorGrammarValidator
+        // cobre o caso fill-blank com regras de tamanho/forma léxica.
+        if (question.Shape == QuestionShape.FillInTheBlank) return null;
+
         var answer       = question.Options[question.CorrectIndex];
         var answerTokens = Tokenize(answer);
 

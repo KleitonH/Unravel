@@ -1,3 +1,4 @@
+using Unravel.Application.Forge.Llm;
 using Unravel.Application.Forge.Ports;
 using Unravel.Application.Knowledge.Ports;
 
@@ -44,6 +45,15 @@ public sealed class AnswerGroundednessValidator : IQuestionValidator
     public (GenerationFailureReason Reason, string Detail)? Validate(
         GroundedQuestion question, ClaimCandidate claim)
     {
+        // PR 34b — pra FillBlank usamos check literal (case-insensitive)
+        // da resposta no chunk. Termos curtos (1-4 palavras) extraídos do
+        // chunk costumam aparecer literais; cosine MiniLM em strings
+        // muito curtas tem ruído alto e gera false-positive. Se o LLM
+        // reformulou levemente (ex: "max_pool_size" → "maxPoolSize"),
+        // a normalização básica abaixo ainda casa.
+        if (question.Shape == QuestionShape.FillInTheBlank)
+            return ValidateFillBlankLiteral(question, claim);
+
         var answer = question.Options[question.CorrectIndex];
 
         var chunkVec  = _embedder.Encode(claim.ChunkText);
@@ -57,4 +67,45 @@ public sealed class AnswerGroundednessValidator : IQuestionValidator
 
         return null;
     }
+
+    /// <summary>PR 34b — grounding alternativo pra FillBlank: a resposta
+    /// (termo extraído) precisa aparecer no chunk após normalização
+    /// (lowercase + remove underscores/traços/crases pra casar variantes
+    /// como <c>max_pool_size</c> ↔ <c>maxPoolSize</c>). Se o LLM
+    /// inventou um termo que NÃO está no trecho, rejeita.</summary>
+    private static (GenerationFailureReason, string)? ValidateFillBlankLiteral(
+        GroundedQuestion question, ClaimCandidate claim)
+    {
+        var answer = question.Options is { Length: > 0 } opts
+                     && question.CorrectIndex >= 0
+                     && question.CorrectIndex < opts.Length
+            ? opts[question.CorrectIndex] : null;
+
+        if (string.IsNullOrWhiteSpace(answer)) return null; // schema cuida
+
+        var normAnswer = Normalize(answer);
+        var normChunk  = Normalize(claim.ChunkText ?? string.Empty);
+
+        if (string.IsNullOrEmpty(normAnswer)) return null;
+        if (normChunk.Contains(normAnswer)) return null;
+
+        return (GenerationFailureReason.AnswerNotGrounded,
+            $"FillBlank: termo correto '{Truncate(answer, 60)}' não aparece no chunk-fonte (mesmo após normalização)");
+    }
+
+    private static string Normalize(string s)
+    {
+        if (string.IsNullOrEmpty(s)) return string.Empty;
+        var sb = new System.Text.StringBuilder(s.Length);
+        foreach (var c in s)
+        {
+            if (char.IsLetterOrDigit(c)) sb.Append(char.ToLowerInvariant(c));
+            // tudo mais (espaço, _, -, `, @, ., :, etc.) descartado pra
+            // casar maxPoolSize ↔ max_pool_size ↔ max-pool-size ↔ "max pool size"
+        }
+        return sb.ToString();
+    }
+
+    private static string Truncate(string s, int max) =>
+        s.Length <= max ? s : s[..max] + "…";
 }
