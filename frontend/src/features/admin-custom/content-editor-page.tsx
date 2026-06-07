@@ -14,6 +14,7 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { GenerateQuestionsDialog } from "./generate-questions-dialog"
 import { ForgeActivityChip } from "@/components/forge/forge-activity-chip"
 import { ContentQuestionsManager } from "./content-questions-manager"
+import { ContentEditorTutorial, ContentEditorTutorialHelpButton } from "./content-editor-tutorial"
 
 /**
  * Editor de markdown pra um Content custom. Mostra preview lado-a-lado
@@ -156,6 +157,7 @@ function EditorForm({
               )}
             </CardTitle>
             <div className="flex gap-2 items-center">
+              <ContentEditorTutorialHelpButton />
               <ForgeActivityChip />
               <Button
                 variant="outline"
@@ -231,6 +233,9 @@ function EditorForm({
 
       {/* PR 56-a — gerenciador de perguntas (geradas + curadas) */}
       <ContentQuestionsManager contentId={contentId} />
+
+      {/* PR 60-d — tutorial auto-aberto na primeira vez */}
+      <ContentEditorTutorial />
     </div>
   )
 }
