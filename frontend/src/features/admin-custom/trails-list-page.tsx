@@ -112,7 +112,21 @@ function TrailCard({ trail }: { trail: CustomTrailDto }) {
       qc.invalidateQueries({ queryKey: ["admin", "trails"] })
       toast.success(trail.isPublished ? "Trilha despublicada." : "Trilha publicada.")
     },
-    onError: () => toast.error("Falha ao alterar publicação."),
+    // PR 60-e — interpreta gate de publicação do backend (400 com
+    // pendingContents). Mostra toast rico apontando o que falta.
+    onError: (err: any) => {
+      const status = err?.response?.status
+      const data   = err?.response?.data
+      if (status === 400 && data?.pendingContents) {
+        const total = data.pendingContents.length
+        toast.error(`Publicação bloqueada: ${total} conteúdo(s) com capítulos insuficientes.`, {
+          description: "Cada capítulo (H2) precisa de ≥4 perguntas pra publicar. Abra cada conteúdo pra ver pendências.",
+          duration: 8000,
+        })
+      } else {
+        toast.error("Falha ao alterar publicação.")
+      }
+    },
   })
 
   const deleteMutation = useMutation({

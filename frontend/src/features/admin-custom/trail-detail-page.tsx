@@ -1,9 +1,10 @@
 import { useState } from "react"
 import { Link, useParams } from "@tanstack/react-router"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import { ChevronLeft, Edit, FileText, Loader2, MoreHorizontal, Plus, Sparkles, Trash2 } from "lucide-react"
+import { AlertTriangle, CheckCircle2, ChevronLeft, Edit, FileText, Loader2, MoreHorizontal, Plus, Sparkles, Trash2 } from "lucide-react"
 import { toast } from "sonner"
 import { adminCustomApi } from "@/api/admin-custom"
+import { chaptersApi } from "@/api/chapters"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -130,6 +131,17 @@ export function TrailDetailPage() {
 function ContentRow({ content }: { content: CustomContentDto }) {
   const qc = useQueryClient()
 
+  // PR 60-e — readiness check pro badge da publicação.
+  // Polling leve (60s) — moderador edita devagar; refetch on focus pega
+  // o caso "fui gerar perguntas e voltei".
+  const readinessQuery = useQuery({
+    queryKey: ["admin", "publication-readiness", content.id],
+    queryFn:  () => chaptersApi.readiness(content.id),
+    enabled:  content.isActive,
+    refetchInterval: 60_000,
+    refetchOnWindowFocus: true,
+  })
+
   const forgeMutation = useMutation({
     mutationFn: () => adminCustomApi.enqueueForge(content.id, 20),
     onSuccess: (res) => {
@@ -158,17 +170,23 @@ function ContentRow({ content }: { content: CustomContentDto }) {
           <FileText className="h-5 w-5" />
         </div>
         <div className="min-w-0 flex-1">
-          <CardTitle className="text-base truncate">
-            #{content.order} · {content.title}
+          <CardTitle className="text-base truncate flex items-center gap-2 flex-wrap">
+            <span className="truncate">#{content.order} · {content.title}</span>
             {!content.isActive && (
-              <Badge variant="destructive" className="ml-2 text-[10px]">Removido</Badge>
+              <Badge variant="destructive" className="text-[10px]">Removido</Badge>
             )}
+            {/* PR 60-e — badge de readiness pra publicação */}
+            <ReadinessBadge readiness={readinessQuery.data} />
           </CardTitle>
           <p className="text-xs text-muted-foreground">
             {content.body.length} chars
             {" · "}slug: <code>{content.slug}</code>
             {content.editedAt && <span> · editado {fmtAgo(content.editedAt)}</span>}
           </p>
+          {/* PR 60-e — detalhe inline quando há capítulos pendentes */}
+          {readinessQuery.data && !readinessQuery.data.ready && (
+            <ReadinessDetail readiness={readinessQuery.data} />
+          )}
         </div>
         <Button asChild size="sm" variant="outline">
           <Link to="/admin/contents/$contentId" params={{ contentId: String(content.id) }}>
@@ -308,6 +326,59 @@ function NewContentDialog({ trailId }: { trailId: number }) {
         </form>
       </DialogContent>
     </Dialog>
+  )
+}
+
+// ── PR 60-e — Readiness badges ─────────────────────────────────────
+
+function ReadinessBadge({ readiness }: { readiness?: { ready: boolean; chapters: Array<{ ready: boolean }> } }) {
+  if (!readiness) return null
+  if (readiness.chapters.length === 0) {
+    return (
+      <Badge variant="outline" className="text-[10px] border-warning/40 text-warning gap-1">
+        <AlertTriangle className="h-2.5 w-2.5" />
+        Sem conteúdo
+      </Badge>
+    )
+  }
+  if (readiness.ready) {
+    return (
+      <Badge variant="outline" className="text-[10px] border-success/40 text-success gap-1">
+        <CheckCircle2 className="h-2.5 w-2.5" />
+        Pronto
+      </Badge>
+    )
+  }
+  const missing = readiness.chapters.filter((c) => !c.ready).length
+  return (
+    <Badge variant="outline" className="text-[10px] border-warning/40 text-warning gap-1">
+      <AlertTriangle className="h-2.5 w-2.5" />
+      {missing} capítulo{missing > 1 ? "s" : ""} sem perguntas
+    </Badge>
+  )
+}
+
+function ReadinessDetail({ readiness }: {
+  readiness: {
+    minRequiredPerChapter: number
+    chapters: Array<{ title: string; current: number; required: number; ready: boolean }>
+  }
+}) {
+  const pending = readiness.chapters.filter((c) => !c.ready)
+  if (pending.length === 0) return null
+  return (
+    <div className="mt-1 text-[11px] text-muted-foreground">
+      Faltando:{" "}
+      {pending.slice(0, 3).map((c, i) => (
+        <span key={i}>
+          {i > 0 && ", "}
+          <span className="text-warning">
+            {c.title} ({c.current}/{c.required})
+          </span>
+        </span>
+      ))}
+      {pending.length > 3 && <span> +{pending.length - 3}</span>}
+    </div>
   )
 }
 
