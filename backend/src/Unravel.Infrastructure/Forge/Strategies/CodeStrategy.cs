@@ -21,6 +21,8 @@ namespace Unravel.Infrastructure.Forge.Strategies;
 /// versões com 1 typo controlado ou case-flip; para boolean, simplesmente
 /// o complemento + variações textuais.</para>
 /// </summary>
+[Obsolete("PR 34e — template-based; substituido pelo pipeline LlmGrounded (PR 31+). " +
+          "Nao registrado no DI por default; ativa via Forge:UseLegacyStrategies=true se necessario.")]
 public sealed class CodeStrategy : IChallengeStrategy
 {
     public ForgeStrategy Kind => ForgeStrategy.Code;

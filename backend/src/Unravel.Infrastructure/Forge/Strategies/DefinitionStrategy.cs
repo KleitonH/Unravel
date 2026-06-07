@@ -17,6 +17,8 @@ namespace Unravel.Infrastructure.Forge.Strategies;
 /// porque parte de uma definição explícita no texto. Limitação: só
 /// funciona quando o autor do Content escreveu na forma definicional.</para>
 /// </summary>
+[Obsolete("PR 34e — template-based; substituido pelo pipeline LlmGrounded (PR 31+). " +
+          "Nao registrado no DI por default; ativa via Forge:UseLegacyStrategies=true se necessario.")]
 public sealed class DefinitionStrategy : IChallengeStrategy
 {
     public ForgeStrategy Kind => ForgeStrategy.Definition;

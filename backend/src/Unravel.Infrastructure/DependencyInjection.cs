@@ -98,15 +98,28 @@ public static class DependencyInjection
             services.AddSingleton<IDistractorPicker, DistractorPicker>();
         }
 
-        services.AddSingleton<IChallengeStrategy, ClozeStrategy>();
-        services.AddSingleton<IChallengeStrategy, DefinitionStrategy>();
-        services.AddSingleton<IChallengeStrategy, TrueFalseStrategy>();
-        // PR 5 — estratégias avançadas. Mesma interface, registradas em
-        // paralelo; o ChallengeForge resolve como IEnumerable<IChallengeStrategy>
-        // e roteia automaticamente.
-        services.AddSingleton<IChallengeStrategy, OrderingStrategy>();
-        services.AddSingleton<IChallengeStrategy, MatchStrategy>();
-        services.AddSingleton<IChallengeStrategy, CodeStrategy>();
+        // PR 34e — strategies template-based marcadas [Obsolete] em PR 34.
+        // O pipeline LlmGrounded (PR 31+) cobre 100% das geracoes em
+        // producao desde PR 51 (matou fallback inline) e PR 33h (calibrou
+        // validators); essas strategies sobravam so no cron noturno legado
+        // do PR 20 e estavam gerando perguntas de qualidade baixa
+        // ("O que e O componente?", PR 51 root cause). Default = nao
+        // registra; cron noturno opera sobre o pool LlmGrounded existente.
+        //
+        // Flag de escape: Forge:UseLegacyStrategies=true reativa pra
+        // bisecao/debug ou conteudo onde o pipeline LLM esta caro/indisponivel.
+        var useLegacyStrategies = configuration.GetValue("Forge:UseLegacyStrategies", false);
+        if (useLegacyStrategies)
+        {
+#pragma warning disable CS0618 // Obsolete intencional aqui — flag de escape
+            services.AddSingleton<IChallengeStrategy, ClozeStrategy>();
+            services.AddSingleton<IChallengeStrategy, DefinitionStrategy>();
+            services.AddSingleton<IChallengeStrategy, TrueFalseStrategy>();
+            services.AddSingleton<IChallengeStrategy, OrderingStrategy>();
+            services.AddSingleton<IChallengeStrategy, MatchStrategy>();
+            services.AddSingleton<IChallengeStrategy, CodeStrategy>();
+#pragma warning restore CS0618
+        }
 
         // PR 20 + PR 30 — LLM strategy opcional. Lê Llm:Enabled (default
         // false). Quando ligada, escolhe entre dois providers via

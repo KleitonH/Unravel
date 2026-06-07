@@ -7,6 +7,15 @@
 
     <IsPackable>false</IsPackable>
     <IsTestProject>true</IsTestProject>
+
+    <!-- PR 34e — silencia CS0618 (Obsolete) globalmente neste projeto.
+         Os ChallengeForge*Tests/ClozeStrategyTests/etc. cobrem strategies
+         template marcadas [Obsolete] em PR 34e: ainda valiosos pra
+         garantir que a tipagem/lógica não regrediu enquanto as classes
+         existirem (removeremos junto delas num futuro PR de cleanup
+         final). Sem este NoWarn cada test file precisaria de pragma
+         próprio — barulho que não agrega nada. -->
+    <NoWarn>$(NoWarn);CS0618</NoWarn>
   </PropertyGroup>
 
   <ItemGroup>

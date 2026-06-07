@@ -20,6 +20,8 @@ namespace Unravel.Infrastructure.Forge.Strategies;
 /// que mesmo input produz mesmas alternativas — exigência do
 /// QualityGate e do snapshot do PR 7.</para>
 /// </summary>
+[Obsolete("PR 34e — template-based; substituido pelo pipeline LlmGrounded (PR 31+). " +
+          "Nao registrado no DI por default; ativa via Forge:UseLegacyStrategies=true se necessario.")]
 public sealed class OrderingStrategy : IChallengeStrategy
 {
     public ForgeStrategy Kind => ForgeStrategy.Ordering;

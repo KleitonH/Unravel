@@ -24,6 +24,8 @@ namespace Unravel.Infrastructure.Forge.Strategies;
 ///   <item><b>Troca de termo</b>: substitui a keyword principal por um distrator.</item>
 /// </list>
 /// </summary>
+[Obsolete("PR 34e — template-based; substituido pelo pipeline LlmGrounded (PR 31+). " +
+          "Nao registrado no DI por default; ativa via Forge:UseLegacyStrategies=true se necessario.")]
 public sealed class TrueFalseStrategy : IChallengeStrategy
 {
     public ForgeStrategy Kind => ForgeStrategy.TrueFalse;

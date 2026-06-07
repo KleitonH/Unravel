@@ -21,6 +21,8 @@ namespace Unravel.Infrastructure.Forge.Strategies;
 /// do topic que aparecem na sentença. Vai do termo mais representativo,
 /// não de qualquer substantivo.</para>
 /// </summary>
+[Obsolete("PR 34e — template-based; substituido pelo pipeline LlmGrounded (PR 31+). " +
+          "Nao registrado no DI por default; ativa via Forge:UseLegacyStrategies=true se necessario.")]
 public sealed class ClozeStrategy : IChallengeStrategy
 {
     public ForgeStrategy Kind => ForgeStrategy.Cloze;
