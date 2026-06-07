@@ -2,6 +2,7 @@ using System.Text.Json;
 using Unravel.Application.Forge.DTOs;
 using Unravel.Application.Forge.Ports;
 using Unravel.Application.Journey.Ports;
+using Unravel.Application.Knowledge.Ports;
 using Unravel.Domain.Forge;
 using Unravel.Domain.Knowledge;
 
@@ -34,21 +35,28 @@ public sealed class GetChallengePoolUseCase
     private readonly IForgeReadModel                  _readModel;
     private readonly IKnowledgeGraphCache             _graphCache;
     private readonly IMasteryRepository               _masteryRepo;
-    private readonly IChallengeForge                  _forge;
     private readonly IGeneratedChallengeRepository    _generatedRepo;
+    private readonly IClaimExtractor                  _claimExtractor;
+    private readonly IQuestionForgeQueue              _forgeQueue;
 
+    /// <summary>PR 51 — recebe <see cref="IClaimExtractor"/> + <see cref="IQuestionForgeQueue"/>
+    /// pra disparar jobs urgent LlmGrounded quando o pool está curto,
+    /// substituindo o antigo fallback template-based (Cloze/Definition
+    /// tinham bugs de qualidade documentados).</summary>
     public GetChallengePoolUseCase(
         IForgeReadModel               readModel,
         IKnowledgeGraphCache          graphCache,
         IMasteryRepository            masteryRepo,
-        IChallengeForge               forge,
-        IGeneratedChallengeRepository generatedRepo)
+        IGeneratedChallengeRepository generatedRepo,
+        IClaimExtractor               claimExtractor,
+        IQuestionForgeQueue           forgeQueue)
     {
-        _readModel     = readModel;
-        _graphCache    = graphCache;
-        _masteryRepo   = masteryRepo;
-        _forge         = forge;
-        _generatedRepo = generatedRepo;
+        _readModel      = readModel;
+        _graphCache     = graphCache;
+        _masteryRepo    = masteryRepo;
+        _generatedRepo  = generatedRepo;
+        _claimExtractor = claimExtractor;
+        _forgeQueue     = forgeQueue;
     }
 
     public async Task<ChallengePoolResponse?> ExecuteAsync(
@@ -76,16 +84,33 @@ public sealed class GetChallengePoolUseCase
         // 1. tentar servir do que já está persistido.
         var existing = await _generatedRepo.GetByContentAsync(contentId, ct);
 
-        // 2. se faltar, gerar e persistir.
+        // 2. PR 51 — se faltar, NÃO geramos template-based (causavam Cloze/
+        //    Definition com bugs de qualidade — vide pergunta "O que é O
+        //    componente?" e similares). Em vez disso, enfileiramos jobs
+        //    urgent LlmGrounded pro pool ficar melhor na próxima sessão.
+        //    Aluno recebe pool curto agora — preferível a misturar com lixo.
         var missing = targetCount - existing.Count;
+        var moreComing  = false;
         if (missing > 0)
         {
-            var drafts = _forge.Build(content, graph, targetCount: missing, targetUserMastery: userMastery);
-            if (drafts.Count > 0)
+            try
             {
-                var entities = drafts.Select(d => DraftToEntity(d, content.TrailId)).ToList();
-                await _generatedRepo.AddManyAsync(entities, ct);
-                existing = await _generatedRepo.GetByContentAsync(contentId, ct);
+                var claims = _claimExtractor.Extract(content.Body)
+                    .OrderByDescending(c => c.Score)
+                    .Take(Math.Max(missing, 5)) // pelo menos 5 jobs pra dar margem ao yield
+                    .ToList();
+                if (claims.Count > 0)
+                {
+                    var enqueued = await _forgeQueue.EnqueueForContentAsync(
+                        contentId, claims, ForgeJobPriority.Urgent, ct);
+                    moreComing = enqueued > 0;
+                }
+            }
+            catch
+            {
+                // Best-effort. Falhar aqui não pode bloquear o quiz —
+                // aluno recebe o pool curto sem warning. Próxima sessão
+                // (cron diário) recupera o pool naturalmente.
             }
         }
 
@@ -107,7 +132,8 @@ public sealed class GetChallengePoolUseCase
             ContentTitle:      content.Title,
             TrailId:           content.TrailId,
             TargetUserMastery: Math.Round(userMastery, 4),
-            Challenges:        selected.Select(EntityToDto).ToList());
+            Challenges:        selected.Select(EntityToDto).ToList(),
+            MoreComing:        moreComing);
     }
 
     // ── Mapeamentos ──────────────────────────────────────────────────

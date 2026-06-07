@@ -135,6 +135,7 @@ export type ChallengePool = {
   trailId: number
   targetUserMastery: number
   challenges: PoolChallenge[]
+  moreComing?: boolean   // PR 51 — true se backend enfileirou jobs urgent (pool curto, replenish em andamento)
 }
 
 export type SubmitPoolChallengeRequest = {

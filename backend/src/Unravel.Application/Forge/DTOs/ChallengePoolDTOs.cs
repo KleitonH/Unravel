@@ -9,7 +9,8 @@ public sealed record ChallengePoolResponse(
     string                             ContentTitle,
     int                                TrailId,
     double                             TargetUserMastery,
-    IReadOnlyList<PoolChallengeDto>    Challenges
+    IReadOnlyList<PoolChallengeDto>    Challenges,
+    bool                               MoreComing = false   // PR 51 — true quando o use case enfileirou jobs urgent
 );
 
 public sealed record PoolChallengeDto(
