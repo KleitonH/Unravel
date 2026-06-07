@@ -23,7 +23,7 @@ namespace Unravel.Infrastructure.Knowledge.Chunking;
 ///   útil pra debug e pra contextualizar o LLM</item>
 /// </list>
 /// </summary>
-internal sealed class ChunkSegmenter
+public sealed class ChunkSegmenter
 {
     private const int TargetCharsMin = 1_500;
     private const int TargetCharsMax = 3_000;

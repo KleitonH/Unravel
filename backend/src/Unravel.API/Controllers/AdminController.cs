@@ -732,10 +732,59 @@ public sealed class AdminController(
         if (dto.Icon is not null) trail.Icon = dto.Icon.Trim();
         if (dto.AccentColor is not null) trail.AccentColor = dto.AccentColor.Trim();
         if (dto.Level is not null) trail.Level = ParseLevel(dto.Level);
-        if (dto.IsPublished is bool pub) trail.IsPublished = pub;
+
+        // PR 60-a — Gate de publicação: bloqueia publish enquanto algum
+        // content da trilha tiver capítulo com <4 perguntas. Despublicação
+        // (true → false) sempre passa.
+        if (dto.IsPublished is bool pub)
+        {
+            if (pub && !trail.IsPublished)
+            {
+                var chapters = HttpContext.RequestServices
+                    .GetRequiredService<Unravel.Application.Forge.Ports.IContentChaptersService>();
+                var contentIds = await db.Content
+                    .Where(c => c.TrailId == trailId && c.IsActive)
+                    .Select(c => c.Id)
+                    .ToListAsync(ct);
+                var pending = new List<object>();
+                foreach (var cid in contentIds)
+                {
+                    var readiness = await chapters.GetReadinessAsync(cid, requiredPerChapter: 4, ct);
+                    if (readiness is { Ready: false })
+                        pending.Add(new {
+                            contentId   = cid,
+                            missing     = readiness.Chapters.Count(x => !x.Ready),
+                            totalChapters = readiness.Chapters.Count,
+                        });
+                }
+                if (pending.Count > 0)
+                    return BadRequest(new {
+                        message = $"Publicação bloqueada: {pending.Count} conteúdo(s) com capítulos insuficientes.",
+                        pendingContents = pending,
+                    });
+            }
+            trail.IsPublished = pub;
+        }
 
         await db.SaveChangesAsync(ct);
         return NoContent();
+    }
+
+    /// <summary>
+    /// PR 60-a — Readiness de publicação por content. Lista quais capítulos
+    /// (chunks H2) têm/precisam de perguntas pra publicar. UI mostra badges
+    /// na trail-detail-page e gate visual no botão Publicar.
+    /// </summary>
+    [HttpGet("contents/{contentId:int}/publication-readiness")]
+    public async Task<IActionResult> ContentPublicationReadiness(
+        int contentId,
+        [FromServices] Unravel.Application.Forge.Ports.IContentChaptersService chapters,
+        CancellationToken ct = default)
+    {
+        // Required hardcoded em 4 pra alinhar com gate de Trail.IsPublished
+        // (decisão PR 60-a). Se virar configurável, sobe pra appsettings.
+        var result = await chapters.GetReadinessAsync(contentId, requiredPerChapter: 4, ct);
+        return result is null ? NotFound() : Ok(result);
     }
 
     /// <summary>Soft-delete (IsActive=false). Trilha desaparece pros alunos

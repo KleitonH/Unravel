@@ -3,6 +3,7 @@ using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Unravel.Application.Forge.DTOs;
+using Unravel.Application.Forge.Ports;
 using Unravel.Application.Forge.UseCases;
 
 namespace Unravel.API.Controllers;
@@ -34,6 +35,29 @@ public sealed class ChallengePoolController : ControllerBase
         _pool     = pool;
         _submit   = submit;
         _adaptive = adaptive;
+    }
+
+    /// <summary>
+    /// PR 60-a — Conteúdo fatiado em capítulos H2 com perguntas alocadas
+    /// adaptativamente (4-7 por capítulo conforme difficulty média). Usado
+    /// pelo novo fluxo "Estudo guiado" (modelo Duolingo): aluno lê chunk,
+    /// pratica perguntas daquele chunk, segue pro próximo.
+    /// 404 se Content não existe.
+    /// </summary>
+    [HttpGet("/api/contents/{contentId:int}/chapters")]
+    public async Task<IActionResult> GetChapters(
+        int contentId,
+        [FromQuery] int minPerChapter = 4,
+        [FromQuery] int maxPerChapter = 7,
+        [FromServices] IContentChaptersService? chapters = null,
+        CancellationToken ct = default)
+    {
+        if (chapters is null) return Problem("Serviço de capítulos indisponível.");
+        if (minPerChapter < 1 || maxPerChapter < minPerChapter || maxPerChapter > 20)
+            return BadRequest(new { message = "min/maxPerChapter inválidos (1 ≤ min ≤ max ≤ 20)." });
+
+        var result = await chapters.GetChaptersAsync(contentId, minPerChapter, maxPerChapter, ct);
+        return result is null ? NotFound() : Ok(result);
     }
 
     /// <summary>Retorna até <c>targetCount</c> perguntas (default 5) para

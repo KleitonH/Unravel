@@ -307,6 +307,9 @@ public static class DependencyInjection
         // O hosted service correspondente é registrado em Program.cs.
         services.AddScoped<IGeneratedChallengeMaintenance, GeneratedChallengeMaintenance>();
 
+        // PR 60-a — Content fatiado em capítulos H2 (modelo Duolingo).
+        services.AddScoped<IContentChaptersService, Unravel.Infrastructure.Forge.ContentChaptersService>();
+
         // Onboarding (PR 6) — cold-start com nivelamento.
         // LevelingTestBuilder é stateless → singleton.
         // Read model e enroller dependem de DbContext → scoped.
