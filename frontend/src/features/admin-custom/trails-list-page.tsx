@@ -3,10 +3,12 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { Eye, EyeOff, FileText, Loader2, Trash2 } from "lucide-react"
 import { toast } from "sonner"
 import { adminCustomApi } from "@/api/admin-custom"
+import { tokensApi } from "@/api/tokens"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
+import { YarnBall } from "@/components/yarn/yarn-ball"
 import { NewTrailDialog } from "./trail-form-dialog"
 import type { CustomTrailDto } from "@/types/admin-custom"
 
@@ -24,6 +26,13 @@ export function TrailsListPage() {
     queryFn:  adminCustomApi.listTrails,
   })
 
+  // PR 52 — saldo de lã (visível no header pra contexto antes de gerar)
+  const balanceQuery = useQuery({
+    queryKey: ["tokens", "balance"],
+    queryFn:  tokensApi.balance,
+    staleTime: 30_000,
+  })
+
   return (
     <div className="p-6 lg:p-10 max-w-5xl space-y-5">
       <header className="flex items-start justify-between gap-4 flex-wrap">
@@ -36,7 +45,17 @@ export function TrailsListPage() {
             etc.) são gerenciadas via repositório e não aparecem aqui.
           </p>
         </div>
-        <NewTrailDialog />
+        <div className="flex items-center gap-3">
+          {balanceQuery.data && (
+            <YarnBall
+              tier={balanceQuery.data.tier}
+              balanceCm={balanceQuery.data.balanceCm}
+              displayBalance={balanceQuery.data.displayBalance}
+              size="sm"
+            />
+          )}
+          <NewTrailDialog />
+        </div>
       </header>
 
       {error && (

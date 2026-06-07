@@ -23,6 +23,8 @@ using Unravel.Infrastructure.Knowledge;
 using Unravel.Infrastructure.Persistence;
 using Unravel.Infrastructure.Repositories;
 using Unravel.Infrastructure.Services;
+using Unravel.Infrastructure.Tokens;
+using Unravel.Application.Tokens.Ports;
 
 namespace Unravel.Infrastructure;
 
@@ -251,6 +253,10 @@ public static class DependencyInjection
         services.AddScoped<IBossFightRepository, BossFightRepository>();
         services.AddScoped<StartBossFightUseCase>();
         services.AddScoped<SubmitBossFightUseCase>();
+
+        // PR 52 — tokens "centímetros de lã" do moderador. Debita ao
+        // disparar forge; credita em eventos de engagement futuros (PR 53).
+        services.AddScoped<IModeratorTokenService, ModeratorTokenService>();
 
         // PR 37 — rastreio de "perguntas geradas já vistas pelo usuário"
         // pra anti-join no Reinforcement Quiz. UPSERT idempotente.

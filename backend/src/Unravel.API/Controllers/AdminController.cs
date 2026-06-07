@@ -7,8 +7,10 @@ using Microsoft.EntityFrameworkCore;
 using Unravel.Application.Forge.Ports;
 using Unravel.Application.Journey;
 using Unravel.Application.Knowledge.Ports;
+using Unravel.Application.Tokens.Ports;
 using Unravel.Domain.Entities;
 using Unravel.Domain.Forge;
+using Unravel.Domain.Tokens;
 using Unravel.Infrastructure.Knowledge;
 using Unravel.Infrastructure.Persistence;
 
@@ -73,6 +75,7 @@ public sealed class AdminController(
         [FromServices] ApplicationDbContext db = null!,
         [FromServices] IClaimExtractor extractor = null!,
         [FromServices] IQuestionForgeQueue queue = null!,
+        [FromServices] IModeratorTokenService tokens = null!,
         CancellationToken ct = default)
     {
         var content = await db.Content.Where(c => c.Id == contentId)
@@ -88,12 +91,36 @@ public sealed class AdminController(
         if (claims.Count == 0)
             return Ok(new { contentId, contentTitle = content.Title, enqueued = 0, message = "Nenhuma claim extratível desse conteúdo." });
 
+        // PR 52 — debita tokens (lã) ANTES de enqueue. Custo varia por urgent.
+        var costPerJob = urgent ? 3 : 1;
+        var totalCost  = claims.Count * costPerJob;
+        try
+        {
+            await tokens.DebitAsync(UserId(), totalCost,
+                urgent ? TokenTransactionReason.ForgeUrgent : TokenTransactionReason.ForgeNormal,
+                metadata: System.Text.Json.JsonSerializer.Serialize(new {
+                    contentId, contentTitle = content.Title, jobs = claims.Count, urgent
+                }), ct: ct);
+        }
+        catch (InsufficientTokensException ex)
+        {
+            return StatusCode(402, new {
+                message = ex.Message,
+                balanceCm = ex.BalanceCm,
+                requiredCm = ex.RequiredCm,
+            });
+        }
+
         var enqueued = await queue.EnqueueForContentAsync(
             contentId, claims,
             urgent ? ForgeJobPriority.Urgent : ForgeJobPriority.Normal,
             ct);
 
-        return Ok(new { contentId, contentTitle = content.Title, claimsCandidates = claims.Count, enqueued });
+        return Ok(new {
+            contentId, contentTitle = content.Title,
+            claimsCandidates = claims.Count, enqueued,
+            tokensSpentCm = totalCost,
+        });
     }
 
     /// <summary>
@@ -122,6 +149,7 @@ public sealed class AdminController(
         [FromServices] ApplicationDbContext db = null!,
         [FromServices] IClaimExtractor extractor = null!,
         [FromServices] IQuestionForgeQueue queue = null!,
+        [FromServices] IModeratorTokenService tokens = null!,
         CancellationToken ct = default)
     {
         // Filtra Contents da trilha (ou todos, se sem filtro)
@@ -141,13 +169,41 @@ public sealed class AdminController(
         var perContent  = new List<object>(contents.Count);
         var totalQueued = 0;
 
+        // PR 52 — pré-calcula custo total e debita ANTES de enqueue.
+        // Bulk falha atômico: se moderador não tem tokens pra cobrir tudo,
+        // nenhum job é enfileirado (em vez de gerar parcial e gastar lã à toa).
+        var preClaimsByContent = contents.ToDictionary(c => c.Id,
+            c => extractor.Extract(c.Body).OrderByDescending(x => x.Score).Take(max).ToList());
+        var totalJobsExpected = preClaimsByContent.Values.Sum(l => l.Count);
+        var costPerJob = urgent ? 3 : 1;
+        var totalCost  = totalJobsExpected * costPerJob;
+
+        if (totalJobsExpected == 0)
+            return Ok(new { trailSlug, maxPerContent = max, urgent,
+                totalContents = contents.Count, totalQueued = 0,
+                message = "Nenhuma claim extratível nos conteúdos." });
+
+        try
+        {
+            await tokens.DebitAsync(UserId(), totalCost,
+                urgent ? TokenTransactionReason.ForgeUrgent : TokenTransactionReason.ForgeNormal,
+                metadata: System.Text.Json.JsonSerializer.Serialize(new {
+                    trailSlug, contents = contents.Count, jobs = totalJobsExpected, urgent
+                }), ct: ct);
+        }
+        catch (InsufficientTokensException ex)
+        {
+            return StatusCode(402, new {
+                message = ex.Message,
+                balanceCm = ex.BalanceCm,
+                requiredCm = ex.RequiredCm,
+            });
+        }
+
         foreach (var content in contents)
         {
             ct.ThrowIfCancellationRequested();
-            var claims = extractor.Extract(content.Body)
-                .OrderByDescending(c => c.Score)
-                .Take(max)
-                .ToList();
+            var claims = preClaimsByContent[content.Id];
 
             if (claims.Count == 0)
             {
@@ -172,6 +228,7 @@ public sealed class AdminController(
             urgent,
             totalContents = contents.Count,
             totalQueued,
+            tokensSpentCm = totalCost,
             perContent,
         });
     }

@@ -11,6 +11,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Skeleton } from "@/components/ui/skeleton"
+import { GenerateQuestionsDialog } from "./generate-questions-dialog"
 
 /**
  * Editor de markdown pra um Content custom. Mostra preview lado-a-lado
@@ -124,13 +125,8 @@ function EditorForm({
     onError: () => toast.error("Falha ao salvar."),
   })
 
-  const forgeMutation = useMutation({
-    mutationFn: () => adminCustomApi.enqueueForge(contentId, 20),
-    onSuccess: (res) => {
-      toast.success(`${res.enqueued} jobs enfileirados. Status no painel admin.`)
-    },
-    onError: () => toast.error("Falha ao enfileirar forge."),
-  })
+  // PR 52 — modal de geração com saldo de lã + slider de quantidade
+  const [genOpen, setGenOpen] = useState(false)
 
   // Aviso ao sair de página com mudanças não salvas
   useEffect(() => {
@@ -160,13 +156,11 @@ function EditorForm({
             <div className="flex gap-2">
               <Button
                 variant="outline"
-                onClick={() => forgeMutation.mutate()}
-                disabled={forgeMutation.isPending || isDirty}
+                onClick={() => setGenOpen(true)}
+                disabled={isDirty}
                 title={isDirty ? "Salve antes de gerar perguntas." : ""}
               >
-                {forgeMutation.isPending
-                  ? <Loader2 className="h-4 w-4 mr-1 animate-spin" />
-                  : <Sparkles className="h-4 w-4 mr-1" />}
+                <Sparkles className="h-4 w-4 mr-1" />
                 Gerar perguntas
               </Button>
               <Button
@@ -223,6 +217,14 @@ function EditorForm({
           </div>
         </CardContent>
       </Card>
+
+      <GenerateQuestionsDialog
+        open={genOpen}
+        onClose={() => setGenOpen(false)}
+        scope="content"
+        scopeId={contentId}
+        scopeName={title}
+      />
     </div>
   )
 }

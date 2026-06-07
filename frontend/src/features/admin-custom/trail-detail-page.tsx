@@ -12,6 +12,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSepara
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Skeleton } from "@/components/ui/skeleton"
+import { GenerateQuestionsDialog } from "./generate-questions-dialog"
 import type { CreateCustomContentRequest, CustomContentDto } from "@/types/admin-custom"
 
 /**
@@ -37,6 +38,9 @@ export function TrailDetailPage() {
     queryFn:  () => adminCustomApi.listContents(id),
     enabled:  !Number.isNaN(id),
   })
+
+  // PR 52 — modal de geração em bulk pra trilha inteira
+  const [bulkGenOpen, setBulkGenOpen] = useState(false)
 
   return (
     <div className="p-6 lg:p-10 max-w-5xl space-y-5">
@@ -66,8 +70,31 @@ export function TrailDetailPage() {
             )}
           </div>
         </div>
-        <NewContentDialog trailId={id} />
+        <div className="flex gap-2 flex-wrap">
+          {/* PR 52 — botão de bulk forge da trilha inteira */}
+          {(contentsQuery.data?.length ?? 0) > 0 && (
+            <Button
+              variant="outline"
+              onClick={() => setBulkGenOpen(true)}
+            >
+              <Sparkles className="h-4 w-4 mr-1" />
+              Gerar bulk
+            </Button>
+          )}
+          <NewContentDialog trailId={id} />
+        </div>
       </header>
+
+      {trail?.slug && (
+        <GenerateQuestionsDialog
+          open={bulkGenOpen}
+          onClose={() => setBulkGenOpen(false)}
+          scope="trail"
+          scopeId={trail.slug}
+          scopeName={trail.name}
+          contentsCount={contentsQuery.data?.length ?? 0}
+        />
+      )}
 
       {contentsQuery.isLoading && (
         <div className="space-y-2">

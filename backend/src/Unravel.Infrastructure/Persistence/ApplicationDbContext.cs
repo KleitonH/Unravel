@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Unravel.Domain.Entities;
 using Unravel.Domain.Forge;
 using Unravel.Domain.Knowledge;
+using Unravel.Domain.Tokens;
 
 namespace Unravel.Infrastructure.Persistence;
 
@@ -21,7 +22,11 @@ public partial class ApplicationDbContext(DbContextOptions<ApplicationDbContext>
     public DbSet<QuestionForgeJob>     QuestionForgeJob     => Set<QuestionForgeJob>();
     public DbSet<ModeratorGoldItem>    ModeratorGoldItem    => Set<ModeratorGoldItem>();
     public DbSet<UserSeenChallenge>    UserSeenChallenge    => Set<UserSeenChallenge>();
-    public DbSet<UserBossFight>        UserBossFight        => Set<UserBossFight>();
+    public DbSet<UserBossFight>            UserBossFight            => Set<UserBossFight>();
+
+    // PR 52 — tokens "centímetros de lã" do moderador
+    public DbSet<ModeratorTokenBalance>    ModeratorTokenBalance    => Set<ModeratorTokenBalance>();
+    public DbSet<ModeratorTokenTransaction> ModeratorTokenTransaction => Set<ModeratorTokenTransaction>();
 
     protected override void OnModelCreating(ModelBuilder mb)
     {
@@ -133,6 +138,26 @@ public partial class ApplicationDbContext(DbContextOptions<ApplicationDbContext>
             // Dedup: garante que (Content, Chunk, ClaimHash) só existe 1x
             // entre Pending/Running. Permite Done duplicado (histórico).
             e.HasIndex(j => new { j.ContentId, j.ChunkIndex, j.ClaimHash });
+        });
+
+        // PR 52 — tokens "centímetros de lã" pra moderador.
+        // Balance é singleton por user (PK = UserId). Transactions = log
+        // imutável (PK = Id autoincrement, index por UserId desc).
+        mb.Entity<ModeratorTokenBalance>(e =>
+        {
+            e.HasKey(b => b.UserId);
+            e.Property(b => b.BalanceCm).IsRequired();
+            e.Property(b => b.UpdatedAt).IsRequired();
+        });
+
+        mb.Entity<ModeratorTokenTransaction>(e =>
+        {
+            e.HasKey(t => t.Id);
+            e.Property(t => t.UserId).IsRequired();
+            e.Property(t => t.DeltaCm).IsRequired();
+            e.Property(t => t.Reason).HasConversion<int>();
+            e.Property(t => t.Metadata).HasColumnType("jsonb");
+            e.HasIndex(t => new { t.UserId, t.CreatedAt });
         });
 
         // PR 50 — UserBossFight: histórico do desafio final da trilha.
