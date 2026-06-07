@@ -1,6 +1,6 @@
 import { Link } from "@tanstack/react-router"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import { Eye, EyeOff, FileText, Loader2, Trash2 } from "lucide-react"
+import { BarChart3, Eye, EyeOff, FileText, Loader2, Trash2 } from "lucide-react"
 import { toast } from "sonner"
 import { adminCustomApi } from "@/api/admin-custom"
 import { tokensApi } from "@/api/tokens"
@@ -56,6 +56,12 @@ export function TrailsListPage() {
             />
           )}
           <ForgeActivityChip />
+          <Button asChild variant="outline" size="sm" className="h-9">
+            <Link to="/admin/forge">
+              <BarChart3 className="h-4 w-4 mr-1" />
+              <span className="text-xs font-semibold">Stats</span>
+            </Link>
+          </Button>
           <NewTrailDialog />
         </div>
       </header>

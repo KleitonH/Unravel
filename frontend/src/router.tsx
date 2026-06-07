@@ -35,6 +35,7 @@ const AdminPage           = lazy(() => import("@/features/admin/admin-page").the
 const AdminTrailsPage     = lazy(() => import("@/features/admin-custom/trails-list-page").then((m) => ({ default: m.TrailsListPage })))
 const AdminTrailDetail    = lazy(() => import("@/features/admin-custom/trail-detail-page").then((m) => ({ default: m.TrailDetailPage })))
 const AdminContentEditor  = lazy(() => import("@/features/admin-custom/content-editor-page").then((m) => ({ default: m.ContentEditorPage })))
+const AdminForgeStats     = lazy(() => import("@/features/admin-custom/forge-stats-page").then((m) => ({ default: m.ForgeStatsPage })))
 const ReinforcePage       = lazy(() => import("@/features/reinforce/reinforce-page").then((m) => ({ default: m.ReinforcePage })))
 const MasteryPage         = lazy(() => import("@/features/mastery/mastery-page").then((m) => ({ default: m.MasteryPage })))
 const BossFightPage       = lazy(() => import("@/features/boss/boss-fight-page").then((m) => ({ default: m.BossFightPage })))
@@ -126,6 +127,7 @@ const adminRoute              = createRoute({ getParentRoute: () => authedLayout
 const adminTrailsRoute        = createRoute({ getParentRoute: () => authedLayoutRoute, path: "/admin/trails",                   component: () => <Lazy Component={AdminTrailsPage} /> })
 const adminTrailDetailRoute   = createRoute({ getParentRoute: () => authedLayoutRoute, path: "/admin/trails/$trailId",          component: () => <Lazy Component={AdminTrailDetail} /> })
 const adminContentEditorRoute = createRoute({ getParentRoute: () => authedLayoutRoute, path: "/admin/contents/$contentId",      component: () => <Lazy Component={AdminContentEditor} /> })
+const adminForgeStatsRoute    = createRoute({ getParentRoute: () => authedLayoutRoute, path: "/admin/forge",                    component: () => <Lazy Component={AdminForgeStats} /> })
 const reinforceRoute          = createRoute({ getParentRoute: () => authedLayoutRoute, path: "/reinforce/$trailId",             component: () => <Lazy Component={ReinforcePage} /> })
 const masteryRoute            = createRoute({ getParentRoute: () => authedLayoutRoute, path: "/trails/$trailId/mastery",        component: () => <Lazy Component={MasteryPage} /> })
 const bossFightRoute          = createRoute({ getParentRoute: () => authedLayoutRoute, path: "/boss/$trailId",                  component: () => <Lazy Component={BossFightPage} /> })
@@ -149,6 +151,7 @@ const routeTree = rootRoute.addChildren([
     adminTrailsRoute,
     adminTrailDetailRoute,
     adminContentEditorRoute,
+    adminForgeStatsRoute,
     reinforceRoute,
     masteryRoute,
     bossFightRoute,

@@ -265,6 +265,96 @@ public sealed class AdminController(
         return Ok(batches);
     }
 
+    /// <summary>
+    /// PR 34d — stats agregados de todo o forge do moderador autenticado.
+    /// Alimenta a página <c>/admin/forge</c> com cards (total batches/jobs,
+    /// yield, breakdown por shape) e tabela de top motivos de falha.
+    ///
+    /// <para>Filtra por <see cref="UserId"/> — moderador não vê stats dos
+    /// outros. Inclui jobs sem BatchId? Não — só agregar com batch garante
+    /// que o número bate com o que aparece na "Atividade do Forge".</para>
+    /// </summary>
+    [HttpGet("forge/stats")]
+    public async Task<IActionResult> ForgeStats(
+        [FromServices] ApplicationDbContext db,
+        CancellationToken ct = default)
+    {
+        var userId = UserId();
+
+        // Jobs do moderador (todos os batches)
+        var myJobs = db.QuestionForgeJob.AsNoTracking()
+            .Where(j => j.EnqueuedByUserId == userId && j.BatchId != null);
+
+        var totalJobs   = await myJobs.CountAsync(ct);
+        var doneJobs    = await myJobs.CountAsync(j => j.Status == ForgeJobStatus.Done, ct);
+        var failedJobs  = await myJobs.CountAsync(j => j.Status == ForgeJobStatus.Failed, ct);
+        var pendingJobs = await myJobs.CountAsync(j => j.Status == ForgeJobStatus.Pending, ct);
+        var runningJobs = await myJobs.CountAsync(j => j.Status == ForgeJobStatus.Running, ct);
+
+        var totalBatches = await myJobs.Select(j => j.BatchId).Distinct().CountAsync(ct);
+
+        // Top 5 motivos de falha (LastError truncado pra primeira palavra/tag
+        // pra agrupar erros como "LlmEmpty: ..." e "DistractorsPoor: ..." por
+        // categoria, ignorando detalhe específico do job).
+        var failedWithReason = await myJobs
+            .Where(j => j.Status == ForgeJobStatus.Failed && j.LastError != null)
+            .Select(j => j.LastError!)
+            .ToListAsync(ct);
+        var topFailureReasons = failedWithReason
+            .Select(NormalizeFailureReason)
+            .GroupBy(r => r)
+            .Select(g => new { reason = g.Key, count = g.Count() })
+            .OrderByDescending(x => x.count)
+            .Take(5)
+            .ToList();
+
+        // Shape breakdown (apenas Done — só contam válidas).
+        // Recupera GeneratedChallenge.BodyJson e extrai shape.
+        var doneChallengeIds = await myJobs
+            .Where(j => j.Status == ForgeJobStatus.Done && j.GeneratedChallengeId != null)
+            .Select(j => j.GeneratedChallengeId!.Value)
+            .ToListAsync(ct);
+        var bodies = doneChallengeIds.Count == 0
+            ? new List<string>()
+            : await db.GeneratedChallenge.AsNoTracking()
+                .Where(g => doneChallengeIds.Contains(g.Id))
+                .Select(g => g.BodyJson)
+                .ToListAsync(ct);
+
+        var shapeCounts = bodies
+            .Select(ExtractShape)
+            .Select(s => s ?? "MultipleChoice")
+            .GroupBy(s => s)
+            .ToDictionary(g => g.Key, g => g.Count());
+
+        var yieldRate = (doneJobs + failedJobs) == 0
+            ? (double?)null
+            : (double)doneJobs / (doneJobs + failedJobs);
+
+        return Ok(new {
+            totalBatches,
+            totalJobs,
+            doneJobs,
+            failedJobs,
+            pendingJobs,
+            runningJobs,
+            yieldRate,
+            shapeCounts,
+            topFailureReasons,
+        });
+    }
+
+    /// <summary>Normaliza um <c>LastError</c> num "bucket" estável pra
+    /// agrupar falhas no top reasons. Ex:
+    /// <c>"LlmEmpty: LLM returned empty"</c> → <c>"LlmEmpty"</c>.
+    /// <c>"DistractorsPoor: Apenas 1/3..."</c> → <c>"DistractorsPoor"</c>.</summary>
+    private static string NormalizeFailureReason(string raw)
+    {
+        if (string.IsNullOrWhiteSpace(raw)) return "Unknown";
+        var idx = raw.IndexOf(':');
+        return idx > 0 ? raw[..idx].Trim() : raw[..Math.Min(60, raw.Length)];
+    }
+
     /// <summary>Helper pra extrair "shape" do BodyJson da
     /// <c>GeneratedChallenge</c>. Retorna null se ausente (rows pré-PR-34a).</summary>
     private static string? ExtractShape(string bodyJson)
