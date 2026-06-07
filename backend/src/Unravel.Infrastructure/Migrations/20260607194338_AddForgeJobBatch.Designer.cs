@@ -12,7 +12,7 @@ using Unravel.Infrastructure.Persistence;
 namespace Unravel.Infrastructure.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20260607192432_AddForgeJobBatch")]
+    [Migration("20260607194338_AddForgeJobBatch")]
     partial class AddForgeJobBatch
     {
         /// <inheritdoc />
@@ -900,6 +900,10 @@ namespace Unravel.Infrastructure.Migrations
                         .HasColumnType("integer")
                         .HasColumnName("attempt_count");
 
+                    b.Property<Guid?>("BatchId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("batch_id");
+
                     b.Property<int>("ChunkIndex")
                         .HasColumnType("integer")
                         .HasColumnName("chunk_index");
@@ -927,6 +931,10 @@ namespace Unravel.Infrastructure.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("enqueued_at");
 
+                    b.Property<Guid?>("EnqueuedByUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("enqueued_by_user_id");
+
                     b.Property<int?>("GeneratedChallengeId")
                         .HasColumnType("integer")
                         .HasColumnName("generated_challenge_id");
@@ -950,6 +958,14 @@ namespace Unravel.Infrastructure.Migrations
 
                     b.HasKey("Id")
                         .HasName("pk_question_forge_job");
+
+                    b.HasIndex("BatchId")
+                        .HasDatabaseName("ix_question_forge_job_batch_id")
+                        .HasFilter("\"batch_id\" IS NOT NULL");
+
+                    b.HasIndex("EnqueuedByUserId", "EnqueuedAt")
+                        .HasDatabaseName("ix_question_forge_job_enqueued_by_user_id_enqueued_at")
+                        .HasFilter("\"enqueued_by_user_id\" IS NOT NULL");
 
                     b.HasIndex("Status", "Priority")
                         .HasDatabaseName("ix_question_forge_job_status_priority");
