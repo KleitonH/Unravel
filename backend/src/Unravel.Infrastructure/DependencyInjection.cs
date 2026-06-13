@@ -191,6 +191,34 @@ public static class DependencyInjection
                     return new OpenAiInference(http, apiKey, model, temp, maxTok, forceJson,
                         sp.GetRequiredService<ILogger<OpenAiInference>>());
                 });
+
+                // PR 34h — modelo de escalonamento (tier superior) pra cauda
+                // difícil. Opcional: só registra "ligado" se
+                // Llm:OpenAi:EscalationModel estiver setado (ex: "gpt-4o").
+                // Reusa a MESMA apiKey/baseUrl — gpt-4o é so outro model id.
+                var escalationModel = configuration["Llm:OpenAi:EscalationModel"];
+                var escalateAfter   = configuration.GetValue("Llm:OpenAi:EscalateAfterPriorAttempts", 2);
+                if (!string.IsNullOrWhiteSpace(escalationModel))
+                {
+                    services.AddSingleton<IEscalationLlm>(sp =>
+                    {
+                        var http = sp.GetRequiredService<IHttpClientFactory>().CreateClient(nameof(OpenAiInference));
+                        http.BaseAddress = new Uri(baseUrl.TrimEnd('/') + "/");
+                        // Escalado usa temperatura levemente menor (mais
+                        // determinístico/cuidadoso) e mais tokens (modelo
+                        // melhor produz respostas mais completas).
+                        var escalated = new OpenAiInference(http, apiKey, escalationModel,
+                            Math.Max(0.1f, temp - 0.2f), maxTok + 150, forceJson,
+                            sp.GetRequiredService<ILogger<OpenAiInference>>());
+                        return new Unravel.Infrastructure.Forge.Llm.EscalationLlm(
+                            escalated, escalationModel, escalateAfter);
+                    });
+                }
+                else
+                {
+                    services.AddSingleton<IEscalationLlm>(
+                        Unravel.Infrastructure.Forge.Llm.EscalationLlm.Disabled);
+                }
             }
             else // LLamaSharp (default — retrocompat com PR 20)
             {

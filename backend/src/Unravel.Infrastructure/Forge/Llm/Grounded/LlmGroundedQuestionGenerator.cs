@@ -50,17 +50,21 @@ public sealed class LlmGroundedQuestionGenerator : IGroundedQuestionGenerator
     private readonly IClaimShapeRouter _shapeRouter;
     private readonly IQuestionValidator[] _validators;
     private readonly ILogger<LlmGroundedQuestionGenerator> _log;
+    private readonly IEscalationLlm _escalation;
 
     public LlmGroundedQuestionGenerator(
         ILlmInference llm,
         IClaimShapeRouter shapeRouter,
         IEnumerable<IQuestionValidator> validators,
-        ILogger<LlmGroundedQuestionGenerator> log)
+        ILogger<LlmGroundedQuestionGenerator> log,
+        IEscalationLlm? escalation = null)
     {
         _llm         = llm;
         _shapeRouter = shapeRouter;
         _validators  = validators.OrderBy(v => v.Order).ToArray();
         _log         = log;
+        // PR 34h — escalonamento opcional; null = desligado (testes legacy)
+        _escalation  = escalation ?? Unravel.Infrastructure.Forge.Llm.EscalationLlm.Disabled;
     }
 
     public Task<GroundedGenerationResult> GenerateAsync(
@@ -93,10 +97,27 @@ public sealed class LlmGroundedQuestionGenerator : IGroundedQuestionGenerator
         if (priorFailure is not null)
             prompt += RetryGuidance.Build(priorFailure);
 
+        // PR 34h — escalonamento de modelo: na cauda difícil (após N
+        // tentativas com o modelo base falhando mesmo com reflexion),
+        // usa o modelo superior (gpt-4o). Custo extra restrito aos ~5-10%
+        // que chegam aqui. Se escalonamento desligado, usa sempre base.
+        var useEscalation = _escalation.Inference is not null
+                         && priorFailure is not null
+                         && priorFailure.AttemptNumber >= _escalation.EscalateAfterPriorAttempts;
+        var llm = useEscalation ? _escalation.Inference! : _llm;
+        if (useEscalation)
+        {
+            activity?.SetTag("forge.escalated", true);
+            activity?.SetTag("forge.escalation.model", _escalation.ModelName);
+            _log.LogInformation(
+                "Escalando geração pro modelo {Model} (tentativa {Attempt}, falha anterior: {Reason})",
+                _escalation.ModelName, priorFailure!.AttemptNumber + 1, priorFailure.Reason);
+        }
+
         string? raw;
         try
         {
-            raw = await _llm.CompleteAsync(prompt, ct);
+            raw = await llm.CompleteAsync(prompt, ct);
         }
         catch (OperationCanceledException) when (ct.IsCancellationRequested) { throw; }
         catch (Exception ex)
