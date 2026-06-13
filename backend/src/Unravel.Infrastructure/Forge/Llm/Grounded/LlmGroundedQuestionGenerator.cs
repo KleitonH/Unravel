@@ -82,6 +82,23 @@ public sealed class LlmGroundedQuestionGenerator : IGroundedQuestionGenerator
         // PR 34a — router escolhe shape antes do prompt; mesma chamada
         // produz prompt MCQ ou FillBlank conforme o claim. Determinístico.
         var decision = _shapeRouter.Route(claim);
+
+        // PR 34i — fallback de shape no retry: se a tentativa anterior
+        // falhou por SchemaInvalid num FillInTheBlank, o claim provavelmente
+        // NÃO comporta lacuna no meio (termo-chave logo no início, frase
+        // curta demais). Insistir no mesmo shape desperdiça as tentativas
+        // restantes — até o gpt-4o não reescreve o claim. Troca pra MCQ,
+        // que não tem restrição de posicionamento de lacuna. Resolve a
+        // cauda residual de ~3-7% que sobrevivia a retry+escalonamento.
+        if (priorFailure?.Reason == GenerationFailureReason.SchemaInvalid
+            && decision.Shape == QuestionShape.FillInTheBlank)
+        {
+            decision = new ShapeDecision(QuestionShape.MultipleChoice, "retry_schema_fallback_to_mcq");
+            _log.LogInformation(
+                "Retry shape fallback FillBlank→MCQ apos SchemaInvalid (claim chunk {Chunk})",
+                claim.ChunkIndex);
+        }
+
         using var activity = Activity.StartActivity("forge.generate");
         activity?.SetTag("forge.shape",        decision.Shape.ToString());
         activity?.SetTag("forge.shape.reason", decision.Reason);

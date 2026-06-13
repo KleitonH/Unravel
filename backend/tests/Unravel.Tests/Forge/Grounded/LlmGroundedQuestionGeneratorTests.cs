@@ -232,6 +232,37 @@ public class LlmGroundedQuestionGeneratorTests
         Assert.DoesNotContain("AUTOCORREÇÃO", llm.LastPrompt);
     }
 
+    // ─── PR 34i: shape fallback no retry ──────────────────────────────
+
+    [Fact]
+    public async Task Generate_SchemaInvalidRetry_FallsBackFillBlankToMcq()
+    {
+        var llm = new StubLlm { NextResponse = ValidJsonResponse };
+        var sut = BuildWithShape(llm, QuestionShape.FillInTheBlank, new AlwaysPassValidator(0));
+        var feedback = new RetryFeedback(GenerationFailureReason.SchemaInvalid,
+            "Lacuna sem contexto à esquerda", AttemptNumber: 1);
+
+        var result = await sut.GenerateAsync(Claim, "Tema", feedback, default);
+
+        Assert.True(result.IsSuccess);
+        Assert.Equal(QuestionShape.MultipleChoice, result.Question!.Shape);
+        Assert.Contains("RESPOSTA SUBSTANTIVA", llm.LastPrompt);  // marker MCQ prompt
+    }
+
+    [Fact]
+    public async Task Generate_NonSchemaRetry_KeepsFillBlankShape()
+    {
+        var llm = new StubLlm { NextResponse = ValidJsonResponse };
+        var sut = BuildWithShape(llm, QuestionShape.FillInTheBlank, new AlwaysPassValidator(0));
+        var feedback = new RetryFeedback(GenerationFailureReason.DistractorsPoor,
+            "distratores fracos", AttemptNumber: 1);
+
+        var result = await sut.GenerateAsync(Claim, "Tema", feedback, default);
+
+        Assert.True(result.IsSuccess);
+        Assert.Equal(QuestionShape.FillInTheBlank, result.Question!.Shape);
+    }
+
     // ─── PR 34a: shape selection ──────────────────────────────────────
 
     [Fact]

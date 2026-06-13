@@ -152,6 +152,14 @@ public sealed class ClaimExtractor : IClaimExtractor
             {
                 var sent = sentences[i];
                 if (!IsClaimCandidate(sent, out var words)) continue;
+                // PR 34j — descarta claims não-perguntáveis ANTES de gastar
+                // geração. Diagnóstico (PHP JIT + React): ~10-15% das falhas
+                // residuais que sobrevivem a retry+escalonamento vêm de claims
+                // que NÃO comportam pergunta de qualidade — conclusões/opiniões
+                // ("X é poderoso", "a regra é simples") e fatos-únicos sem
+                // distratores plausíveis. Filtrá-los sobe o yield sobre claims
+                // processados E economiza custo (não gera no que vai falhar).
+                if (!IsQuestionable(sent, words)) continue;
                 var score = ScoreClaim(sent, words, technicalTerms, chunk.HeadingPath);
                 candidates.Add((sent, i, score));
             }
@@ -207,6 +215,57 @@ public sealed class ClaimExtractor : IClaimExtractor
     }
 
     /// <summary>
+    /// <summary>
+    /// PR 34j — descarta claims que NÃO viram pergunta de qualidade,
+    /// independente de modelo. Conservador: só remove sinais fortes de
+    /// não-perguntabilidade pra não perder claims técnicos legítimos.
+    ///
+    /// <para>Dois grupos rejeitados (validados no diagnóstico PHP/React):</para>
+    /// <list type="bullet">
+    ///   <item><b>Meta-discurso/conclusão</b>: frase começa com conectivo
+    ///     conclusivo ("Por fim", "Em resumo", "A regra...") — não traz
+    ///     fato testável, só fecha raciocínio.</item>
+    ///   <item><b>Opinião avaliativa</b>: predicado é juízo de valor
+    ///     ("é poderoso", "vale a pena", "é simples") — sem resposta
+    ///     objetiva, gera distratores ruins.</item>
+    /// </list>
+    /// </summary>
+    internal static bool IsQuestionable(string sentence, string[] words)
+    {
+        var lower = sentence.ToLowerInvariant().TrimStart();
+
+        // 1) Cabeça conclusiva/meta — fecha raciocínio, não afirma fato.
+        foreach (var head in ConclusiveHeads)
+            if (lower.StartsWith(head, StringComparison.Ordinal))
+                return false;
+
+        // 2) Opinião avaliativa — predicado é juízo de valor.
+        foreach (var phrase in OpinionMarkers)
+            if (lower.Contains(phrase, StringComparison.Ordinal))
+                return false;
+
+        return true;
+    }
+
+    /// <summary>Conectivos que abrem conclusão/meta-discurso (claim não-factual).</summary>
+    private static readonly string[] ConclusiveHeads =
+    {
+        "por fim", "em resumo", "em suma", "no fim", "no final",
+        "a regra", "a chave", "a dica", "a lição", "vale lembrar",
+        "vale notar", "vale a pena", "é importante", "é essencial",
+        "o mais importante", "o erro mais", "o segredo",
+        "lembre-se", "atenção:", "dica:", "nota:",
+    };
+
+    /// <summary>Frases de opinião/avaliação que indicam claim não-perguntável.</summary>
+    private static readonly string[] OpinionMarkers =
+    {
+        "ferramenta poderosa", "muito poderoso", "muito poderosa",
+        "vale a pena", "regra de ouro", "regra prática é simples",
+        "mais simples", "bastante simples", "extremamente",
+        "é fundamental entender", "é crucial", "sempre que possível",
+    };
+
     /// Score em [0, 1] (heurístico, não calibrado). Combina sinais:
     /// comprimento ideal (~12-22 palavras), padrão "X é Y" definicional,
     /// presença de termo técnico do chunk, e cobertura do heading.
