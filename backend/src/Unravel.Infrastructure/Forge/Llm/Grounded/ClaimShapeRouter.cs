@@ -46,6 +46,18 @@ public sealed class ClaimShapeRouter : IClaimShapeRouter
         new(@"`[^`]+`|\b[A-Z][a-zA-Z0-9]{2,}\b|\b[a-z]+[A-Z][a-zA-Z0-9]*\b|\b[a-z]+_[a-z_]+\b",
             RegexOptions.Compiled);
 
+    /// <summary>
+    /// PR 34a-bis — Padrão "O/A X é/foi/era/está Y" no início do claim.
+    /// Diagnóstico PHP JIT mostrou que ~20% das falhas FillBlank vinham de
+    /// claims com essa cabeça curta: o LLM acaba colocando a lacuna no X
+    /// (2ª palavra), violando "≥2 palavras de contexto à esquerda" do
+    /// <c>BlankPlacementValidator</c>. Forçando MCQ pra esses casos
+    /// evitamos a falha estrutural sem perder a pergunta.
+    /// </summary>
+    private static readonly Regex ArticleSubjectCopulaPattern =
+        new(@"^\s*(O|A|Os|As|Um|Uma)\s+\S+\s+(é|foi|era|está|são|eram|estão|será|serão)\b",
+            RegexOptions.Compiled | RegexOptions.IgnoreCase);
+
     public ShapeDecision Route(ClaimCandidate claim)
     {
         if (claim is null) throw new ArgumentNullException(nameof(claim));
@@ -61,6 +73,10 @@ public sealed class ClaimShapeRouter : IClaimShapeRouter
 
         if (!HasTechnicalTerm(text))
             return new ShapeDecision(QuestionShape.MultipleChoice, "no_technical_term");
+
+        // PR 34a-bis — cabeça "O X é/está..." → MCQ (lacuna cairia muito cedo)
+        if (ArticleSubjectCopulaPattern.IsMatch(text))
+            return new ShapeDecision(QuestionShape.MultipleChoice, "article_subject_copula_head");
 
         return new ShapeDecision(QuestionShape.FillInTheBlank, "good_shape_match");
     }

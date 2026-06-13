@@ -54,6 +54,15 @@ public sealed class DistractorGrammarValidator : IQuestionValidator
                                          .Where((_, i) => i != question.CorrectIndex)
                                          .ToList();
 
+        // PR 34b-bis — Acronym e Other ficam isentos de TODOS os checks:
+        // siglas técnicas (JIT, PHP, PSR) naturalmente têm distratores em
+        // formato narrativo ("compila funções inteiras") com tamanho e
+        // word count muito diferentes. Forçar simetria gera false-positives
+        // em massa em conteúdo técnico avançado (visto no diagnóstico PHP JIT).
+        var skipShapeChecks = correctLexShape == LexShape.Acronym
+                           || correctLexShape == LexShape.Other;
+        if (skipShapeChecks) return null;
+
         // 1) Comprimento por distrator
         foreach (var d in distractors)
         {
@@ -78,7 +87,8 @@ public sealed class DistractorGrammarValidator : IQuestionValidator
                     $"(diferença {diff} > {max})");
         }
 
-        // 3) Forma léxica: ≥ metade dos distratores compartilha shape
+        // 3) Forma léxica: ≥ metade dos distratores compartilha shape.
+        // (Skip pra Acronym/Other já feito acima.)
         var matchingShape = distractors.Count(d => ClassifyLexShape(d) == correctLexShape);
         if (matchingShape * 2 < distractors.Count)
             return (GenerationFailureReason.DistractorsPoor,
@@ -103,6 +113,14 @@ public sealed class DistractorGrammarValidator : IQuestionValidator
         // Backtick (`const`) — código inline
         if (t.StartsWith('`') && t.EndsWith('`'))
             return LexShape.Backticked;
+
+        // Acronym — 2-6 chars TODOS MAIÚSCULOS (JIT, PHP, PSR, API, HTTPS, JSON).
+        // PR 34b-bis (diagnostico PHP JIT): conteudo tecnico avancado tem
+        // muitas siglas como resposta correta; sem essa categoria caem em
+        // "Other" e DistractorsPoor rejeitava tudo em massa.
+        if (t.Length >= 2 && t.Length <= 6
+            && t.All(c => char.IsUpper(c) || char.IsDigit(c)))
+            return LexShape.Acronym;
 
         // snake_case (tem _ no meio, todo minúsculo)
         if (t.Contains('_') && t.All(c => char.IsLower(c) || char.IsDigit(c) || c == '_'))
@@ -136,6 +154,7 @@ public sealed class DistractorGrammarValidator : IQuestionValidator
         Other,
         SymbolPrefixed,   // @Component, #id, .class
         Backticked,       // `const`
+        Acronym,          // JIT, PHP, PSR, API (PR 34b-bis)
         PascalCase,       // AppModule, MyClass
         CamelCase,        // useState, ngOnInit
         SnakeCase,        // max_pool_size

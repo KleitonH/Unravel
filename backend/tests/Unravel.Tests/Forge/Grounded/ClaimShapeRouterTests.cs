@@ -75,6 +75,31 @@ public class ClaimShapeRouterTests
         Assert.Equal("no_technical_term", d.Reason);
     }
 
+    // ─── MultipleChoice: cabeça "O X é/está/foi..." (PR 34a-bis) ──────
+
+    [Theory]
+    [InlineData("O JIT é configurado via php.ini e exige que o OPcache esteja habilitado.")]
+    [InlineData("A função foi removida nas versões mais recentes do framework Angular.")]
+    [InlineData("Os tokens são gerados pelo middleware antes de chegar no controller HTTP.")]
+    [InlineData("Um SystemProperty está definido como readonly no namespace global do app.")]
+    public void Route_ArticleSubjectCopulaHead_ReturnsMultipleChoice(string text)
+    {
+        var d = Sut.Route(Claim(text));
+        Assert.Equal(QuestionShape.MultipleChoice, d.Shape);
+        Assert.Equal("article_subject_copula_head", d.Reason);
+    }
+
+    [Fact]
+    public void Route_ArticleSubjectButActionVerb_StillFillBlank()
+    {
+        // Regressão guard: "O decorator @Component marca..." NÃO casa
+        // o padrão de cópula (marca é verbo de ação), então continua
+        // FillBlank como antes.
+        var d = Sut.Route(Claim("O decorator @Component marca a classe como componente Angular."))
+;
+        Assert.Equal(QuestionShape.FillInTheBlank, d.Shape);
+    }
+
     // ─── Determinismo ─────────────────────────────────────────────────
 
     [Fact]

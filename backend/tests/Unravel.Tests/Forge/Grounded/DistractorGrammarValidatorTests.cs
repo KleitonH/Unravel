@@ -116,6 +116,19 @@ public class DistractorGrammarValidatorTests
 
     // ── Short-circuit ────────────────────────────────────────────────
 
+    // PR 34b-bis — Acronym pula o check de forma léxica (distratores
+    // de sigla normalmente vêm como frases/phrases, não outras siglas)
+    [Fact]
+    public void Validate_AcronymCorrect_SkipsShapeCheck()
+    {
+        var q = FillBlank(0,
+            "JIT",
+            "interpreta bytecode sem otimização",
+            "compila funções inteiras",
+            "cacheia parses do arquivo");
+        Assert.Null(Sut.Validate(q, Claim));
+    }
+
     [Fact]
     public void Validate_NotFillBlankShape_ShortCircuits()
     {
@@ -133,6 +146,12 @@ public class DistractorGrammarValidatorTests
     [InlineData("@Component",         "SymbolPrefixed")]
     [InlineData("#header",            "SymbolPrefixed")]
     [InlineData("`const`",            "Backticked")]
+    // PR 34b-bis — Acronym (2-6 chars MAIÚSCULOS)
+    [InlineData("JIT",                "Acronym")]
+    [InlineData("PHP",                "Acronym")]
+    [InlineData("PSR4",               "Acronym")]
+    [InlineData("HTTPS",              "Acronym")]
+    [InlineData("API",                "Acronym")]
     [InlineData("AppModule",          "PascalCase")]
     [InlineData("useState",           "CamelCase")]
     [InlineData("max_pool_size",      "SnakeCase")]

@@ -95,4 +95,45 @@ public class AnswerGroundednessValidatorTests
         var emb = new StubEmbedder(new());
         Assert.Equal(2, new AnswerGroundednessValidator(emb).Order);
     }
+
+    // ── PR 33e-bis — substring fallback ──────────────────────────────
+
+    [Fact]
+    public void Validate_LiteralOverlap_BypassesLowCosine()
+    {
+        // Cosine = 0 (vetores ortogonais), mas resposta contém termo
+        // técnico do chunk → fallback de substring deve aceitar.
+        // Conteúdo PHP JIT: "opcache.jit_buffer_size" é uma config técnica
+        // citada no chunk; resposta a referencia literalmente.
+        var emb = new StubEmbedder(new()
+        {
+            ["O JIT é configurado via opcache.jit_buffer_size no php.ini"] = new float[] { 1, 0, 0, 0 },
+            ["A opção opcache controla o tamanho do buffer JIT"]            = new float[] { 0, 1, 0, 0 },
+        });
+        var sut   = new AnswerGroundednessValidator(emb, threshold: 0.55);
+        var claim = new ClaimCandidate(0,
+            "O JIT é configurado via opcache.jit_buffer_size no php.ini", "x", 0.5);
+        var q     = Q("A opção opcache controla o tamanho do buffer JIT");
+        // "opcache" (7 chars) e "buffer" (6 chars) e "tamanho" (7 chars)
+        // casam com chunk normalizado → pula cosine.
+        Assert.Null(sut.Validate(q, claim));
+    }
+
+    [Fact]
+    public void Validate_NoOverlap_StillFailsByCosine()
+    {
+        // Resposta sem termos técnicos do chunk + cosine baixo → falha
+        // como antes (regressão guard).
+        var emb = new StubEmbedder(new()
+        {
+            ["chunk com termos especificos"] = new float[] { 1, 0, 0, 0 },
+            ["palavra genérica curta"]       = new float[] { 0, 1, 0, 0 },
+        });
+        var sut   = new AnswerGroundednessValidator(emb, threshold: 0.55);
+        var claim = new ClaimCandidate(0, "chunk com termos especificos", "x", 0.5);
+        var q     = Q("palavra genérica curta");
+        // "palavra" não está no chunk; "generica" não está; "curta" tem 5 chars
+        // mas não casa. Cosine continua sendo o gate.
+        Assert.NotNull(sut.Validate(q, claim));
+    }
 }

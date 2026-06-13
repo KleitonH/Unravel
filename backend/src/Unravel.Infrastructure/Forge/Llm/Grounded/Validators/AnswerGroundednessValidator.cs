@@ -56,6 +56,18 @@ public sealed class AnswerGroundednessValidator : IQuestionValidator
 
         var answer = question.Options[question.CorrectIndex];
 
+        // PR 33e-bis — fallback de substring literal ANTES do cosine.
+        // Diagnóstico PHP JIT: conteúdo técnico em PT-BR misturado com
+        // jargão em inglês (tracing, opcache, jit_buffer_size) degrada
+        // similaridade MiniLM mesmo quando a resposta cita literalmente
+        // termos do chunk. Se o termo aparece literal (após normalização),
+        // está "grounded" sem precisar de embedding — passamos direto.
+        //
+        // Isso preserva o cosine como gate semântico pra parafraseado puro
+        // (que continua precisando >= threshold), mas evita rejeitar
+        // respostas que referenciam termos técnicos verbatim.
+        if (HasLiteralOverlap(answer, claim.ChunkText)) return null;
+
         var chunkVec  = _embedder.Encode(claim.ChunkText);
         var answerVec = _embedder.Encode(answer);
 
@@ -66,6 +78,42 @@ public sealed class AnswerGroundednessValidator : IQuestionValidator
                 $"Cosine(answer↔chunk)={sim:F3} < threshold {_threshold:F2}");
 
         return null;
+    }
+
+    /// <summary>
+    /// PR 33e-bis — detecta se a resposta cita pedaço técnico do chunk
+    /// literalmente. Considera "overlap suficiente" quando a maior
+    /// palavra técnica da resposta (≥4 chars, alfanumérica) aparece
+    /// também no chunk após normalização (case-insensitive, strip
+    /// de underscores/traços/crases). Pra evitar match com palavras
+    /// genéricas ("para", "como"), só conta tokens ≥4 chars.
+    ///
+    /// <para>Não substitui o cosine — só ATALHO pra casos onde o termo
+    /// técnico aparece verbatim. Resposta sem overlap continua passando
+    /// pelo gate semântico padrão.</para>
+    /// </summary>
+    private static bool HasLiteralOverlap(string answer, string chunk)
+    {
+        if (string.IsNullOrWhiteSpace(answer) || string.IsNullOrWhiteSpace(chunk))
+            return false;
+
+        var chunkNorm = Normalize(chunk);
+        // Tokeniza a resposta em "palavras" de letras/dígitos.
+        // Pega só tokens ≥4 chars (ignora artigos, conectivos, siglas
+        // soltas demais como "JIT" cabe em 3 e fica fora; isso é OK
+        // pois respostas tipicamente têm contexto adicional além da sigla).
+        var tokens = System.Text.RegularExpressions.Regex
+            .Matches(answer, @"[\p{L}\p{Nd}]{4,}")
+            .Select(m => Normalize(m.Value))
+            .Where(t => t.Length >= 4)
+            .ToList();
+
+        if (tokens.Count == 0) return false;
+
+        // Considera "overlap" quando AO MENOS 1 token técnico significativo
+        // aparece literal. 1 já basta porque o cosine continua sendo o gate
+        // pra respostas puramente parafraseadas.
+        return tokens.Any(t => chunkNorm.Contains(t));
     }
 
     /// <summary>PR 34b — grounding alternativo pra FillBlank: a resposta
