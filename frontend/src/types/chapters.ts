@@ -41,3 +41,31 @@ export type PublicationReadiness = {
   minRequiredPerChapter: number
   chapters:              ChapterReadiness[]
 }
+
+/**
+ * PR 60-f — pergunta do pool (gerada pela IA OU autoral do moderador),
+ * com chunkIndex pra agrupar por capítulo. `authored=true` ⇒ escrita à
+ * mão (editável); senão é gerada pela IA (só desativável).
+ */
+export type ContentQuestion = {
+  id:                  number
+  chunkIndex:          number
+  strategy:            string
+  shape:               string
+  prompt:              string
+  options:             string[]
+  correctIndex:        number
+  explanation:         string | null
+  estimatedDifficulty: number
+  authored:            boolean
+}
+
+/** Payload pra criar/editar pergunta autoral. */
+export type AuthorQuestionRequest = {
+  chunkIndex:      number
+  prompt:          string
+  correctAnswer:   string
+  distractors:     string[]   // exatamente 3
+  explanation?:    string | null
+  difficultyHint?: number | null
+}

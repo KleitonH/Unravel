@@ -100,6 +100,7 @@ export type ChallengeStrategy =
   | "Cloze" | "Definition" | "TrueFalse"
   | "Ordering" | "Match" | "Code"
   | "LlmGrounded"
+  | "ModeratorAuthored"   // PR 60-f: escrita à mão pelo moderador
 
 /**
  * Formato visual da pergunta (PR 34). Decidido no backend pelo

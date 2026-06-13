@@ -27,7 +27,7 @@ import { cn } from "@/lib/utils"
  * </list>
  */
 export function GenerateQuestionsDialog({
-  open, onClose, scope, scopeId, scopeName, contentsCount = 1,
+  open, onClose, scope, scopeId, scopeName, contentsCount = 1, chunkIndex,
 }: {
   open:          boolean
   onClose:       () => void
@@ -39,9 +39,13 @@ export function GenerateQuestionsDialog({
   scopeName:     string
   /** Apenas usado quando scope=trail pra calcular custo total */
   contentsCount?: number
+  /** PR 60-f — quando definido (scope=content), restringe a geração a um
+   *  único capítulo (H2). Default menor já que o objetivo é fechar um gap. */
+  chunkIndex?:   number
 }) {
   const qc = useQueryClient()
-  const [maxPerContent, setMaxPerContent] = useState(15)
+  const scoped = chunkIndex != null && scope === "content"
+  const [maxPerContent, setMaxPerContent] = useState(scoped ? 6 : 15)
   const [urgent, setUrgent]               = useState(false)
 
   const balanceQuery = useQuery({
@@ -61,8 +65,9 @@ export function GenerateQuestionsDialog({
 
   const dispatchMutation = useMutation({
     mutationFn: async () => {
+      const chunkParam = scoped ? `&chunkIndex=${chunkIndex}` : ""
       const url = scope === "content"
-        ? `/api/admin/forge/${scopeId}?max=${maxPerContent}&urgent=${urgent}`
+        ? `/api/admin/forge/${scopeId}?max=${maxPerContent}&urgent=${urgent}${chunkParam}`
         : `/api/admin/forge/bulk?trailSlug=${scopeId}&max=${maxPerContent}&urgent=${urgent}`
       return api.post(url).then((r) => r.data)
     },
@@ -87,6 +92,12 @@ export function GenerateQuestionsDialog({
       // Força refresh imediato do chip do header pra ele já mostrar o
       // novo batch sem esperar o próximo tick de polling.
       qc.invalidateQueries({ queryKey: ["forge", "batches", "recent"] })
+      // PR 60-f — readiness e lista de perguntas refletem os novos jobs
+      // assim que o worker concluir (refetchInterval/onFocus pegam o resto).
+      if (scope === "content") {
+        qc.invalidateQueries({ queryKey: ["admin", "publication-readiness", Number(scopeId)] })
+        qc.invalidateQueries({ queryKey: ["admin", "content-questions", Number(scopeId)] })
+      }
       onClose()
     },
     onError: (err: any) => {
@@ -109,7 +120,9 @@ export function GenerateQuestionsDialog({
             Gerar perguntas — {scopeName}
           </DialogTitle>
           <DialogDescription>
-            {scope === "content"
+            {scoped
+              ? "O OpenAI vai gerar perguntas LLM-grounded SÓ deste capítulo — pra fechar o gap sem mexer no resto."
+              : scope === "content"
               ? "O OpenAI vai gerar perguntas LLM-grounded baseadas neste conteúdo."
               : `Bulk em todos os ${contentsCount} conteúdos da trilha.`}
           </DialogDescription>

@@ -4,6 +4,7 @@ using System.Text.Json;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Unravel.Application.Forge;
 using Unravel.Application.Forge.Ports;
 using Unravel.Application.Journey;
 using Unravel.Application.Knowledge.Ports;
@@ -12,6 +13,7 @@ using Unravel.Domain.Entities;
 using Unravel.Domain.Forge;
 using Unravel.Domain.Tokens;
 using Unravel.Infrastructure.Knowledge;
+using Unravel.Infrastructure.Knowledge.Chunking;
 using Unravel.Infrastructure.Persistence;
 
 namespace Unravel.API.Controllers;
@@ -66,12 +68,18 @@ public sealed class AdminController(
     /// PR 32 — enfileira jobs de geração LLM-grounded pra um Content.
     /// Extrai claims do conteúdo e cria 1 job por claim (até <c>max</c>).
     /// Worker BackgroundService processa em batch (1 por vez na GPU).
+    ///
+    /// <para>PR 60-f — <c>chunkIndex</c> opcional restringe a geração a um
+    /// único capítulo (H2). Útil quando o readiness aponta um capítulo curto:
+    /// extrai claims só daquele chunk em vez de competir por score com o
+    /// conteúdo inteiro (onde um capítulo fraco nunca entraria no top-N).</para>
     /// </summary>
     [HttpPost("forge/{contentId:int}")]
     public async Task<IActionResult> EnqueueForge(
         int contentId,
         [FromQuery] int max = 20,
         [FromQuery] bool urgent = false,
+        [FromQuery] int? chunkIndex = null,
         [FromServices] ApplicationDbContext db = null!,
         [FromServices] IClaimExtractor extractor = null!,
         [FromServices] IQuestionForgeQueue queue = null!,
@@ -83,13 +91,23 @@ public sealed class AdminController(
             .FirstOrDefaultAsync(ct);
         if (content is null) return NotFound(new { message = $"Content {contentId} não existe." });
 
+        if (chunkIndex is { } ci)
+        {
+            var chunkCount = new ChunkSegmenter().Segment(content.Body).Count;
+            if (ci < 0 || ci >= chunkCount)
+                return BadRequest(new { message = $"chunkIndex {ci} fora do intervalo (0..{chunkCount - 1})." });
+        }
+
         var claims = extractor.Extract(content.Body)
+            .Where(c => chunkIndex is null || c.ChunkIndex == chunkIndex)
             .OrderByDescending(c => c.Score)
             .Take(max)
             .ToList();
 
         if (claims.Count == 0)
-            return Ok(new { contentId, contentTitle = content.Title, enqueued = 0, message = "Nenhuma claim extratível desse conteúdo." });
+            return Ok(new { contentId, contentTitle = content.Title, chunkIndex, enqueued = 0, message = chunkIndex is null
+                ? "Nenhuma claim extratível desse conteúdo."
+                : $"Nenhuma claim extratível do capítulo {chunkIndex}." });
 
         // PR 52 — debita tokens (lã) ANTES de enqueue. Custo varia por urgent.
         var costPerJob = urgent ? 3 : 1;
@@ -122,7 +140,7 @@ public sealed class AdminController(
             ct: ct);
 
         return Ok(new {
-            contentId, contentTitle = content.Title,
+            contentId, contentTitle = content.Title, chunkIndex,
             claimsCandidates = claims.Count, enqueued,
             tokensSpentCm = totalCost,
             batchId,
@@ -648,6 +666,183 @@ public sealed class AdminController(
         return Ok(new { item.Id, item.UpdatedAt });
     }
 
+    // ─── PR 60-f — Perguntas autorais do moderador (servidas ao aluno) ──
+    //
+    // Diferente do gold (eval-only): estas viram GeneratedChallenge de 1ª
+    // classe (Strategy=ModeratorAuthored), com sourceChunkIndex, então
+    // CONTAM no readiness do capítulo e são SERVIDAS no quiz.
+
+    /// <summary>
+    /// Lista TODAS as perguntas ativas (geradas + autorais) de um Content,
+    /// com chunkIndex/shape/strategy — pra UI agrupar por capítulo. Sem o
+    /// cap de 20 do challenge-pool (que é calibrado pro quiz do aluno).
+    /// </summary>
+    [HttpGet("contents/{contentId:int}/questions")]
+    public async Task<IActionResult> ListContentQuestions(
+        int contentId,
+        [FromServices] ApplicationDbContext db,
+        CancellationToken ct)
+    {
+        var content = await db.Content.AsNoTracking()
+            .Where(c => c.Id == contentId)
+            .Select(c => new { c.Id, c.Body })
+            .FirstOrDefaultAsync(ct);
+        if (content is null) return NotFound(new { message = $"Content {contentId} não existe." });
+
+        var rows = await db.GeneratedChallenge.AsNoTracking()
+            .Where(g => g.ContentId == contentId && g.IsActive)
+            .Select(g => new { g.Id, g.Prompt, g.BodyJson, g.Strategy, g.EstimatedDifficulty })
+            .ToListAsync(ct);
+
+        var items = rows.Select(g =>
+        {
+            var (options, correctIndex, explanation, shape, chunkIdx) = ParseChallengeBody(g.BodyJson);
+            return new ContentQuestionDto(
+                g.Id, chunkIdx, g.Strategy.ToString(), shape, g.Prompt,
+                options, correctIndex, explanation, g.EstimatedDifficulty,
+                Authored: g.Strategy == ForgeStrategy.ModeratorAuthored);
+        }).ToList();
+
+        return Ok(items);
+    }
+
+    /// <summary>
+    /// Cria uma pergunta escrita à mão pro capítulo <c>chunkIndex</c>.
+    /// Vira GeneratedChallenge ativo (ModeratorAuthored) → conta no
+    /// readiness e é servida no quiz. Não consome lã (sem custo de LLM).
+    /// </summary>
+    [HttpPost("contents/{contentId:int}/questions")]
+    public async Task<IActionResult> AddContentQuestion(
+        int contentId,
+        [FromBody] AuthorQuestionRequest dto,
+        [FromServices] ApplicationDbContext db,
+        CancellationToken ct)
+    {
+        var content = await db.Content
+            .Where(c => c.Id == contentId)
+            .Select(c => new { c.Id, c.Body, c.TrailId })
+            .FirstOrDefaultAsync(ct);
+        if (content is null) return NotFound(new { message = $"Content {contentId} não existe." });
+
+        var chunkCount = new ChunkSegmenter().Segment(content.Body).Count;
+        if (dto.ChunkIndex < 0 || dto.ChunkIndex >= chunkCount)
+            return BadRequest(new { message = $"chunkIndex {dto.ChunkIndex} fora do intervalo (0..{chunkCount - 1})." });
+
+        var built = AuthoredQuestion.Build(dto.Prompt, dto.CorrectAnswer, dto.Distractors,
+            positionSeed: (dto.Prompt ?? string.Empty).Trim().Length);
+        if (!built.Ok) return BadRequest(new { message = built.Error });
+
+        var bodyJson = SerializeAuthoredBody(built.Options, built.CorrectIndex, dto.Explanation, dto.ChunkIndex);
+        var challenge = new GeneratedChallenge
+        {
+            ContentId           = contentId,
+            TopicId             = contentId,
+            TrailId             = content.TrailId,
+            Strategy            = ForgeStrategy.ModeratorAuthored,
+            Prompt              = dto.Prompt!.Trim(),
+            BodyJson            = bodyJson,
+            EstimatedDifficulty = Math.Clamp(dto.DifficultyHint ?? 0.5, 0.0, 1.0),
+            IsActive            = true,
+        };
+        db.GeneratedChallenge.Add(challenge);
+        await db.SaveChangesAsync(ct);
+        return CreatedAtAction(nameof(ListContentQuestions), new { contentId }, new { challenge.Id, dto.ChunkIndex });
+    }
+
+    /// <summary>
+    /// Edita uma pergunta autoral. Só ModeratorAuthored — perguntas geradas
+    /// pela IA não são editáveis aqui (preserva a procedência; pra ajustar
+    /// uma gerada, desative-a e escreva a sua).
+    /// </summary>
+    [HttpPut("contents/{contentId:int}/questions/{challengeId:int}")]
+    public async Task<IActionResult> UpdateContentQuestion(
+        int contentId,
+        int challengeId,
+        [FromBody] AuthorQuestionRequest dto,
+        [FromServices] ApplicationDbContext db,
+        CancellationToken ct)
+    {
+        var challenge = await db.GeneratedChallenge
+            .FirstOrDefaultAsync(g => g.Id == challengeId && g.ContentId == contentId, ct);
+        if (challenge is null) return NotFound();
+        if (challenge.Strategy != ForgeStrategy.ModeratorAuthored)
+            return BadRequest(new { message = "Só perguntas autorais podem ser editadas aqui." });
+        if (!challenge.IsActive)
+            return BadRequest(new { message = "Pergunta já foi removida. Crie uma nova." });
+
+        var body = await db.Content.Where(c => c.Id == contentId).Select(c => c.Body).FirstOrDefaultAsync(ct);
+        var chunkCount = new ChunkSegmenter().Segment(body ?? string.Empty).Count;
+        if (dto.ChunkIndex < 0 || dto.ChunkIndex >= chunkCount)
+            return BadRequest(new { message = $"chunkIndex {dto.ChunkIndex} fora do intervalo (0..{chunkCount - 1})." });
+
+        var built = AuthoredQuestion.Build(dto.Prompt, dto.CorrectAnswer, dto.Distractors,
+            positionSeed: (dto.Prompt ?? string.Empty).Trim().Length);
+        if (!built.Ok) return BadRequest(new { message = built.Error });
+
+        challenge.Prompt              = dto.Prompt!.Trim();
+        challenge.BodyJson            = SerializeAuthoredBody(built.Options, built.CorrectIndex, dto.Explanation, dto.ChunkIndex);
+        challenge.EstimatedDifficulty = Math.Clamp(dto.DifficultyHint ?? challenge.EstimatedDifficulty, 0.0, 1.0);
+        await db.SaveChangesAsync(ct);
+        return Ok(new { challenge.Id, dto.ChunkIndex });
+    }
+
+    /// <summary>
+    /// Desativa (soft-delete) qualquer pergunta ativa do Content — autoral
+    /// OU gerada pela IA. Permite ao moderador podar uma pergunta ruim do
+    /// pool. Histórico fica (IsActive=false).
+    /// </summary>
+    [HttpDelete("contents/{contentId:int}/questions/{challengeId:int}")]
+    public async Task<IActionResult> DeactivateContentQuestion(
+        int contentId,
+        int challengeId,
+        [FromServices] ApplicationDbContext db,
+        CancellationToken ct)
+    {
+        var challenge = await db.GeneratedChallenge
+            .FirstOrDefaultAsync(g => g.Id == challengeId && g.ContentId == contentId, ct);
+        if (challenge is null) return NotFound();
+        challenge.IsActive = false;
+        await db.SaveChangesAsync(ct);
+        return NoContent();
+    }
+
+    /// <summary>Serializa o BodyJson no MESMO schema do QuestionForgeWorker
+    /// (sourceChunkIndex faz o ContentChaptersService agrupar; shape faz a
+    /// UI renderizar) — assim a autoral é indistinguível de uma gerada no
+    /// pool, exceto pela Strategy.</summary>
+    private static string SerializeAuthoredBody(string[] options, int correctIndex, string? explanation, int chunkIndex)
+        => JsonSerializer.Serialize(new
+        {
+            options,
+            correctIndex,
+            explanation      = string.IsNullOrWhiteSpace(explanation) ? null : explanation.Trim(),
+            shape            = "MultipleChoice",
+            sourceChunkIndex = chunkIndex,
+            generatedBy      = "moderator",
+        });
+
+    /// <summary>Parse defensivo do BodyJson → tupla pronta pra DTO.</summary>
+    private static (List<string> options, int correctIndex, string? explanation, string shape, int chunkIndex)
+        ParseChallengeBody(string bodyJson)
+    {
+        try
+        {
+            using var doc = JsonDocument.Parse(bodyJson);
+            var root = doc.RootElement;
+            var options = root.GetProperty("options").EnumerateArray().Select(e => e.GetString() ?? "").ToList();
+            var correctIndex = root.GetProperty("correctIndex").GetInt32();
+            var explanation = root.TryGetProperty("explanation", out var ex) ? ex.GetString() : null;
+            var shape = root.TryGetProperty("shape", out var sh) ? sh.GetString() ?? "MultipleChoice" : "MultipleChoice";
+            var chunkIndex = root.TryGetProperty("sourceChunkIndex", out var ci) && ci.ValueKind == JsonValueKind.Number
+                ? ci.GetInt32() : 0;
+            return (options, correctIndex, explanation, shape, chunkIndex);
+        }
+        catch (JsonException)
+        {
+            return (new List<string> { "—" }, 0, null, "MultipleChoice", 0);
+        }
+    }
+
     // ─── PR 35 — Trilhas custom de moderador ────────────────────────
 
     /// <summary>
@@ -1005,6 +1200,31 @@ public record UpdateGoldRequest(
     string?       Explanation,
     string?       SourceClaim,
     double?       DifficultyHint);
+
+/// <summary>PR 60-f — payload pra criar/editar pergunta autoral do
+/// moderador (vira GeneratedChallenge ModeratorAuthored). ChunkIndex
+/// amarra a pergunta a um capítulo (conta no readiness daquele capítulo).</summary>
+public record AuthorQuestionRequest(
+    int           ChunkIndex,
+    string?       Prompt,
+    string?       CorrectAnswer,
+    List<string>? Distractors,         // exatamente 3 não-vazios distintos
+    string?       Explanation,
+    double?       DifficultyHint);
+
+/// <summary>PR 60-f — pergunta do pool (gerada ou autoral) com chunkIndex,
+/// pra UI agrupar por capítulo.</summary>
+public record ContentQuestionDto(
+    int           Id,
+    int           ChunkIndex,
+    string        Strategy,
+    string        Shape,
+    string        Prompt,
+    List<string>  Options,
+    int           CorrectIndex,
+    string?       Explanation,
+    double        EstimatedDifficulty,
+    bool          Authored);
 
 public record GoldDto(
     int       Id,

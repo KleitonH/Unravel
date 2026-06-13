@@ -29,4 +29,5 @@ public enum ForgeStrategy
     Match        = 5,   // (PR 5)
     Code         = 6,   // (PR 5)
     LlmGrounded  = 7,   // (PR 31/32) gerado por LLM com claim grounded no chunk
+    ModeratorAuthored = 8, // (PR 60-f) escrita à mão pelo moderador; serve ao aluno e conta no readiness
 }

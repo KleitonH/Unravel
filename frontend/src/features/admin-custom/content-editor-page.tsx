@@ -13,6 +13,7 @@ import { Label } from "@/components/ui/label"
 import { Skeleton } from "@/components/ui/skeleton"
 import { GenerateQuestionsDialog } from "./generate-questions-dialog"
 import { ForgeActivityChip } from "@/components/forge/forge-activity-chip"
+import { ChapterQuestionsPanel } from "./chapter-questions-panel"
 import { ContentQuestionsManager } from "./content-questions-manager"
 import { ContentEditorTutorial, ContentEditorTutorialHelpButton } from "./content-editor-tutorial"
 
@@ -231,7 +232,12 @@ function EditorForm({
         scopeName={title}
       />
 
-      {/* PR 56-a — gerenciador de perguntas (geradas + curadas) */}
+      {/* PR 60-f — perguntas organizadas por capítulo, com ações scoped
+          (gerar IA / escrever) que fecham o gap de cada capítulo */}
+      <ChapterQuestionsPanel contentId={contentId} contentTitle={title} />
+
+      {/* PR 56-a — gabarito de referência (mede a qualidade da IA; não
+          vai pro aluno). Mantido abaixo como ferramenta de avaliação. */}
       <ContentQuestionsManager contentId={contentId} />
 
       {/* PR 60-d — tutorial auto-aberto na primeira vez */}
