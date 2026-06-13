@@ -253,11 +253,10 @@ function QuestionRow({
           <span>dif {Math.round(q.estimatedDifficulty * 100)}%</span>
         </div>
         <div className="flex items-center gap-0.5">
-          {q.authored && (
-            <Button size="icon" variant="ghost" className="h-6 w-6" onClick={onEdit}>
-              <Pencil className="h-3 w-3" />
-            </Button>
-          )}
+          {/* PR 60-f bis — editar qualquer pergunta (autoral OU IA). */}
+          <Button size="icon" variant="ghost" className="h-6 w-6" onClick={onEdit}>
+            <Pencil className="h-3 w-3" />
+          </Button>
           <Button
             size="icon"
             variant="ghost"
@@ -351,11 +350,19 @@ function AuthorQuestionDialog({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <PenLine className="h-5 w-5 text-primary" />
-            {editing ? "Editar sua pergunta" : "Escrever pergunta"}
+            {!editing
+              ? "Escrever pergunta"
+              : editing.authored ? "Editar sua pergunta" : "Editar pergunta da IA"}
           </DialogTitle>
           <DialogDescription>
-            Capítulo <strong>“{chapterTitle}”</strong>. MCQ com 4 opções (1 correta + 3
+            Capítulo <strong>“{chapterTitle}”</strong>. 4 opções (1 correta + 3
             distratores). Vai pro quiz do aluno e conta no readiness deste capítulo.
+            {editing && !editing.authored && (
+              <span className="block mt-1 text-[11px]">
+                Editando uma pergunta gerada pela IA — corrigir o texto mantém a
+                origem (badge “IA”), só muda o conteúdo.
+              </span>
+            )}
           </DialogDescription>
         </DialogHeader>
 

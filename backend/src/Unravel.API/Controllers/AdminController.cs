@@ -750,9 +750,13 @@ public sealed class AdminController(
     }
 
     /// <summary>
-    /// Edita uma pergunta autoral. Só ModeratorAuthored — perguntas geradas
-    /// pela IA não são editáveis aqui (preserva a procedência; pra ajustar
-    /// uma gerada, desative-a e escreva a sua).
+    /// Edita uma pergunta do pool — autoral OU gerada pela IA (PR 60-f bis:
+    /// moderador pode revisar/corrigir o que a IA gerou, não só desativar).
+    ///
+    /// <para>Preserva a <b>procedência</b> (Strategy) e o <b>shape</b>
+    /// originais: corrigir o texto de uma pergunta da IA não a transforma em
+    /// autoral — o badge continua "IA", só o conteúdo muda. Um fill-blank
+    /// continua fill-blank.</para>
     /// </summary>
     [HttpPut("contents/{contentId:int}/questions/{challengeId:int}")]
     public async Task<IActionResult> UpdateContentQuestion(
@@ -765,8 +769,6 @@ public sealed class AdminController(
         var challenge = await db.GeneratedChallenge
             .FirstOrDefaultAsync(g => g.Id == challengeId && g.ContentId == contentId, ct);
         if (challenge is null) return NotFound();
-        if (challenge.Strategy != ForgeStrategy.ModeratorAuthored)
-            return BadRequest(new { message = "Só perguntas autorais podem ser editadas aqui." });
         if (!challenge.IsActive)
             return BadRequest(new { message = "Pergunta já foi removida. Crie uma nova." });
 
@@ -779,8 +781,12 @@ public sealed class AdminController(
             positionSeed: (dto.Prompt ?? string.Empty).Trim().Length);
         if (!built.Ok) return BadRequest(new { message = built.Error });
 
+        // Preserva o shape original (a edição é por opções, serve a MCQ e
+        // fill-blank igualmente; manter o shape evita converter um no outro).
+        var (_, _, _, existingShape, _) = ParseChallengeBody(challenge.BodyJson);
+
         challenge.Prompt              = dto.Prompt!.Trim();
-        challenge.BodyJson            = SerializeAuthoredBody(built.Options, built.CorrectIndex, dto.Explanation, dto.ChunkIndex);
+        challenge.BodyJson            = SerializeAuthoredBody(built.Options, built.CorrectIndex, dto.Explanation, dto.ChunkIndex, existingShape);
         challenge.EstimatedDifficulty = Math.Clamp(dto.DifficultyHint ?? challenge.EstimatedDifficulty, 0.0, 1.0);
         await db.SaveChangesAsync(ct);
         return Ok(new { challenge.Id, dto.ChunkIndex });
@@ -810,13 +816,14 @@ public sealed class AdminController(
     /// (sourceChunkIndex faz o ContentChaptersService agrupar; shape faz a
     /// UI renderizar) — assim a autoral é indistinguível de uma gerada no
     /// pool, exceto pela Strategy.</summary>
-    private static string SerializeAuthoredBody(string[] options, int correctIndex, string? explanation, int chunkIndex)
+    private static string SerializeAuthoredBody(string[] options, int correctIndex, string? explanation, int chunkIndex,
+        string shape = "MultipleChoice")
         => JsonSerializer.Serialize(new
         {
             options,
             correctIndex,
             explanation      = string.IsNullOrWhiteSpace(explanation) ? null : explanation.Trim(),
-            shape            = "MultipleChoice",
+            shape,
             sourceChunkIndex = chunkIndex,
             generatedBy      = "moderator",
         });
