@@ -27,7 +27,30 @@ public interface IGroundedQuestionGenerator
         ClaimCandidate claim,
         string         contentTitle,
         CancellationToken ct = default);
+
+    /// <summary>
+    /// PR 34g — variante com "reflexion": recebe o feedback da tentativa
+    /// anterior (motivo + detalhe da rejeição) pra injetar no prompt e
+    /// pedir auto-correção. Usado pelo worker no retry; transforma
+    /// re-tentativa cega em informada.
+    ///
+    /// <para><paramref name="priorFailure"/> null = primeira tentativa
+    /// (comportamento idêntico ao <see cref="GenerateAsync"/> simples).</para>
+    /// </summary>
+    Task<GroundedGenerationResult> GenerateAsync(
+        ClaimCandidate    claim,
+        string            contentTitle,
+        RetryFeedback?    priorFailure,
+        CancellationToken ct = default);
 }
+
+/// <summary>PR 34g — contexto da falha anterior pra reflexion. O worker
+/// preenche a partir de <c>QuestionForgeJob.LastError</c> +
+/// <c>AttemptCount</c>.</summary>
+public sealed record RetryFeedback(
+    GenerationFailureReason Reason,
+    string?                 Detail,
+    int                     AttemptNumber);
 
 /// <summary>Resultado da geração — sucesso traz a pergunta validada;
 /// falha traz o motivo (pra telemetria e debug).</summary>

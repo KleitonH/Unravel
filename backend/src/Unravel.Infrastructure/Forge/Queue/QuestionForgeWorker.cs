@@ -128,12 +128,23 @@ public sealed class QuestionForgeWorker(
             return true;
         }
 
+        // PR 34g — reflexion: se esse job já tentou antes (AttemptCount > 1
+        // pós-incremento no ClaimNext) e tem LastError, passa o feedback
+        // pro generator injetar guidance de autocorreção no prompt.
+        // AttemptCount já foi incrementado no ClaimNextAsync; >1 significa retry.
+        RetryFeedback? priorFailure = null;
+        if (job.AttemptCount > 1 && !string.IsNullOrWhiteSpace(job.LastError))
+        {
+            var (reason, detail) = ParseLastError(job.LastError);
+            priorFailure = new RetryFeedback(reason, detail, job.AttemptCount - 1);
+        }
+
         // Gera!
         GroundedGenerationResult result;
         var sw = System.Diagnostics.Stopwatch.StartNew();
         try
         {
-            result = await generator.GenerateAsync(claim, content.Title, ct);
+            result = await generator.GenerateAsync(claim, content.Title, priorFailure, ct);
         }
         catch (OperationCanceledException) when (ct.IsCancellationRequested) { throw; }
         catch (Exception ex)
@@ -184,8 +195,26 @@ public sealed class QuestionForgeWorker(
 
         await queue.MarkDoneAsync(job.Id, challenge.Id, ct);
         log.LogInformation(
-            "Job {Id} → challenge {ChallengeId} [shape={Shape}] for content {ContentId} in {Elapsed}ms",
-            job.Id, challenge.Id, result.Question.Shape, job.ContentId, sw.ElapsedMilliseconds);
+            "Job {Id} → challenge {ChallengeId} [shape={Shape}] for content {ContentId} in {Elapsed}ms{Retry}",
+            job.Id, challenge.Id, result.Question.Shape, job.ContentId, sw.ElapsedMilliseconds,
+            priorFailure is not null ? $" (recovered on attempt {job.AttemptCount})" : "");
         return true;
+    }
+
+    /// <summary>
+    /// PR 34g — parseia o <c>LastError</c> persistido (formato
+    /// "{Reason}: {Detail}") de volta em <see cref="GenerationFailureReason"/>
+    /// + detalhe, pra alimentar a reflexion. Tolerante: se não casar o
+    /// enum, usa <c>SchemaInvalid</c> como bucket genérico (guidance
+    /// ainda é útil).
+    /// </summary>
+    private static (GenerationFailureReason, string?) ParseLastError(string lastError)
+    {
+        var idx = lastError.IndexOf(':');
+        var head = idx > 0 ? lastError[..idx].Trim() : lastError.Trim();
+        var detail = idx > 0 && idx + 1 < lastError.Length ? lastError[(idx + 1)..].Trim() : null;
+        return Enum.TryParse<GenerationFailureReason>(head, out var reason)
+            ? (reason, detail)
+            : (GenerationFailureReason.SchemaInvalid, lastError);
     }
 }

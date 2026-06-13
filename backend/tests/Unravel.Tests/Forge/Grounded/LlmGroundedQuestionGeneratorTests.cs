@@ -203,6 +203,35 @@ public class LlmGroundedQuestionGeneratorTests
         Assert.Contains("@Component marca a classe", llm.LastPrompt);
     }
 
+    // ─── PR 34g: reflexion retry ──────────────────────────────────────
+
+    [Fact]
+    public async Task Generate_WithPriorFailure_InjectsGuidanceIntoPrompt()
+    {
+        var llm = new StubLlm { NextResponse = ValidJsonResponse }
+;
+        var sut = Build(llm, new AlwaysPassValidator(0));
+        var feedback = new RetryFeedback(GenerationFailureReason.DistractorsPoor,
+            "distratores fracos", AttemptNumber: 1);
+
+        await sut.GenerateAsync(Claim, "Tema", feedback, default);
+
+        Assert.Contains("AUTOCORREÇÃO", llm.LastPrompt);
+        Assert.Contains("distratores", llm.LastPrompt);
+    }
+
+    [Fact]
+    public async Task Generate_WithoutPriorFailure_NoGuidance()
+    {
+        var llm = new StubLlm { NextResponse = ValidJsonResponse }
+;
+        var sut = Build(llm, new AlwaysPassValidator(0));
+
+        await sut.GenerateAsync(Claim, "Tema", priorFailure: null, default);
+
+        Assert.DoesNotContain("AUTOCORREÇÃO", llm.LastPrompt);
+    }
+
     // ─── PR 34a: shape selection ──────────────────────────────────────
 
     [Fact]

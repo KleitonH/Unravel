@@ -63,9 +63,16 @@ public sealed class LlmGroundedQuestionGenerator : IGroundedQuestionGenerator
         _log         = log;
     }
 
+    public Task<GroundedGenerationResult> GenerateAsync(
+        ClaimCandidate claim,
+        string contentTitle,
+        CancellationToken ct = default)
+        => GenerateAsync(claim, contentTitle, priorFailure: null, ct);
+
     public async Task<GroundedGenerationResult> GenerateAsync(
         ClaimCandidate claim,
         string contentTitle,
+        RetryFeedback? priorFailure,
         CancellationToken ct = default)
     {
         // PR 34a — router escolhe shape antes do prompt; mesma chamada
@@ -75,8 +82,16 @@ public sealed class LlmGroundedQuestionGenerator : IGroundedQuestionGenerator
         activity?.SetTag("forge.shape",        decision.Shape.ToString());
         activity?.SetTag("forge.shape.reason", decision.Reason);
         activity?.SetTag("forge.claim.chunkIndex", claim.ChunkIndex);
+        if (priorFailure is not null)
+            activity?.SetTag("forge.retry.priorReason", priorFailure.Reason.ToString());
 
         var prompt = PromptBuilder.Build(decision.Shape, contentTitle, claim);
+
+        // PR 34g — reflexion: anexa feedback da rejeição anterior pro LLM
+        // se auto-corrigir. Transforma retry cego (só variância de temp)
+        // em retry informado.
+        if (priorFailure is not null)
+            prompt += RetryGuidance.Build(priorFailure);
 
         string? raw;
         try
