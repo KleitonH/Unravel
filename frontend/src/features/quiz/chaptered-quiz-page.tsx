@@ -3,7 +3,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query"
 import { Link, useNavigate, useParams } from "@tanstack/react-router"
 import MarkdownPreview from "@uiw/react-markdown-preview"
 import {
-  ArrowRight, BookOpen, Check, ChevronLeft, Coins, Heart, Loader2,
+  ArrowRight, BookOpen, Check, ChevronLeft, Coins, Heart,
   Sparkles, Star, Trophy, X,
 } from "lucide-react"
 import { toast } from "sonner"
