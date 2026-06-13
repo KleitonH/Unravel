@@ -25,6 +25,18 @@ public class RetryGuidanceTests
     }
 
     [Fact]
+    public void Build_DistractorsPoor_TeachesNameToFunctionPivot()
+    {
+        // PR 34k — guidance de DistractorsPoor deve ensinar a virada
+        // "pergunta do NOME → pergunta da FUNÇÃO" (resgata fato-único).
+        var fb = new RetryFeedback(GenerationFailureReason.DistractorsPoor,
+            "Apenas 0/3 distratores compartilham forma", AttemptNumber: 1);
+        var g = RetryGuidance.Build(fb);
+        Assert.Contains("FUNÇÃO", g);
+        Assert.Contains("NÃO pergunte", g);
+    }
+
+    [Fact]
     public void Build_IncludesDetail()
     {
         var fb = new RetryFeedback(GenerationFailureReason.DistractorsPoor,

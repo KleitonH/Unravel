@@ -56,11 +56,22 @@ internal static class RetryGuidance
 
         GenerationFailureReason.DistractorsPoor =>
             "PROBLEMA: os distratores (alternativas erradas) eram fracos — muito parecidos " +
-            "com a resposta, ou óbvios/absurdos demais.\n" +
-            "CORRIJA: gere 3 distratores PLAUSÍVEIS do mesmo domínio técnico, todos " +
-            "claramente INCORRETOS pelo trecho mas que um aluno desatento poderia escolher. " +
-            "Não use 'nenhuma das anteriores', não copie a resposta com leves mudanças, " +
-            "não use opções absurdas (banana, etc.).",
+            "com a resposta, ou óbvios/absurdos demais. Causa MAIS COMUM: a pergunta era " +
+            "sobre o NOME de algo (sigla, nome próprio, termo único) — e não existem outros " +
+            "nomes plausíveis pra servir de distrator.\n" +
+            "CORRIJA — vire a pergunta do NOME para a FUNÇÃO:\n" +
+            "  • NÃO pergunte \"como se chama X?\" ou \"qual o nome de X?\".\n" +
+            "  • EM VEZ disso, pergunte O QUE o conceito FAZ / qual seu PAPEL / qual a " +
+            "CONSEQUÊNCIA dele. A resposta correta passa a DESCREVER a função (podendo citar " +
+            "o nome entre parênteses), e os distratores viram OUTROS MECANISMOS/FUNÇÕES " +
+            "plausíveis do mesmo domínio — que sempre existem.\n" +
+            "  Exemplo da virada: claim \"a fronteira é serializada via um protocolo chamado " +
+            "RSC Payload\" → NÃO \"como se chama o protocolo?\" → SIM \"como o React transmite " +
+            "a UI do servidor ao cliente?\" com resposta \"serializando a árvore num protocolo " +
+            "dedicado\" e distratores \"compilando tudo no mesmo bundle\", \"via REST tradicional\", " +
+            "\"re-executando no navegador\".\n" +
+            "Se a pergunta NÃO for sobre nome, apenas gere 3 distratores plausíveis do mesmo " +
+            "domínio, incorretos pelo trecho, sem 'nenhuma das anteriores' nem opções absurdas.",
 
         GenerationFailureReason.SchemaInvalid =>
             "PROBLEMA: a estrutura do JSON estava inválida (faltou campo, opções " +
