@@ -16,15 +16,16 @@
 | **Aluno** | Primário (humano) | Estudante que consome trilhas, estuda capítulos, responde quizzes e progride na jornada. Principal usuário do sistema. |
 | **Moderador** | Primário (humano) | Cria e cura trilhas, conteúdos e questões; gera questões por IA, escreve/edita/remove questões e publica trilhas. |
 | **Professor** | Primário (humano) — **especialização de Moderador** | *(Planejado)* É um Moderador que, além de curar conteúdo, conduz atividades ao vivo (Modo Aula) e acompanha o desempenho de uma turma. **Pode ser a mesma pessoa que o Moderador.** |
+| **Administrador** | Primário (humano) — **especialização de Moderador** | É um Moderador com permissões operacionais sobre a plataforma: dispara o replanejamento manualmente, importa trilhas do repositório de conhecimento e monitora a geração de questões globalmente. **Pode ser a mesma pessoa que o Moderador.** |
 
-> **Generalização de ator (UML):** `Professor ──▷ Moderador`. O Professor
-> **herda** todos os casos de uso do Moderador (UC20–UC28) e acrescenta os
-> próprios (UC29–UC30). Na prática — e no modelo de papéis implementado, que
-> possui apenas os perfis *Aluno* e *Moderador* — **Professor e Moderador são o
-> mesmo perfil**; "Professor" descreve o conjunto adicional de capacidades
-> (conduzir aula ao vivo) exercido por um Moderador. Não é necessário criar um
-> perfil de acesso separado: basta habilitar o Modo Aula para quem já é
-> Moderador.
+> **Generalização de ator (UML):** `Professor ──▷ Moderador` e
+> `Administrador ──▷ Moderador`. Ambos **herdam** os casos de uso do Moderador
+> (UC20–UC28): o Professor acrescenta os do Modo Aula (UC29–UC30) e o
+> Administrador acrescenta os de operação da plataforma (UC36–UC38). Na prática
+> — e no modelo de papéis implementado, que possui apenas os perfis *Aluno* e
+> *Moderador* — **Professor, Administrador e Moderador são o mesmo perfil**; os
+> dois primeiros descrevem conjuntos adicionais de capacidades exercidos por um
+> Moderador. Não é necessário criar perfis de acesso separados.
 | **Sistema / Agente automático** | Secundário (não-humano) | Processos autônomos: replanejamento da jornada, *worker* de geração de questões, desativação de questões ruins, recargas periódicas. |
 | **Serviço de IA (OpenAI)** | Secundário (externo) | Provedor externo de LLM usado pela geração de questões fundamentadas. |
 
@@ -51,6 +52,7 @@ O diagrama está particionado em quatro subsistemas para legibilidade:
 ### Aluno
 | ID | Caso de uso | Situação |
 |---|---|---|
+| UC35 | Cadastrar-se (criar conta) | `[I]` |
 | UC01 | Autenticar-se | `[I]` |
 | UC02 | Realizar nivelamento inicial | `[I]` |
 | UC03 | Visualizar painel da jornada do dia | `[I]` |
@@ -90,6 +92,13 @@ O diagrama está particionado em quatro subsistemas para legibilidade:
 | UC29 | Conduzir sessão de quiz ao vivo (Modo Aula) | `[F]` |
 | UC30 | Consultar relatório pedagógico da turma | `[F]` |
 
+### Administrador
+| ID | Caso de uso | Situação |
+|---|---|---|
+| UC36 | Disparar replanejamento manualmente | `[I]` |
+| UC37 | Importar trilhas do repositório de conhecimento | `[I]` |
+| UC38 | Monitorar a geração de questões (visão global) | `[I]` |
+
 ### Sistema
 | ID | Caso de uso | Situação |
 |---|---|---|
@@ -103,6 +112,26 @@ O diagrama está particionado em quatro subsistemas para legibilidade:
 ## 3.4 Especificações dos Casos de Uso
 
 ### Subsistema: Aprendizagem (Aluno)
+
+---
+
+#### UC35 — Cadastrar-se (criar conta) `[I]`
+- **Descrição:** Permite a uma nova pessoa criar uma conta na plataforma,
+  informando seus dados de acesso.
+- **Atores:** Aluno (visitante); Moderador.
+- **Pré-condição:** Não possuir conta com o mesmo e-mail.
+- **Fluxo principal:**
+  1. O visitante acessa a tela de cadastro.
+  2. Informa nome, e-mail e senha.
+  3. O sistema valida os dados e a unicidade do e-mail.
+  4. O sistema cria a conta (com a senha armazenada de forma segura) e a
+     autentica (UC01).
+- **Pós-condição:** Conta criada e ativa; usuário autenticado.
+- **Fluxo alternativo:**
+  - **A1 — E-mail já cadastrado:** o sistema informa o conflito e mantém a tela.
+  - **A2 — Dados inválidos:** o sistema indica os campos a corrigir.
+- **Observações:** A senha é armazenada com *hash* (BCrypt); novos usuários
+  recebem, por padrão, o perfil Aluno.
 
 ---
 
@@ -753,6 +782,68 @@ O diagrama está particionado em quatro subsistemas para legibilidade:
 - **Fluxo alternativo:** —
 - **Observações:** Garante uso sustentável sem dependência exclusiva de eventos
   de recompensa.
+
+---
+
+### Subsistema: Administração (Administrador)
+
+---
+
+#### UC36 — Disparar replanejamento manualmente `[I]`
+- **Descrição:** Permite ao administrador executar o replanejamento das jornadas
+  sob demanda, sem esperar a rotina automática diária (UC31).
+- **Atores:** Administrador.
+- **Pré-condição:** Usuário autenticado com permissão administrativa.
+- **Fluxo principal:**
+  1. O administrador acessa o painel administrativo.
+  2. Aciona a execução imediata do replanejamento.
+  3. O sistema executa a rotina (mesma lógica do UC31) e exibe o relatório do
+     lote.
+- **Pós-condição:** Jornadas recalculadas; relatório disponível.
+- **Fluxo alternativo:**
+  - **A1 — Já executado no dia:** a operação é idempotente (faz *upsert*, não
+    duplica).
+- **Observações:** Útil para validar mudanças de conteúdo/algoritmo sem aguardar
+  o agendamento; o progresso pode ser acompanhado em tempo real (eventos via
+  WebSocket).
+
+---
+
+#### UC37 — Importar trilhas do repositório de conhecimento `[I]`
+- **Descrição:** Permite ao administrador (re)importar as trilhas/conteúdos
+  versionados no repositório (arquivos Markdown), sincronizando-os com o banco.
+- **Atores:** Administrador.
+- **Pré-condição:** Usuário autenticado com permissão administrativa; arquivos de
+  conhecimento disponíveis.
+- **Fluxo principal:**
+  1. O administrador aciona a importação de conhecimento.
+  2. O sistema lê os arquivos do repositório e faz *upsert* por identificador.
+  3. O sistema retorna um resumo (trilhas/conteúdos criados e atualizados).
+- **Pós-condição:** Catálogo sincronizado com o repositório.
+- **Fluxo alternativo:**
+  - **A1 — Falha de leitura:** a importação é abortada sem afetar o conteúdo já
+    existente.
+- **Observações:** Operação idempotente; complementar à criação de trilhas pela
+  interface (UC20). Trilhas do repositório são distintas das criadas por
+  moderador.
+
+---
+
+#### UC38 — Monitorar a geração de questões (visão global) `[I]`
+- **Descrição:** Disponibiliza ao administrador um panorama agregado do pipeline
+  de geração: estado da fila, métricas de aproveitamento e principais causas de
+  falha.
+- **Atores:** Administrador.
+- **Pré-condição:** Usuário autenticado com permissão administrativa.
+- **Fluxo principal:**
+  1. O administrador acessa o painel de geração (forge).
+  2. O sistema apresenta o estado da fila e as estatísticas agregadas
+     (concluídos, falhos, taxa de aproveitamento, falhas mais comuns).
+  3. O administrador interpreta os indicadores para calibrar o pipeline.
+- **Pós-condição:** Administrador informado da saúde do pipeline.
+- **Fluxo alternativo:** —
+- **Observações:** Diferente do UC26 (moderador acompanha **os próprios** lotes);
+  aqui a visão é **global** e voltada à operação/qualidade do sistema.
 
 ---
 

@@ -9,12 +9,14 @@ skinparam actorStyle awesome
 actor "Aluno" as aluno
 actor "Moderador" as mod
 actor "Professor" as prof
+actor "Administrador" as adm
 actor "Sistema" as sis
 actor "Serviço de IA\n(OpenAI)" as ia
 
 rectangle "Unravel" {
 
   package "Aprendizagem" {
+    usecase "UC35 Cadastrar-se" as UC35
     usecase "UC01 Autenticar-se" as UC01
     usecase "UC02 Nivelamento inicial" as UC02
     usecase "UC03 Painel da jornada do dia" as UC03
@@ -62,9 +64,16 @@ rectangle "Unravel" {
     usecase "UC33 Desativar questões ruins" as UC33
     usecase "UC34 Recarregar recursos (refill)" as UC34
   }
+
+  package "Administração" {
+    usecase "UC36 Disparar replanejamento" as UC36
+    usecase "UC37 Importar conhecimento" as UC37
+    usecase "UC38 Monitorar geração (global)" as UC38
+  }
 }
 
 ' --- Aluno ---
+aluno --> UC35
 aluno --> UC01
 aluno --> UC02
 aluno --> UC03
@@ -101,6 +110,12 @@ prof --|> mod
 prof --> UC29
 prof --> UC30
 aluno --> UC29
+
+' --- Administrador (especialização de Moderador) ---
+adm --|> mod
+adm --> UC36
+adm --> UC37
+adm --> UC38
 
 ' --- Sistema ---
 sis --> UC31
