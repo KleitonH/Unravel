@@ -60,6 +60,21 @@ export type ContentQuestion = {
   authored:            boolean
 }
 
+/**
+ * PR 62b — saúde da geração por IA de um conteúdo. Quando recommendGold,
+ * a UI sugere criar gold questions pra calibrar a IA ali.
+ */
+export type GenerationHealth = {
+  contentId:     number
+  done:          number
+  failed:        number
+  total:         number
+  successRate:   number   // 0..1
+  recommendGold: boolean
+  threshold:     number   // ex.: 0.85
+  minSample:     number
+}
+
 /** Payload pra criar/editar pergunta autoral. */
 export type AuthorQuestionRequest = {
   chunkIndex:      number

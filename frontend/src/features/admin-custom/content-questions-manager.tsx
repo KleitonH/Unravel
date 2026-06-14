@@ -1,6 +1,7 @@
 import { useState } from "react"
 import { useQuery } from "@tanstack/react-query"
-import { Edit, Plus, Sparkles, Star } from "lucide-react"
+import { Edit, Plus, Sparkles, Star, TriangleAlert } from "lucide-react"
+import { chaptersApi } from "@/api/chapters"
 import { moderatorGoldApi } from "@/api/moderator-gold"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -27,6 +28,14 @@ export function ContentQuestionsManager({ contentId }: { contentId: number }) {
     queryKey: ["admin", "gold", contentId],
     queryFn:  () => moderatorGoldApi.list(contentId),
   })
+
+  // PR 62b — saúde da geração: recomenda gold quando o sucesso da IA cai.
+  const healthQuery = useQuery({
+    queryKey: ["admin", "generation-health", contentId],
+    queryFn:  () => chaptersApi.generationHealth(contentId),
+    refetchOnWindowFocus: true,
+  })
+  const health = healthQuery.data
 
   function openCreate() {
     setEditing(null)
@@ -57,6 +66,20 @@ export function ContentQuestionsManager({ contentId }: { contentId: number }) {
         </CardTitle>
       </CardHeader>
       <CardContent>
+        {health?.recommendGold && (
+          <div className="mb-3 rounded-md border border-warning/40 bg-warning/5 p-3 text-xs flex gap-2 items-start">
+            <TriangleAlert className="h-4 w-4 text-warning shrink-0 mt-0.5" />
+            <div>
+              <p className="font-semibold text-warning">Recomendado: crie gold questions</p>
+              <p className="text-foreground/80">
+                A IA está acertando só <strong>{Math.round(health.successRate * 100)}%</strong> das
+                gerações deste conteúdo ({health.done}/{health.total}), abaixo de{" "}
+                {Math.round(health.threshold * 100)}%. Exemplos curados aqui ajudam a
+                calibrar e melhorar a geração futura.
+              </p>
+            </div>
+          </div>
+        )}
         <p className="text-[11px] text-muted-foreground mb-3">
           Estas perguntas <strong>não aparecem pro aluno</strong> — servem só pra
           avaliar a qualidade do gerador (<code>forge:eval</code>). Pra adicionar

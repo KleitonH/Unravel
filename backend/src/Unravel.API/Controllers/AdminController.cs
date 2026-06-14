@@ -707,6 +707,43 @@ public sealed class AdminController(
     }
 
     /// <summary>
+    /// PR 62b — saúde da geração por IA de um Content: taxa de sucesso a
+    /// partir do histórico de jobs (Done vs Failed). Quando a taxa fica
+    /// abaixo do limiar (85%) e há amostra suficiente, recomenda ao
+    /// moderador criar gold questions pra ajudar a calibrar a IA naquele
+    /// conteúdo. As falhas são internas (não notificam o moderador); aqui
+    /// elas viram um sinal de qualidade agregado.
+    /// </summary>
+    [HttpGet("contents/{contentId:int}/generation-health")]
+    public async Task<IActionResult> GetGenerationHealth(
+        int contentId,
+        [FromServices] ApplicationDbContext db,
+        CancellationToken ct)
+    {
+        const double Threshold = 0.85;
+        const int    MinSample = 5;
+
+        var done = await db.QuestionForgeJob.AsNoTracking()
+            .CountAsync(j => j.ContentId == contentId && j.Status == ForgeJobStatus.Done, ct);
+        var failed = await db.QuestionForgeJob.AsNoTracking()
+            .CountAsync(j => j.ContentId == contentId && j.Status == ForgeJobStatus.Failed, ct);
+
+        var total = done + failed;
+        var rate  = total > 0 ? (double)done / total : 1.0;
+        var recommend = total >= MinSample && rate < Threshold;
+
+        return Ok(new GenerationHealthDto(
+            ContentId:    contentId,
+            Done:         done,
+            Failed:       failed,
+            Total:        total,
+            SuccessRate:  Math.Round(rate, 4),
+            RecommendGold: recommend,
+            Threshold:    Threshold,
+            MinSample:    MinSample));
+    }
+
+    /// <summary>
     /// Cria uma pergunta escrita à mão pro capítulo <c>chunkIndex</c>.
     /// Vira GeneratedChallenge ativo (ModeratorAuthored) → conta no
     /// readiness e é servida no quiz. Não consome lã (sem custo de LLM).
@@ -1218,6 +1255,17 @@ public record AuthorQuestionRequest(
     List<string>? Distractors,         // exatamente 3 não-vazios distintos
     string?       Explanation,
     double?       DifficultyHint);
+
+/// <summary>PR 62b — saúde agregada da geração por IA de um Content.</summary>
+public record GenerationHealthDto(
+    int     ContentId,
+    int     Done,
+    int     Failed,
+    int     Total,
+    double  SuccessRate,    // 0..1
+    bool    RecommendGold,
+    double  Threshold,      // limiar abaixo do qual recomenda gold
+    int     MinSample);     // amostra mínima pra recomendar
 
 /// <summary>PR 60-f — pergunta do pool (gerada ou autoral) com chunkIndex,
 /// pra UI agrupar por capítulo.</summary>

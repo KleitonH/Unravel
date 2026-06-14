@@ -3,6 +3,7 @@ import type {
   AuthorQuestionRequest,
   ChapteredContent,
   ContentQuestion,
+  GenerationHealth,
   PublicationReadiness,
 } from "@/types/chapters"
 
@@ -50,5 +51,11 @@ export const chaptersApi = {
   deleteQuestion: (contentId: number, challengeId: number) =>
     api.delete<void>(
       `/api/admin/contents/${contentId}/questions/${challengeId}`,
+    ).then((r) => r.data),
+
+  /** PR 62b — saúde da geração por IA (taxa de sucesso + recomendação de gold). */
+  generationHealth: (contentId: number) =>
+    api.get<GenerationHealth>(
+      `/api/admin/contents/${contentId}/generation-health`,
     ).then((r) => r.data),
 }
