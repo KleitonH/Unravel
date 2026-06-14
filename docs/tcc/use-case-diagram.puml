@@ -96,7 +96,8 @@ mod --> UC26
 mod --> UC27
 mod --> UC28
 
-' --- Professor ---
+' --- Professor (especialização de Moderador) ---
+prof --|> mod
 prof --> UC29
 prof --> UC30
 aluno --> UC29

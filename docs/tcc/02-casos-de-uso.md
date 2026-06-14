@@ -15,7 +15,16 @@
 |---|---|---|
 | **Aluno** | Primário (humano) | Estudante que consome trilhas, estuda capítulos, responde quizzes e progride na jornada. Principal usuário do sistema. |
 | **Moderador** | Primário (humano) | Cria e cura trilhas, conteúdos e questões; gera questões por IA, escreve/edita/remove questões e publica trilhas. |
-| **Professor** | Primário (humano) | *(Planejado)* Conduz atividades ao vivo (Modo Aula) e acompanha o desempenho de uma turma. |
+| **Professor** | Primário (humano) — **especialização de Moderador** | *(Planejado)* É um Moderador que, além de curar conteúdo, conduz atividades ao vivo (Modo Aula) e acompanha o desempenho de uma turma. **Pode ser a mesma pessoa que o Moderador.** |
+
+> **Generalização de ator (UML):** `Professor ──▷ Moderador`. O Professor
+> **herda** todos os casos de uso do Moderador (UC20–UC28) e acrescenta os
+> próprios (UC29–UC30). Na prática — e no modelo de papéis implementado, que
+> possui apenas os perfis *Aluno* e *Moderador* — **Professor e Moderador são o
+> mesmo perfil**; "Professor" descreve o conjunto adicional de capacidades
+> (conduzir aula ao vivo) exercido por um Moderador. Não é necessário criar um
+> perfil de acesso separado: basta habilitar o Modo Aula para quem já é
+> Moderador.
 | **Sistema / Agente automático** | Secundário (não-humano) | Processos autônomos: replanejamento da jornada, *worker* de geração de questões, desativação de questões ruins, recargas periódicas. |
 | **Serviço de IA (OpenAI)** | Secundário (externo) | Provedor externo de LLM usado pela geração de questões fundamentadas. |
 
