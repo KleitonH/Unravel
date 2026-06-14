@@ -94,6 +94,7 @@ public partial class ApplicationDbContext
             e.Property(n => n.Type).HasConversion<int>();
             e.Property(n => n.Rarity).HasConversion<int>();
             e.Property(n => n.AssetSlug).HasMaxLength(100);
+            e.Property(n => n.LockedReason).HasMaxLength(200);  // PR 63
         });
 
         mb.Entity<UserCosmetic>(e =>

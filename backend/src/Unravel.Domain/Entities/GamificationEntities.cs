@@ -106,7 +106,15 @@ public class NaviCosmetic
     public CosmeticType   Type        { get; set; } = CosmeticType.Hat;
     public CosmeticRarity Rarity      { get; set; } = CosmeticRarity.Common;
     public int            CoinPrice   { get; set; } = 0;
+    /// <summary>PR 63 — preço em estrelas (moeda rara). 0 = não custa estrelas.
+    /// Item custa coins OU stars: o que for &gt; 0 define a moeda.</summary>
+    public int            StarPrice   { get; set; } = 0;
     public bool           IsExclusive { get; set; } = false;
+    /// <summary>PR 63 — se preenchido, o item é de evento e NÃO é comprável
+    /// na loja (ex.: "Recompensa do evento Caixinha de Gatos").</summary>
+    public string?        LockedReason { get; set; }
+    /// <summary>Valor que o componente NAVI consome no slot (ex.: "bone",
+    /// "gravata", "cinza", "happy"). Ponte entre catálogo e SVG.</summary>
     public string         AssetSlug   { get; set; } = string.Empty;
     public DateTime       CreatedAt   { get; set; } = DateTime.UtcNow;
 
@@ -117,11 +125,12 @@ public enum CosmeticType
 {
     Hat         = 1,
     Body        = 2,
-    Expression  = 3,
+    Expression  = 3,   // slot "mood" do NAVI
     Fur         = 4,
     Pose        = 5,
     BattleSkin  = 6,
-    VictoryAnim = 7
+    VictoryAnim = 7,
+    Accessory   = 8    // PR 63 — slot "accessory" (gravata/jaleco/mochila/capa)
 }
 
 public enum CosmeticRarity
@@ -129,7 +138,8 @@ public enum CosmeticRarity
     Common    = 1,
     Rare      = 2,
     Epic      = 3,
-    Legendary = 4
+    Legendary = 4,
+    Exclusive = 5      // PR 63 — itens de evento/promo
 }
 
 public class UserCosmetic

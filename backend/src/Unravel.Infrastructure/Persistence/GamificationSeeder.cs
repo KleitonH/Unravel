@@ -9,6 +9,47 @@ public static class GamificationSeeder
     {
         await SeedBadgesAsync(db);
         await SeedChallengesAsync(db);
+        await SeedCosmeticsAsync(db);
+    }
+
+    // PR 63 — catálogo da Loja (Toca do NAVI). AssetSlug = valor consumido
+    // pelo componente NAVI no slot (Type). Itens em stars têm StarPrice; o
+    // item de evento fica com LockedReason (não comprável).
+    private static async Task SeedCosmeticsAsync(ApplicationDbContext db)
+    {
+        if (await db.NaviCosmetic.AnyAsync()) return;
+
+        NaviCosmetic Coin(string slug, string name, CosmeticType type, CosmeticRarity rarity, int coins, string desc) =>
+            new() { AssetSlug = slug, Name = name, Type = type, Rarity = rarity, CoinPrice = coins, Description = desc };
+        NaviCosmetic Star(string slug, string name, CosmeticType type, CosmeticRarity rarity, int stars, string desc) =>
+            new() { AssetSlug = slug, Name = name, Type = type, Rarity = rarity, StarPrice = stars, Description = desc };
+
+        db.NaviCosmetic.AddRange(
+            // ── Chapéus (Hat) ──
+            Coin("bone",    "Boné Dev",        CosmeticType.Hat, CosmeticRarity.Common,    150, "Boné de programador com </> estampado. Pra quem vive no terminal."),
+            Coin("cartola", "Cartola Premium", CosmeticType.Hat, CosmeticRarity.Rare,      320, "Elegância felina. Faixa roxa Unravel no aro."),
+            Coin("headset", "Headset Gamer",   CosmeticType.Hat, CosmeticRarity.Epic,      600, "Headset RGB com microfone. GG, NAVI."),
+            Star("coroa",   "Coroa Real",      CosmeticType.Hat, CosmeticRarity.Legendary, 12,  "Realeza do código. Só pra lendas com Estrelas."),
+            new() { AssetSlug = "antenas", Name = "Antenas Alien", Type = CosmeticType.Hat, Rarity = CosmeticRarity.Exclusive, IsExclusive = true, LockedReason = "Recompensa do evento Caixinha de Gatos", Description = "Item de evento. Obtido na Caixinha de Gatos." },
+
+            // ── Acessórios (Accessory) ──
+            Coin("gravata", "Gravata-Borboleta", CosmeticType.Accessory, CosmeticRarity.Common, 120, "Charme instantâneo pra apresentações."),
+            Coin("jaleco",  "Jaleco Branco",     CosmeticType.Accessory, CosmeticRarity.Rare,   280, "Modo cientista de dados ativado."),
+            Coin("mochila", "Mochila Tech",      CosmeticType.Accessory, CosmeticRarity.Rare,   350, "Sempre pronto pra próxima trilha."),
+            Star("capa",    "Capa de Herói",     CosmeticType.Accessory, CosmeticRarity.Epic,   5,   "Salva builds em produção numa sexta 18h."),
+
+            // ── Pelagens (Fur) ──
+            Coin("cinza",   "Pelagem Cinza",   CosmeticType.Fur, CosmeticRarity.Common,    100, "Visual sóbrio e versátil."),
+            Coin("laranja", "Pelagem Laranja", CosmeticType.Fur, CosmeticRarity.Rare,      240, "Energia de gato de fliperama."),
+            Coin("branco",  "Pelagem Branca",  CosmeticType.Fur, CosmeticRarity.Epic,      500, "Pelagem rara e imponente."),
+            Star("dourado", "Pelagem Dourada", CosmeticType.Fur, CosmeticRarity.Legendary, 20,  "O pelo dos campeões. Brilha de verdade."),
+
+            // ── Expressões (Expression; AssetSlug = mood do NAVI) ──
+            Coin("happy",   "Sorriso Feliz",  CosmeticType.Expression, CosmeticRarity.Common, 90,  "NAVI sempre de bom humor."),
+            Coin("excited", "Modo Empolgado", CosmeticType.Expression, CosmeticRarity.Rare,   220, "Olhos brilhando de empolgação.")
+        );
+
+        await db.SaveChangesAsync();
     }
 
     private static async Task SeedBadgesAsync(ApplicationDbContext db)

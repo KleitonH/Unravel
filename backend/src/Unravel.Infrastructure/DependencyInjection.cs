@@ -61,6 +61,10 @@ public static class DependencyInjection
         services.AddScoped<IMasteryRepository, MasteryRepository>();
         services.AddSingleton<ITopicResolver, KeywordTopicResolver>();
 
+        // PR 63 — loja cosmética (catálogo/compra/equip).
+        services.AddScoped<Application.Gamification.Ports.ICosmeticShopService,
+                           Gamification.CosmeticShopService>();
+
         // Journey planner (PR 3) — planner singleton (puro/stateless),
         // read model e use case escopados (dependem de DbContext).
         services.AddSingleton<IJourneyPlanner, JourneyPlanner>();
