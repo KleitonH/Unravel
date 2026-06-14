@@ -54,9 +54,11 @@ export type JourneyPlan = {
   trailId: number
   trailName: string
   generatedAt: string
-  metaDia: number
+  metaDia: number          // meta efetiva de hoje (já inclui penalidade)
   today: JourneyItem[]
   upcoming: JourneyItem[]
+  completedToday?: number   // PR 61 — desafios respondidos hoje nesta trilha
+  metaPenalty?: number      // PR 61 — +N na meta por não ter batido ontem
 }
 
 // ── Onboarding (PR 6) ───────────────────────────────────────────────

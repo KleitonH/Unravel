@@ -39,4 +39,25 @@ public sealed class JourneyReadModel : IJourneyReadModel
             .Select(c => new { c.Id, c.Title })
             .ToDictionaryAsync(x => x.Id, x => x.Title, ct);
     }
+
+    public Task<int> CountChallengesAnsweredAsync(
+        Guid userId, int trailId, DateTime fromInclusiveUtc, DateTime toExclusiveUtc,
+        CancellationToken ct = default)
+        // join UserSeenChallenge (gravado no submit) ↔ GeneratedChallenge.TrailId.
+        => (from seen in _db.UserSeenChallenge.AsNoTracking()
+            join gc in _db.GeneratedChallenge.AsNoTracking() on seen.GeneratedChallengeId equals gc.Id
+            where seen.UserId == userId
+               && gc.TrailId == trailId
+               && seen.SeenAt >= fromInclusiveUtc
+               && seen.SeenAt <  toExclusiveUtc
+            select seen.GeneratedChallengeId)
+           .CountAsync(ct);
+
+    public async Task<TodayGoal?> GetTodayGoalAsync(
+        Guid userId, int trailId, DateTime today, CancellationToken ct = default)
+        => await _db.JourneySnapshot
+            .AsNoTracking()
+            .Where(s => s.UserId == userId && s.TrailId == trailId && s.PlanDate == today.Date)
+            .Select(s => new TodayGoal(s.MetaDia, s.ExtraChallengesPenalty))
+            .FirstOrDefaultAsync(ct);
 }

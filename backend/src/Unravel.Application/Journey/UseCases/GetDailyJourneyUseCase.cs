@@ -70,13 +70,24 @@ public sealed class GetDailyJourneyUseCase
             EffectiveMastery: Math.Round(i.EffectiveMastery, 4),
             DifficultyScore:  Math.Round(i.DifficultyScore, 4));
 
+        // PR 61 — meta efetiva (do snapshot, já com penalidade) + progresso do dia.
+        // Sem snapshot ainda (antes do 1º cron) → meta-base do planner, penalidade 0.
+        var today      = asOf.Date;
+        var todayGoal  = await _readModel.GetTodayGoalAsync(userId, trailId, today, ct);
+        var metaDia    = todayGoal?.MetaDia ?? plan.MetaDia;
+        var penalty    = todayGoal?.Penalty ?? 0;
+        var completed  = await _readModel.CountChallengesAnsweredAsync(
+            userId, trailId, today, today.AddDays(1), ct);
+
         return new JourneyPlanResponse(
-            UserId:      userId,
-            TrailId:     trailId,
-            TrailName:   trail.Name,
-            GeneratedAt: plan.GeneratedAt,
-            MetaDia:     plan.MetaDia,
-            Today:       plan.Today.Select(Map).ToList(),
-            Upcoming:    plan.Upcoming.Select(Map).ToList());
+            UserId:         userId,
+            TrailId:        trailId,
+            TrailName:      trail.Name,
+            GeneratedAt:    plan.GeneratedAt,
+            MetaDia:        metaDia,
+            Today:          plan.Today.Select(Map).ToList(),
+            Upcoming:       plan.Upcoming.Select(Map).ToList(),
+            CompletedToday: completed,
+            MetaPenalty:    penalty);
     }
 }

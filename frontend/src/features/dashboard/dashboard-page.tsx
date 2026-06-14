@@ -1,6 +1,6 @@
 import { useQuery, useQueries } from "@tanstack/react-query"
 import { Link, useNavigate } from "@tanstack/react-router"
-import { Brain, Coins, Flame, Heart, Plus, Star } from "lucide-react"
+import { Brain, CheckCircle2, Coins, Flame, Heart, Plus, Star, TrendingUp } from "lucide-react"
 import { useAuth } from "@/stores/auth"
 import { trailsApi } from "@/api/trails"
 import { journeyApi } from "@/api/journey"
@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
+import { cn } from "@/lib/utils"
 import type { JourneyPlan, JourneyReason, Profile, StudentProfile, Trail } from "@/types/api"
 
 const REASON_LABEL: Record<JourneyReason, string> = {
@@ -207,6 +208,48 @@ function SkeletonList() {
   )
 }
 
+/**
+ * PR 61 — indicador de meta do dia. Mostra "X/N hoje" com barra de
+ * progresso (concluídos hoje ÷ meta), marca ✓ quando a meta é batida e
+ * sinaliza quando a meta subiu por penalidade (não bateu ontem).
+ */
+function DailyGoal({ plan }: { plan: JourneyPlan }) {
+  const meta = Math.max(plan.metaDia, 1)
+  const done = plan.completedToday ?? 0
+  const pct  = Math.min(100, Math.round((done / meta) * 100))
+  const complete = done >= plan.metaDia
+  const penalty  = plan.metaPenalty ?? 0
+
+  return (
+    <div className="shrink-0 w-28 text-right space-y-1">
+      <div className="flex items-center justify-end gap-1">
+        {complete && <CheckCircle2 className="h-3.5 w-3.5 text-success" />}
+        <span className={cn(
+          "text-xs font-bold tabular-nums",
+          complete ? "text-success" : "text-foreground",
+        )}>
+          {done}/{plan.metaDia} hoje
+        </span>
+      </div>
+      <div className="h-1.5 w-full rounded-full bg-border overflow-hidden">
+        <div
+          className={cn("h-full rounded-full transition-all", complete ? "bg-success" : "bg-primary")}
+          style={{ width: `${pct}%` }}
+        />
+      </div>
+      {penalty > 0 && !complete && (
+        <div
+          className="flex items-center justify-end gap-1 text-[10px] text-warning"
+          title="A meta subiu porque você não bateu a meta de ontem."
+        >
+          <TrendingUp className="h-2.5 w-2.5" />
+          +{penalty} de ontem
+        </div>
+      )}
+    </div>
+  )
+}
+
 function TrailCard({ trail, plan, loading }: { trail: Trail; plan: JourneyPlan | null; loading: boolean }) {
   const navigate = useNavigate()
 
@@ -226,11 +269,7 @@ function TrailCard({ trail, plan, loading }: { trail: Trail; plan: JourneyPlan |
               </CardDescription>
             </div>
           </div>
-          {plan && (
-            <Badge variant="default" className="shrink-0">
-              {plan.metaDia} hoje
-            </Badge>
-          )}
+          {plan && <DailyGoal plan={plan} />}
         </div>
       </CardHeader>
 

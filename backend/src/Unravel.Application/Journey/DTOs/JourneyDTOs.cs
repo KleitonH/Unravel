@@ -8,9 +8,12 @@ public sealed record JourneyPlanResponse(
     int                             TrailId,
     string                          TrailName,
     DateTime                        GeneratedAt,
-    int                             MetaDia,
+    int                             MetaDia,         // meta efetiva de hoje (já inclui a penalidade)
     IReadOnlyList<JourneyItemDto>   Today,
-    IReadOnlyList<JourneyItemDto>   Upcoming
+    IReadOnlyList<JourneyItemDto>   Upcoming,
+    // PR 61 — indicador de meta do dia no dashboard.
+    int                             CompletedToday = 0,  // desafios respondidos hoje nesta trilha
+    int                             MetaPenalty    = 0    // +N na meta por não ter batido ontem
 );
 
 public sealed record JourneyItemDto(
