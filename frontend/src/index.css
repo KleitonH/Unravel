@@ -79,3 +79,19 @@
     scroll-behavior:      auto !important;
   }
 }
+
+/* PR 63 — keyframes da Loja (Toca do NAVI). Usadas via `animation:` inline
+ * nos componentes portados do protótipo. Respeitam o reduced-motion acima. */
+@keyframes breathe          { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-3px); } }
+@keyframes shimmer          { 0% { transform: translateX(-160%); } 100% { transform: translateX(420%); } }
+@keyframes float-up         { 0% { transform: translateY(0); opacity: 0; } 15% { opacity: .8; } 100% { transform: translateY(-90px); opacity: 0; } }
+@keyframes soft-pulse       { 0%,100% { box-shadow: 0 0 0 rgba(167,139,250,0); } 50% { box-shadow: 0 0 26px rgba(167,139,250,0.7); } }
+@keyframes soft-pulse-gold  { 0%,100% { box-shadow: 0 0 14px rgba(251,191,36,0.3); } 50% { box-shadow: 0 0 30px rgba(251,191,36,0.65); } }
+@keyframes card-pulse-gold  { 0%,100% { box-shadow: 0 0 0 rgba(251,191,36,0); } 50% { box-shadow: 0 0 18px rgba(251,191,36,0.4); } }
+@keyframes exclusive-breathe{ 0%,100% { transform: scale(1); } 50% { transform: scale(1.02); } }
+@keyframes spotlight-pulse  { 0%,100% { transform: scale(1); opacity: .7; } 50% { transform: scale(1.08); opacity: 1; } }
+@keyframes confetti-fall    { 0% { transform: translateY(-20px) rotate(0); opacity: 1; } 100% { transform: translateY(440px) rotate(540deg); opacity: 0; } }
+@keyframes reward-pop       { 0% { transform: scale(0.78); opacity: 0; } 60% { transform: scale(1.05); opacity: 1; } 100% { transform: scale(1); } }
+@keyframes coin-fly         { 0% { transform: translate(0,0) scale(1); opacity: 1; } 100% { transform: translate(var(--dx), var(--dy)) scale(0.4); opacity: 0; } }
+@keyframes slide-up         { from { transform: translateY(10px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+@keyframes shake            { 0%,100% { transform: translateX(0); } 20%,60% { transform: translateX(-6px); } 40%,80% { transform: translateX(6px); } }
