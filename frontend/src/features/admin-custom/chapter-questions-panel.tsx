@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from "react"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import {
-  AlertTriangle, Bot, CheckCircle2, Loader2, PenLine, Pencil, Sparkles, Trash2,
+  AlertTriangle, Bot, CheckCircle2, ChevronDown, ChevronRight,
+  Loader2, PenLine, Pencil, Sparkles, Trash2,
 } from "lucide-react"
 import { toast } from "sonner"
 import { chaptersApi } from "@/api/chapters"
@@ -172,13 +173,26 @@ function ChapterBlock({
   onAuthor:   () => void
   onEdit:     (q: ContentQuestion) => void
 }) {
+  // Capítulos incompletos abrem por padrão (puxam atenção pro gap);
+  // completos ficam recolhidos pra exibição mais limpa.
+  const [open, setOpen] = useState(!ready)
   return (
     <div className={cn(
       "rounded-md border px-3 py-2.5",
       ready ? "border-border" : "border-warning/40 bg-warning/5",
     )}>
       <div className="flex items-center justify-between gap-2 flex-wrap">
-        <div className="flex items-center gap-2 min-w-0">
+        {/* Header clicável = toggle do accordion. Botões de ação ficam
+            fora dessa área pra não disparar o toggle ao clicar neles. */}
+        <button
+          type="button"
+          onClick={() => setOpen((o) => !o)}
+          className="flex items-center gap-2 min-w-0 flex-1 text-left rounded hover:bg-foreground/5 -mx-1 px-1 py-0.5"
+          aria-expanded={open}
+        >
+          {open
+            ? <ChevronDown className="h-4 w-4 shrink-0 text-muted-foreground" />
+            : <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />}
           <span className="text-[10px] font-mono text-muted-foreground shrink-0">
             #{chunkIndex}
           </span>
@@ -189,7 +203,12 @@ function ChapterBlock({
           )}>
             {current}/{required}
           </Badge>
-        </div>
+          {questions.length > 0 && (
+            <span className="text-[10px] text-muted-foreground shrink-0">
+              · {questions.length} no pool
+            </span>
+          )}
+        </button>
         <div className="flex items-center gap-1.5 shrink-0">
           <Button size="sm" variant="outline" onClick={onGenerate} className="h-7 text-xs">
             <Sparkles className="h-3.5 w-3.5 mr-1" /> Gerar IA
@@ -200,17 +219,23 @@ function ChapterBlock({
         </div>
       </div>
 
-      {questions.length > 0 && (
-        <ul className="mt-2 space-y-1">
-          {questions.map((q) => (
-            <QuestionRow
-              key={q.id}
-              contentId={contentId}
-              q={q}
-              onEdit={() => onEdit(q)}
-            />
-          ))}
-        </ul>
+      {open && (
+        questions.length > 0 ? (
+          <ul className="mt-2 space-y-1">
+            {questions.map((q) => (
+              <QuestionRow
+                key={q.id}
+                contentId={contentId}
+                q={q}
+                onEdit={() => onEdit(q)}
+              />
+            ))}
+          </ul>
+        ) : (
+          <p className="mt-2 text-[11px] text-muted-foreground italic">
+            Nenhuma pergunta neste capítulo ainda — use “Gerar IA” ou “Escrever”.
+          </p>
+        )
       )}
     </div>
   )
