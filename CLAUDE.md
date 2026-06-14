@@ -38,6 +38,32 @@ Existem **duas coisas diferentes** que parecem "perguntas do moderador":
 - Pergunta escrita à mão pelo moderador (PR 60-f) = `GeneratedChallenge`
   com `Strategy=ModeratorAuthored` → serve ao aluno e conta no readiness.
 
+## Cobrança de geração (lã) — o moderador nunca paga por falha (PR 62)
+
+Tokens são debitados **adiantado** no enqueue (`claims.Count × custo`;
+normal 1cm, urgente 3cm). A partir daí, **falha do algoritmo é problema do
+sistema, não do moderador** — cascata:
+
+1. **Retry interno (grátis):** cada job tenta até 3× (reflexion) e escala
+   pra gpt-4o nas últimas. Paga-se 1cm pelo **job**, não por tentativa.
+2. **Reposição (grátis):** se falhar de vez, o worker
+   (`QuestionForgeWorker.HandleTerminalFailureAsync`) pega **outro claim
+   não usado** do mesmo content+chunk e enfileira um job novo (mesmo
+   batch/dono, sem novo débito) — persegue a quantidade pedida.
+3. **Estorno:** se não há mais claim (trechos esgotados), credita o token
+   de volta (`TokenTransactionReason.ForgeRefund`). Nunca paga por
+   pergunta não-entregue.
+
+Regras: falhas ficam **internas** (status `Failed`, sem notificar). Cada
+claim é usado no máximo 1× (worker single-thread → sem race; loop é
+bounded pelo nº de claims). `MarkFailedAsync` retorna `bool` (terminal?)
+pra o worker disparar a cascata.
+
+**Sinal de qualidade (PR 62b):** `GET /admin/contents/{id}/generation-health`
+→ `successRate = done/(done+failed)`. Se `< 85%` e amostra `≥ 5`,
+`recommendGold=true` → banner "Recomendado: crie gold questions" no card de
+gabarito. As falhas internas viram essa métrica.
+
 ## Capítulos e readiness (PR 60)
 
 - `ChunkSegmenter` fatia o markdown por **H2 (`##`)** → capítulos.
