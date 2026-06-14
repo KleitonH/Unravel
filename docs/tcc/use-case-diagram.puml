@@ -1,0 +1,123 @@
+@startuml unravel-casos-de-uso
+' Diagrama de Casos de Uso — Unravel
+' Renderize em https://www.plantuml.com/plantuml ou na extensão PlantUML (VS Code).
+left to right direction
+skinparam packageStyle rectangle
+skinparam shadowing false
+skinparam actorStyle awesome
+
+actor "Aluno" as aluno
+actor "Moderador" as mod
+actor "Professor" as prof
+actor "Sistema" as sis
+actor "Serviço de IA\n(OpenAI)" as ia
+
+rectangle "Unravel" {
+
+  package "Aprendizagem" {
+    usecase "UC01 Autenticar-se" as UC01
+    usecase "UC02 Nivelamento inicial" as UC02
+    usecase "UC03 Painel da jornada do dia" as UC03
+    usecase "UC04 Descobrir trilhas" as UC04
+    usecase "UC05 Iniciar jornada" as UC05
+    usecase "UC06 Estudar por capítulos" as UC06
+    usecase "UC07 Responder questões" as UC07
+    usecase "UC08 Quiz adaptativo" as UC08
+    usecase "UC09 Boss Fight" as UC09
+    usecase "UC10 Quiz de reforço" as UC10
+    usecase "UC11 Mapa de progresso" as UC11
+    usecase "UC12 Radar de fraquezas" as UC12
+    usecase "UC13 Perfil e progresso" as UC13
+  }
+
+  package "Gamificação e Social (planejado)" {
+    usecase "UC14 Login diário / ofensiva" as UC14
+    usecase "UC15 Loja de cosméticos (NAVI)" as UC15
+    usecase "UC16 Badges, títulos e ranking" as UC16
+    usecase "UC17 Parceria colaborativa" as UC17
+    usecase "UC18 Caixinha de Gatos (grupo)" as UC18
+    usecase "UC19 Arena (PvP)" as UC19
+  }
+
+  package "Curadoria de Conteúdo" {
+    usecase "UC20 Criar/editar trilha" as UC20
+    usecase "UC21 Criar/editar conteúdo" as UC21
+    usecase "UC22 Gerar questões por IA" as UC22
+    usecase "UC23 Escrever questão autoral" as UC23
+    usecase "UC24 Editar/remover questões" as UC24
+    usecase "UC25 Curar gabarito (gold)" as UC25
+    usecase "UC26 Acompanhar fila de geração" as UC26
+    usecase "UC27 Gerenciar tokens (Novelo de Lã)" as UC27
+    usecase "UC28 Publicar trilha" as UC28
+  }
+
+  package "Sala de Aula (planejado)" {
+    usecase "UC29 Modo Aula (quiz ao vivo)" as UC29
+    usecase "UC30 Relatório pedagógico" as UC30
+  }
+
+  package "Automação" {
+    usecase "UC31 Replanejar jornadas" as UC31
+    usecase "UC32 Processar geração de questões" as UC32
+    usecase "UC33 Desativar questões ruins" as UC33
+    usecase "UC34 Recarregar recursos (refill)" as UC34
+  }
+}
+
+' --- Aluno ---
+aluno --> UC01
+aluno --> UC02
+aluno --> UC03
+aluno --> UC04
+aluno --> UC05
+aluno --> UC06
+aluno --> UC08
+aluno --> UC09
+aluno --> UC10
+aluno --> UC11
+aluno --> UC12
+aluno --> UC13
+aluno --> UC14
+aluno --> UC15
+aluno --> UC16
+aluno --> UC17
+aluno --> UC18
+aluno --> UC19
+
+' --- Moderador ---
+mod --> UC01
+mod --> UC20
+mod --> UC21
+mod --> UC22
+mod --> UC23
+mod --> UC24
+mod --> UC25
+mod --> UC26
+mod --> UC27
+mod --> UC28
+
+' --- Professor ---
+prof --> UC29
+prof --> UC30
+aluno --> UC29
+
+' --- Sistema ---
+sis --> UC31
+sis --> UC32
+sis --> UC33
+sis --> UC34
+
+' --- Serviço de IA ---
+UC32 --> ia
+UC22 ..> ia : usa
+
+' --- Relações include ---
+UC06 ..> UC07 : <<include>>
+UC08 ..> UC07 : <<include>>
+UC09 ..> UC07 : <<include>>
+UC10 ..> UC07 : <<include>>
+UC22 ..> UC32 : <<include>>
+UC28 ..> UC23 : <<extend>>
+UC28 ..> UC22 : <<extend>>
+
+@enduml
