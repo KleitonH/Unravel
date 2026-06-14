@@ -123,6 +123,37 @@ export type QuestionShape =
   | "FillInTheBlank"
   | "TrueFalseGrounded"
 
+// ── Loja cosmética (PR 63) ──────────────────────────────────────────
+
+export type ShopRarity = "common" | "rare" | "epic" | "legendary" | "exclusive"
+
+export type ShopItem = {
+  id:           number
+  name:         string
+  description:  string
+  category:     string         // chapeu | acessorio | pelagem | expressao
+  slot:         string         // hat | accessory | fur | mood
+  assetSlug:    string         // valor consumido pelo NAVI
+  rarity:       ShopRarity
+  currency:     "coins" | "stars" | null
+  price:        number | null
+  owned:        boolean
+  equipped:     boolean
+  lockedReason: string | null
+}
+
+export type ShopBalance = { coins: number; stars: number }
+export type ShopCatalog = { items: ShopItem[]; balance: ShopBalance }
+
+export type BuyOutcome = "Ok" | "NotFound" | "AlreadyOwned" | "Locked" | "InsufficientFunds"
+export type PurchaseResponse = {
+  outcome:    BuyOutcome
+  cosmeticId: number
+  balance:    ShopBalance | null
+  currency:   string | null
+  price:      number | null
+}
+
 export type PoolChallenge = {
   id: number
   strategy: ChallengeStrategy

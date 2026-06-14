@@ -39,6 +39,7 @@ const AdminForgeStats     = lazy(() => import("@/features/admin-custom/forge-sta
 const ChapteredQuizPage   = lazy(() => import("@/features/quiz/chaptered-quiz-page").then((m) => ({ default: m.ChapteredQuizPage })))
 const ReinforcePage       = lazy(() => import("@/features/reinforce/reinforce-page").then((m) => ({ default: m.ReinforcePage })))
 const MasteryPage         = lazy(() => import("@/features/mastery/mastery-page").then((m) => ({ default: m.MasteryPage })))
+const ShopPage            = lazy(() => import("@/features/shop/shop-page").then((m) => ({ default: m.ShopPage })))
 const BossFightPage       = lazy(() => import("@/features/boss/boss-fight-page").then((m) => ({ default: m.BossFightPage })))
 
 /** Wrapper que serializa Suspense fallback em cada rota lazy.
@@ -135,6 +136,7 @@ const masteryRoute            = createRoute({ getParentRoute: () => authedLayout
 const bossFightRoute          = createRoute({ getParentRoute: () => authedLayoutRoute, path: "/boss/$trailId",                  component: () => <Lazy Component={BossFightPage} /> })
 const profileRoute            = createRoute({ getParentRoute: () => authedLayoutRoute, path: "/profile",                        component: () => <Lazy Component={ProfilePage} /> })
 const desafioRoute            = createRoute({ getParentRoute: () => authedLayoutRoute, path: "/desafio",                        component: () => <Placeholder title="Desafios" /> })
+const shopRoute               = createRoute({ getParentRoute: () => authedLayoutRoute, path: "/loja",                           component: () => <Lazy Component={ShopPage} /> })
 
 const routeTree = rootRoute.addChildren([
   indexRoute,
@@ -158,6 +160,7 @@ const routeTree = rootRoute.addChildren([
     reinforceRoute,
     masteryRoute,
     bossFightRoute,
+    shopRoute,
     profileRoute,
     desafioRoute,
   ]),
