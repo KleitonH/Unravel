@@ -163,7 +163,9 @@ public class QuestionForgeQueueServiceTests : IDisposable
         await _sut.EnqueueForContentAsync(1, new[] { Claim(0, "x") });
         var j = await _sut.ClaimNextAsync();
 
-        await _sut.MarkFailedAsync(j!.Id, "ollama timeout", maxAttempts: 3);
+        // PR 62 — retry retorna false (não-terminal)
+        var terminal = await _sut.MarkFailedAsync(j!.Id, "ollama timeout", maxAttempts: 3);
+        Assert.False(terminal);
 
         var stored = await _db.QuestionForgeJob.FindAsync(j.Id);
         Assert.Equal(ForgeJobStatus.Pending, stored!.Status);
@@ -177,11 +179,12 @@ public class QuestionForgeQueueServiceTests : IDisposable
     {
         await _sut.EnqueueForContentAsync(1, new[] { Claim(0, "x") });
         var j = await _sut.ClaimNextAsync(); // attempt 1
-        await _sut.MarkFailedAsync(j!.Id, "fail", 3);
+        Assert.False(await _sut.MarkFailedAsync(j!.Id, "fail", 3));
         j = await _sut.ClaimNextAsync();      // attempt 2
-        await _sut.MarkFailedAsync(j!.Id, "fail", 3);
+        Assert.False(await _sut.MarkFailedAsync(j!.Id, "fail", 3));
         j = await _sut.ClaimNextAsync();      // attempt 3
-        await _sut.MarkFailedAsync(j!.Id, "fail", 3);
+        // PR 62 — última tentativa retorna true (terminal → dispara reposição/estorno)
+        Assert.True(await _sut.MarkFailedAsync(j!.Id, "fail", 3));
 
         var stored = await _db.QuestionForgeJob.FindAsync(j!.Id);
         Assert.Equal(ForgeJobStatus.Failed, stored!.Status);

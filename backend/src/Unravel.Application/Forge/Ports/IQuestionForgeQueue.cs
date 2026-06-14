@@ -49,8 +49,11 @@ public interface IQuestionForgeQueue
     /// <summary>
     /// Fecha o job como falha. Se attemptCount < maxAttempts, reseta
     /// pra Pending pra retry; caso contrário marca Failed definitivo.
+    /// <para>Retorna <c>true</c> se a falha foi <b>definitiva</b> (job virou
+    /// <c>Failed</c> nesta chamada) — o worker usa isso pra disparar
+    /// reposição/estorno (PR 62). <c>false</c> em retry.</para>
     /// </summary>
-    Task MarkFailedAsync(long jobId, string error, int maxAttempts, CancellationToken ct = default);
+    Task<bool> MarkFailedAsync(long jobId, string error, int maxAttempts, CancellationToken ct = default);
 
     /// <summary>
     /// Snapshot da fila pra dashboard admin.

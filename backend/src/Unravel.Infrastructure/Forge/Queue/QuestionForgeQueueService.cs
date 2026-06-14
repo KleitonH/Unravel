@@ -119,14 +119,15 @@ public sealed class QuestionForgeQueueService(
         await db.SaveChangesAsync(ct);
     }
 
-    public async Task MarkFailedAsync(long jobId, string error, int maxAttempts, CancellationToken ct = default)
+    public async Task<bool> MarkFailedAsync(long jobId, string error, int maxAttempts, CancellationToken ct = default)
     {
         var job = await db.QuestionForgeJob.FindAsync(new object[] { jobId }, ct);
-        if (job is null) return;
+        if (job is null) return false;
 
         job.LastError = error.Length > 2000 ? error[..2000] : error;
 
-        if (job.AttemptCount >= maxAttempts)
+        bool terminal = job.AttemptCount >= maxAttempts;
+        if (terminal)
         {
             job.Status      = ForgeJobStatus.Failed;
             job.CompletedAt = DateTime.UtcNow;
@@ -143,6 +144,7 @@ public sealed class QuestionForgeQueueService(
                 jobId, job.AttemptCount, maxAttempts, error);
         }
         await db.SaveChangesAsync(ct);
+        return terminal;
     }
 
     public async Task<ForgeQueueStatus> GetStatusAsync(CancellationToken ct = default)

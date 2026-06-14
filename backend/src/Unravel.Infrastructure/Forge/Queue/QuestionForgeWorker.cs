@@ -5,7 +5,9 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Unravel.Application.Forge.Ports;
 using Unravel.Application.Knowledge.Ports;
+using Unravel.Application.Tokens.Ports;
 using Unravel.Domain.Forge;
+using Unravel.Domain.Tokens;
 using Unravel.Infrastructure.Persistence;
 
 namespace Unravel.Infrastructure.Forge.Queue;
@@ -92,6 +94,15 @@ public sealed class QuestionForgeWorker(
         log.LogDebug("Processing job {Id} (content={Content}, chunk={Chunk}, attempt={Attempt})",
             job.Id, job.ContentId, job.ChunkIndex, job.AttemptCount);
 
+        // PR 62 — toda falha passa por aqui. Se for DEFINITIVA, dispara
+        // reposição grátis (outro claim do mesmo content/chunk) ou estorno —
+        // o moderador nunca paga por pergunta não-entregue nem é notificado.
+        async Task FailAsync(string error)
+        {
+            if (await queue.MarkFailedAsync(job.Id, error, MaxAttempts, ct))
+                await HandleTerminalFailureAsync(sp, job, ct);
+        }
+
         // Pega título do Content (passado pro prompt builder)
         var content = await db.Content
             .Where(c => c.Id == job.ContentId)
@@ -99,7 +110,7 @@ public sealed class QuestionForgeWorker(
             .FirstOrDefaultAsync(ct);
         if (content is null)
         {
-            await queue.MarkFailedAsync(job.Id, "Content not found (deleted?)", MaxAttempts, ct);
+            await FailAsync("Content not found (deleted?)");
             return true;
         }
 
@@ -115,7 +126,7 @@ public sealed class QuestionForgeWorker(
         var body = await db.Content.Where(c => c.Id == job.ContentId).Select(c => c.Body).FirstOrDefaultAsync(ct);
         if (string.IsNullOrEmpty(body))
         {
-            await queue.MarkFailedAsync(job.Id, "Content body empty", MaxAttempts, ct);
+            await FailAsync("Content body empty");
             return true;
         }
         var claims = extractor.Extract(body);
@@ -124,7 +135,7 @@ public sealed class QuestionForgeWorker(
         if (claim is null)
         {
             // O conteúdo mudou desde o enqueue — claim não existe mais.
-            await queue.MarkFailedAsync(job.Id, "Claim no longer extractable from current content", MaxAttempts, ct);
+            await FailAsync("Claim no longer extractable from current content");
             return true;
         }
 
@@ -149,15 +160,14 @@ public sealed class QuestionForgeWorker(
         catch (OperationCanceledException) when (ct.IsCancellationRequested) { throw; }
         catch (Exception ex)
         {
-            await queue.MarkFailedAsync(job.Id, $"Generator threw: {ex.Message}", MaxAttempts, ct);
+            await FailAsync($"Generator threw: {ex.Message}");
             return true;
         }
         sw.Stop();
 
         if (!result.IsSuccess)
         {
-            await queue.MarkFailedAsync(job.Id,
-                $"{result.FailureReason}: {result.FailureDetail}", MaxAttempts, ct);
+            await FailAsync($"{result.FailureReason}: {result.FailureDetail}");
             return true;
         }
 
@@ -199,6 +209,74 @@ public sealed class QuestionForgeWorker(
             job.Id, challenge.Id, result.Question.Shape, job.ContentId, sw.ElapsedMilliseconds,
             priorFailure is not null ? $" (recovered on attempt {job.AttemptCount})" : "");
         return true;
+    }
+
+    /// <summary>
+    /// PR 62 — chamado quando um job falha DEFINITIVAMENTE. O moderador não
+    /// pode sofrer com a falha do algoritmo, então:
+    /// <list type="number">
+    ///   <item>Tenta <b>repor</b>: pega outro claim ainda não usado do mesmo
+    ///   (content, chunk) e enfileira um job grátis (mesmo batch/dono) — o
+    ///   "slot" pago continua vivo, perseguindo a quantidade pedida.</item>
+    ///   <item>Se não há claim disponível (trechos esgotados), <b>estorna</b>
+    ///   o token — assim ele nunca paga por pergunta não-entregue.</item>
+    /// </list>
+    /// As falhas ficam internas (status Failed, sem notificar) e depois
+    /// alimentam a recomendação de gold (PR 62b).
+    /// </summary>
+    private async Task HandleTerminalFailureAsync(
+        IServiceProvider sp, QuestionForgeJob job, CancellationToken ct)
+    {
+        var db        = sp.GetRequiredService<ApplicationDbContext>();
+        var extractor = sp.GetRequiredService<IClaimExtractor>();
+        var queue     = sp.GetRequiredService<IQuestionForgeQueue>();
+
+        // 1) Tenta repor com um claim fresco do mesmo content+chunk.
+        var body = await db.Content.Where(c => c.Id == job.ContentId)
+                                   .Select(c => c.Body).FirstOrDefaultAsync(ct);
+        if (!string.IsNullOrEmpty(body))
+        {
+            var used = (await db.QuestionForgeJob
+                    .Where(j => j.ContentId == job.ContentId)
+                    .Select(j => j.ClaimHash)
+                    .ToListAsync(ct))
+                .ToHashSet();
+
+            var candidate = extractor.Extract(body)
+                .Where(c => c.ChunkIndex == job.ChunkIndex
+                         && !used.Contains(QuestionForgeQueueService.HashClaim(c.ClaimText)))
+                .OrderByDescending(c => c.Score)
+                .FirstOrDefault();
+
+            if (candidate is not null)
+            {
+                var n = await queue.EnqueueForContentAsync(
+                    job.ContentId, new[] { candidate }, job.Priority,
+                    batchId: job.BatchId, enqueuedByUserId: job.EnqueuedByUserId, ct: ct);
+                if (n > 0)
+                {
+                    log.LogInformation(
+                        "Job {Id} terminal → reposição grátis enfileirada (content {C}, chunk {Ch}).",
+                        job.Id, job.ContentId, job.ChunkIndex);
+                    return; // slot pago segue vivo via reposição — sem estorno
+                }
+            }
+        }
+
+        // 2) Sem reposição possível → estorna o token (não cobra não-entrega).
+        if (job.EnqueuedByUserId is { } uid)
+        {
+            var tokens = sp.GetRequiredService<IModeratorTokenService>();
+            var cost   = job.Priority == ForgeJobPriority.Urgent ? 3 : 1;
+            await tokens.CreditAsync(uid, cost, TokenTransactionReason.ForgeRefund,
+                metadata: JsonSerializer.Serialize(new
+                {
+                    jobId = job.Id, job.ContentId, job.ChunkIndex, reason = "no_replacement_claim",
+                }), ct);
+            log.LogInformation(
+                "Job {Id} terminal sem reposição → estornado {Cost}cm para {Uid}.",
+                job.Id, cost, uid);
+        }
     }
 
     /// <summary>

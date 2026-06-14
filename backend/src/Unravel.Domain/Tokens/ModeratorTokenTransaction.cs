@@ -34,6 +34,7 @@ public enum TokenTransactionReason
     TrailMilestone10    = 20,   // +50 trilha alcança 10 alunos
     TrailMilestone50    = 21,   // +200 alcança 50
     TrailMilestone100   = 22,   // +500 alcança 100
+    ForgeRefund         = 30,   // PR 62 — estorno de job que falhou de vez sem reposição possível
 
     // ── Débitos (negativos) ─────────────────────────────────────
     ForgeNormal         = 100,  // −1 por job normal
