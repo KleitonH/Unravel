@@ -9,23 +9,38 @@
 //   (fundo transparente, canvas canônico — ver assets/README.md). Sem tocar
 //   em código. O Vite descobre o arquivo automaticamente via import.meta.glob.
 
+import { env } from "@/lib/env"
+
 const files = import.meta.glob("./assets/*.{webp,png}", {
   eager: true,
   query: "?url",
   import: "default",
 }) as Record<string, string>
 
-/** slug → URL do asset raster (quando existe um arquivo correspondente). */
-const ASSET_BY_SLUG: Record<string, string> = {}
+/** slug → URL bundlada (Vite); e slug → extensão. A pasta `assets/` é o
+ *  manifesto de "quais slugs têm arte raster" — em modo CDN reescrevemos só
+ *  a base da URL, mantendo o mesmo conjunto de slugs. */
+const BUNDLED: Record<string, string> = {}
+const EXT: Record<string, string> = {}
 for (const path in files) {
-  const slug = path.split("/").pop()!.replace(/\.(webp|png)$/i, "")
-  ASSET_BY_SLUG[slug] = files[path]
+  const m = path.split("/").pop()!.match(/^(.*)\.(webp|png)$/i)
+  if (!m) continue
+  BUNDLED[m[1]] = files[path]
+  EXT[m[1]] = m[2].toLowerCase()
 }
 
-/** Retorna a URL do asset raster do slug, ou null se ainda não há arte
- *  (cai no SVG de placeholder). */
+/**
+ * Retorna a URL do asset raster do slug, ou null se não há arte (cai no SVG
+ * de placeholder).
+ *
+ * - `VITE_NAVI_CDN` vazio → serve o arquivo bundlado (default).
+ * - `VITE_NAVI_CDN` setado → serve de `${cdn}/<slug>.<ext>` (mesmo conjunto
+ *   de slugs da pasta). Suba os MESMOS arquivos pro bucket/CDN.
+ */
 export function assetForSlug(slug?: string | null): string | null {
-  return slug ? ASSET_BY_SLUG[slug] ?? null : null
+  if (!slug) return null
+  if (env.naviCdn && EXT[slug]) return `${env.naviCdn}/${slug}.${EXT[slug]}`
+  return BUNDLED[slug] ?? null
 }
 
 /** Z-order canônico das camadas do paper-doll (back → front).

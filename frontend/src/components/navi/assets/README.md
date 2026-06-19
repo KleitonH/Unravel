@@ -13,6 +13,21 @@ assets/happy.webp      ← rosto "feliz"
 
 Formatos aceitos: `.webp` (preferido) ou `.png`. Use **WebP** com transparência.
 
+## Onde os assets são servidos (bundle vs CDN)
+
+O resolver é config-driven via `VITE_NAVI_CDN` (ver `src/lib/env.ts`):
+
+- **Vazio (default):** os arquivos desta pasta são **bundlados** pelo Vite e
+  servidos junto do front. Ótimo em dev e quando o front está atrás de um CDN.
+- **Setado** (ex.: `VITE_NAVI_CDN=https://cdn.exemplo.com/navi`): o front passa
+  a buscar `${VITE_NAVI_CDN}/<slug>.<ext>`. **Suba os MESMOS arquivos desta
+  pasta pro bucket/CDN.** Útil quando o front é servido pela própria VM e
+  queremos poupar banda (ex.: Cloudflare R2 com egress grátis, ou jsDelivr).
+
+Esta pasta continua sendo o **manifesto de quais slugs têm arte** (e a extensão
+de cada um) — em modo CDN só a base da URL muda. Migrar = setar 1 env, sem
+tocar em código nem no banco (o `slug` segue sendo a chave).
+
 ---
 
 ## Regra de ouro: canvas fixo + registro (registration)
