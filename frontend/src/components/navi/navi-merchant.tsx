@@ -7,7 +7,7 @@ import { useId } from "react"
 export function NaviMerchant({ size = 180, style }: { size?: number; style?: React.CSSProperties }) {
   const uid = useId().replace(/:/g, "")
   const gFur = `mf-${uid}`, gFace = `mc-${uid}`, gChest = `mh-${uid}`, gApron = `ma-${uid}`
-  const ear = "#f0c98a", earIn = "#e6a86a"
+  const ear = "#f0c98a"
   const beret = "#5a7340"
 
   return (
