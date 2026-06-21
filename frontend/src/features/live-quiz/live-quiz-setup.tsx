@@ -1,8 +1,9 @@
 import { useMemo, useState } from "react"
-import { useQueries, useQuery } from "@tanstack/react-query"
+import { useMutation, useQueries, useQuery } from "@tanstack/react-query"
+import { toast } from "sonner"
 import {
   Check, ChevronLeft, ChevronRight, Clock, Globe, ListChecks, ListOrdered,
-  Radio, Shuffle, Ticket, Trophy, Users,
+  Loader2, Radio, Shuffle, Ticket, Trophy, Users,
 } from "lucide-react"
 import { turmasApi } from "@/api/turmas"
 import { Badge } from "@/components/ui/badge"
@@ -12,6 +13,8 @@ import { Input } from "@/components/ui/input"
 import { Skeleton } from "@/components/ui/skeleton"
 import { cn } from "@/lib/utils"
 import { LiveQuizQuestionPicker, type PickedQuestion } from "./live-quiz-question-picker"
+import { LiveQuizHost } from "./live-quiz-host"
+import { liveQuizApi, type LiveSession } from "@/api/live-quiz"
 import type { TurmaMember } from "@/types/api"
 
 /**
@@ -39,8 +42,9 @@ export type LiveQuizConfig = {
 }
 
 export function LiveQuizSetup() {
-  const [step, setStep] = useState<1 | 2 | 3>(1)
+  const [step, setStep] = useState<1 | 2 | 3 | 4>(1)
   const [picked, setPicked] = useState<PickedQuestion[]>([])
+  const [session, setSession] = useState<LiveSession | null>(null)
 
   const [mode, setMode] = useState<LiveQuizMode>("turma")
   const [questionCount, setQuestionCount] = useState(10)
@@ -101,6 +105,30 @@ export function LiveQuizSetup() {
     turmaIds, studentIds: selectedStudentIds,
   }
 
+  const createMut = useMutation({
+    mutationFn: () => liveQuizApi.create({
+      mode:                 config.mode === "turma" ? "Turma" : "Livre",
+      secondsPerQuestion:   config.secondsPerQuestion,
+      showRankBetween:      config.showRankBetween,
+      shuffleQuestions:     config.shuffleQuestions,
+      shuffleOptions:       config.shuffleOptions,
+      questionChallengeIds: picked.map((p) => p.id),
+      allowedUserIds:       config.studentIds,
+    }),
+    onSuccess: (s) => { setSession(s); setStep(4) },
+    onError: () => toast.error("Falha ao criar a sessão."),
+  })
+
+  if (step === 4 && session) {
+    return (
+      <LiveQuizHost
+        sessionId={session.id}
+        joinCode={session.joinCode}
+        onExit={() => { setSession(null); setPicked([]); setStep(1) }}
+      />
+    )
+  }
+
   if (step === 2) {
     return (
       <LiveQuizQuestionPicker
@@ -113,7 +141,15 @@ export function LiveQuizSetup() {
   }
 
   if (step === 3) {
-    return <ReadyToStartPlaceholder config={config} picked={picked} onBack={() => setStep(2)} />
+    return (
+      <ReadyToStart
+        config={config}
+        picked={picked}
+        onBack={() => setStep(2)}
+        onStart={() => createMut.mutate()}
+        starting={createMut.isPending}
+      />
+    )
   }
 
   return (
@@ -300,10 +336,14 @@ function ToggleRow({ icon, label, on, onToggle }: {
   )
 }
 
-function ReadyToStartPlaceholder({ config, picked, onBack }: { config: LiveQuizConfig; picked: PickedQuestion[]; onBack: () => void }) {
+function ReadyToStart({
+  config, picked, onBack, onStart, starting,
+}: {
+  config: LiveQuizConfig; picked: PickedQuestion[]; onBack: () => void; onStart: () => void; starting: boolean
+}) {
   return (
     <div className="space-y-4 max-w-3xl">
-      <Button variant="ghost" size="sm" className="-ml-2" onClick={onBack}>
+      <Button variant="ghost" size="sm" className="-ml-2" onClick={onBack} disabled={starting}>
         <ChevronLeft className="h-4 w-4 mr-1" />Voltar à seleção
       </Button>
       <Card className="border-primary/30 bg-primary/5">
@@ -318,9 +358,15 @@ function ReadyToStartPlaceholder({ config, picked, onBack }: { config: LiveQuizC
             {config.shuffleOptions && <Badge variant="outline">alternativas aleatórias</Badge>}
           </div>
           <p className="text-sm text-muted-foreground max-w-md mx-auto pt-1">
-            Próxima etapa: o lobby ao vivo (gerar token/sala, alunos entram, controle de
-            perguntas e ranking em tempo real) — em construção.
+            Ao iniciar, abrimos a sala: os participantes entram pelo código e você
+            controla as perguntas em tempo real.
           </p>
+          <div className="pt-2">
+            <Button size="lg" onClick={onStart} disabled={starting || picked.length === 0}>
+              {starting ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Radio className="h-4 w-4 mr-1" />}
+              Iniciar sala
+            </Button>
+          </div>
         </CardContent>
       </Card>
     </div>

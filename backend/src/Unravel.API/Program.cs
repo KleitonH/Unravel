@@ -237,6 +237,9 @@ app.MapControllers();
 // ?access_token= (configurado no JwtBearerEvents acima).
 app.MapHub<JourneyHub>("/hubs/journey");
 
+// Quiz ao Vivo — push em tempo real (lobby, perguntas, placar, pódio).
+app.MapHub<LiveQuizHub>("/hubs/live-quiz");
+
 app.Run();
 return 0;
 

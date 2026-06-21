@@ -248,6 +248,9 @@ public class LiveQuizService(ApplicationDbContext db) : ILiveQuizService
         return rows.Select((p, i) => new LiveQuizLeaderboardRow(i + 1, p.UserId, p.DisplayName, p.Score)).ToList();
     }
 
+    public Task<int> AnsweredCountAsync(int sessionId, int orderIndex, CancellationToken ct = default)
+        => db.LiveQuizAnswer.CountAsync(a => a.SessionId == sessionId && a.QuestionOrderIndex == orderIndex, ct);
+
     // ── helpers ───────────────────────────────────────────────────────
 
     private static LiveQuizSessionDto ToDto(LiveQuizSession s, int questionCount, int participantCount) =>

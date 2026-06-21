@@ -82,4 +82,7 @@ public interface ILiveQuizService
         int sessionId, Guid userId, int questionOrderIndex, int selectedIndex, DateTime now, CancellationToken ct = default);
 
     Task<IReadOnlyList<LiveQuizLeaderboardRow>> LeaderboardAsync(int sessionId, CancellationToken ct = default);
+
+    /// <summary>Quantos participantes já responderam a pergunta de índice dado.</summary>
+    Task<int> AnsweredCountAsync(int sessionId, int orderIndex, CancellationToken ct = default);
 }
