@@ -56,10 +56,15 @@ public class CaixinhaService(ApplicationDbContext db) : ICaixinhaService
         var rank   = ranked.FirstOrDefault(r => r.Id == me.CaixinhaId)?.Rank ?? 0;
         var points = memberDtos.Sum(m => m.Xp);
 
+        var dailyPoints  = caixinha.DailyPointsDate?.Date == today ? caixinha.DailyPoints : 0;
+        var goalReached  = caixinha.DailyGoalAwardedAt?.Date == today;
+
         return new CaixinhaDetailDto(
             caixinha.Id, caixinha.Name, caixinha.Emblem, caixinha.LeaderId,
             points, memberDtos.Count, memberDtos.Count(m => m.ActiveToday), rank,
-            me.Role.ToString(), memberDtos, muralDtos);
+            me.Role.ToString(),
+            caixinha.DailyGoal, dailyPoints, goalReached,
+            memberDtos, muralDtos);
     }
 
     public async Task<CaixinhaActionResult> CreateAsync(Guid userId, string name, string? emblem, CancellationToken ct = default)

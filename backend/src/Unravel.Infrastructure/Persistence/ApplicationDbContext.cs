@@ -263,6 +263,7 @@ public partial class ApplicationDbContext(DbContextOptions<ApplicationDbContext>
             e.HasKey(c => c.Id);
             e.Property(c => c.Name).HasMaxLength(40).IsRequired();
             e.Property(c => c.Emblem).HasMaxLength(10);
+            e.Property(c => c.DailyGoal).HasDefaultValue(100); // PR 67
             e.HasIndex(c => c.LeaderId);
         });
 

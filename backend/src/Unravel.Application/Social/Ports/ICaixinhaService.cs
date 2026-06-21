@@ -28,6 +28,9 @@ public record CaixinhaDetailDto(
     int     ActiveTodayCount,
     int     Rank,
     string  MyRole,
+    int     DailyGoal,           // PR 67 — meta coletiva diária
+    int     DailyPoints,         // pontos do dia (0 se virou o dia)
+    bool    GoalReachedToday,
     IReadOnlyList<CaixinhaMemberDto>  Members,
     IReadOnlyList<CaixinhaMessageDto> Mural);
 

@@ -21,6 +21,14 @@ public class Caixinha
     public Guid     LeaderId  { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
+    // PR 67 — meta coletiva diária. DailyPoints acumula o XP ganho pelos
+    // membros no dia (reseta na virada); ao bater DailyGoal, todos ganham
+    // bônus de moedas uma vez no dia (DailyGoalAwardedAt).
+    public int       DailyGoal          { get; set; } = 100;
+    public int       DailyPoints        { get; set; }
+    public DateTime? DailyPointsDate    { get; set; }
+    public DateTime? DailyGoalAwardedAt { get; set; }
+
     public ICollection<CaixinhaMember>  Members  { get; set; } = new List<CaixinhaMember>();
     public ICollection<CaixinhaMessage> Messages { get; set; } = new List<CaixinhaMessage>();
 

@@ -78,6 +78,9 @@ public static class DependencyInjection
         // PR 66 — ligas semanais.
         services.AddScoped<Application.Social.Ports.ILeagueService,
                            Social.LeagueService>();
+        // PR 67 — meta coletiva diária (write-path no submit).
+        services.AddScoped<Application.Social.Ports.ICaixinhaContributionService,
+                           Social.CaixinhaContributionService>();
 
         // Journey planner (PR 3) — planner singleton (puro/stateless),
         // read model e use case escopados (dependem de DbContext).
