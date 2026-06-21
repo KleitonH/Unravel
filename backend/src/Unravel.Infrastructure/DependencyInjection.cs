@@ -69,6 +69,10 @@ public static class DependencyInjection
         services.AddScoped<Application.Social.Ports.IFriendshipService,
                            Social.FriendshipService>();
 
+        // PR 65 — Caixinha de Gatos (clã/grupo).
+        services.AddScoped<Application.Social.Ports.ICaixinhaService,
+                           Social.CaixinhaService>();
+
         // Journey planner (PR 3) — planner singleton (puro/stateless),
         // read model e use case escopados (dependem de DbContext).
         services.AddSingleton<IJourneyPlanner, JourneyPlanner>();

@@ -31,6 +31,11 @@ public partial class ApplicationDbContext(DbContextOptions<ApplicationDbContext>
     // PR 64 — mecânicas sociais (Amigos/Parcerias)
     public DbSet<Friendship> Friendship => Set<Friendship>();
 
+    // PR 65 — Caixinha de Gatos (clã/grupo)
+    public DbSet<Caixinha>        Caixinha        => Set<Caixinha>();
+    public DbSet<CaixinhaMember>  CaixinhaMember  => Set<CaixinhaMember>();
+    public DbSet<CaixinhaMessage> CaixinhaMessage => Set<CaixinhaMessage>();
+
     protected override void OnModelCreating(ModelBuilder mb)
     {
         base.OnModelCreating(mb);
@@ -242,6 +247,52 @@ public partial class ApplicationDbContext(DbContextOptions<ApplicationDbContext>
             e.HasOne(f => f.Addressee)
              .WithMany()
              .HasForeignKey(f => f.AddresseeId)
+             .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        // PR 65 — Caixinha de Gatos (clã/grupo).
+        mb.Entity<Caixinha>(e =>
+        {
+            e.HasKey(c => c.Id);
+            e.Property(c => c.Name).HasMaxLength(40).IsRequired();
+            e.Property(c => c.Emblem).HasMaxLength(10);
+            e.HasIndex(c => c.LeaderId);
+        });
+
+        mb.Entity<CaixinhaMember>(e =>
+        {
+            e.HasKey(m => m.Id);
+            e.Property(m => m.Role).HasConversion<int>();
+            // Um usuário pertence a no máximo uma caixinha.
+            e.HasIndex(m => m.UserId).IsUnique();
+            e.HasIndex(m => m.CaixinhaId);
+
+            e.HasOne(m => m.Caixinha)
+             .WithMany(c => c.Members)
+             .HasForeignKey(m => m.CaixinhaId)
+             .OnDelete(DeleteBehavior.Cascade);
+
+            e.HasOne(m => m.User)
+             .WithMany()
+             .HasForeignKey(m => m.UserId)
+             .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        mb.Entity<CaixinhaMessage>(e =>
+        {
+            e.HasKey(m => m.Id);
+            e.Property(m => m.Text).HasMaxLength(500).IsRequired();
+            // Listagem do mural: WHERE caixinha_id = ? ORDER BY created_at DESC
+            e.HasIndex(m => new { m.CaixinhaId, m.CreatedAt });
+
+            e.HasOne(m => m.Caixinha)
+             .WithMany(c => c.Messages)
+             .HasForeignKey(m => m.CaixinhaId)
+             .OnDelete(DeleteBehavior.Cascade);
+
+            e.HasOne(m => m.User)
+             .WithMany()
+             .HasForeignKey(m => m.UserId)
              .OnDelete(DeleteBehavior.Restrict);
         });
     }
