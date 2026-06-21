@@ -422,6 +422,43 @@ export type RankingEntry = {
   badgeCount: number
 }
 
+// ── Social: Amigos/Parcerias (PR 64) ────────────────────────────────
+
+export type Friend = {
+  userId:       string
+  name:         string
+  xp:           number
+  streakDays:   number
+  activeTitle:  string | null
+  badgeCount:   number
+  friendshipId: number
+}
+
+export type FriendRequest = {
+  friendshipId: number
+  userId:       string
+  name:         string
+  xp:           number
+  activeTitle:  string | null
+  createdAt:    string
+  direction:    "incoming" | "outgoing"
+}
+
+export type FriendRequests = {
+  incoming: FriendRequest[]
+  outgoing: FriendRequest[]
+}
+
+export type FriendRelation = "none" | "pending_out" | "pending_in" | "friends" | "blocked"
+
+export type UserSearchResult = {
+  userId:         string
+  name:           string
+  xp:             number
+  activeTitle:    string | null
+  relationStatus: FriendRelation
+}
+
 // ── SignalR events (PR 8) ───────────────────────────────────────────
 
 export type DailyPlanGeneratedEvent = {
