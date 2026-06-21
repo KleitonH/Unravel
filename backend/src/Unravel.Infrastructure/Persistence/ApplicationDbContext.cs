@@ -36,6 +36,10 @@ public partial class ApplicationDbContext(DbContextOptions<ApplicationDbContext>
     public DbSet<CaixinhaMember>  CaixinhaMember  => Set<CaixinhaMember>();
     public DbSet<CaixinhaMessage> CaixinhaMessage => Set<CaixinhaMessage>();
 
+    // PR 65c — eventos entre caixinhas
+    public DbSet<CaixinhaEvent>      CaixinhaEvent      => Set<CaixinhaEvent>();
+    public DbSet<CaixinhaEventScore> CaixinhaEventScore => Set<CaixinhaEventScore>();
+
     protected override void OnModelCreating(ModelBuilder mb)
     {
         base.OnModelCreating(mb);
@@ -294,6 +298,32 @@ public partial class ApplicationDbContext(DbContextOptions<ApplicationDbContext>
              .WithMany()
              .HasForeignKey(m => m.UserId)
              .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        // PR 65c — eventos entre caixinhas.
+        mb.Entity<CaixinhaEvent>(e =>
+        {
+            e.HasKey(ev => ev.Id);
+            e.Property(ev => ev.Name).HasMaxLength(80).IsRequired();
+            e.Property(ev => ev.Theme).HasMaxLength(120);
+            e.HasIndex(ev => new { ev.StartsAt, ev.EndsAt });
+        });
+
+        mb.Entity<CaixinhaEventScore>(e =>
+        {
+            e.HasKey(s => s.Id);
+            // Uma caixinha participa de um evento no máximo uma vez.
+            e.HasIndex(s => new { s.EventId, s.CaixinhaId }).IsUnique();
+
+            e.HasOne(s => s.Event)
+             .WithMany(ev => ev.Scores)
+             .HasForeignKey(s => s.EventId)
+             .OnDelete(DeleteBehavior.Cascade);
+
+            e.HasOne(s => s.Caixinha)
+             .WithMany()
+             .HasForeignKey(s => s.CaixinhaId)
+             .OnDelete(DeleteBehavior.Cascade);
         });
     }
 }

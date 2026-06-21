@@ -72,6 +72,9 @@ public static class DependencyInjection
         // PR 65 — Caixinha de Gatos (clã/grupo).
         services.AddScoped<Application.Social.Ports.ICaixinhaService,
                            Social.CaixinhaService>();
+        // PR 65c — eventos entre caixinhas.
+        services.AddScoped<Application.Social.Ports.ICaixinhaEventService,
+                           Social.CaixinhaEventService>();
 
         // Journey planner (PR 3) — planner singleton (puro/stateless),
         // read model e use case escopados (dependem de DbContext).
