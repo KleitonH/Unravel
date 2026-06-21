@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 import { Crown, Flame, LogOut, Search, Send, Trophy, UserMinus, Users } from "lucide-react"
 import { toast } from "sonner"
 import { caixinhaApi } from "@/api/caixinha"
+import { EventsSection } from "./caixinha-events"
 import { useAuth } from "@/stores/auth"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
@@ -39,6 +40,8 @@ export function CaixinhaPage() {
       {mineQuery.data
         ? <Panel detail={mineQuery.data} onChange={() => qc.invalidateQueries({ queryKey: ["caixinha"] })} />
         : <NoCaixinha onChange={() => qc.invalidateQueries({ queryKey: ["caixinha"] })} />}
+
+      <EventsSection canLead={mineQuery.data?.myRole === "Leader"} />
     </div>
   )
 }

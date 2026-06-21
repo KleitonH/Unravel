@@ -1,5 +1,5 @@
 import { api } from "./client"
-import type { CaixinhaDetail, CaixinhaSummary } from "@/types/api"
+import type { CaixinhaDetail, CaixinhaEvent, CaixinhaEventDetail, CaixinhaSummary } from "@/types/api"
 
 /**
  * PR 65 — cliente da Caixinha de Gatos (clã/grupo). Espelha o
@@ -30,4 +30,19 @@ export const caixinhaApi = {
 
   postMural: (text: string) =>
     api.post<{ ok: boolean }>("/api/caixinhas/mural", { text }).then((r) => r.data),
+
+  // ── Eventos entre caixinhas (PR 65c) ──
+  events: {
+    list: () =>
+      api.get<CaixinhaEvent[]>("/api/caixinhas/events").then((r) => r.data),
+
+    detail: (id: number) =>
+      api.get<CaixinhaEventDetail>(`/api/caixinhas/events/${id}`).then((r) => r.data),
+
+    create: (body: { name: string; theme?: string; startsAt: string; endsAt: string }) =>
+      api.post<{ eventId: number }>("/api/caixinhas/events", body).then((r) => r.data),
+
+    join: (id: number) =>
+      api.post<{ eventId: number }>(`/api/caixinhas/events/${id}/join`, {}).then((r) => r.data),
+  },
 }

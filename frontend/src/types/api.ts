@@ -501,6 +501,33 @@ export type CaixinhaSummary = {
   rank:             number
 }
 
+export type CaixinhaEventStatus = "upcoming" | "active" | "finished"
+
+export type CaixinhaEvent = {
+  id:               number
+  name:             string
+  theme:            string | null
+  startsAt:         string
+  endsAt:           string
+  status:           CaixinhaEventStatus
+  participantCount: number
+  myCaixinhaJoined: boolean
+}
+
+export type EventRankingEntry = {
+  caixinhaId: number
+  name:       string
+  emblem:     string
+  points:     number
+  rank:       number
+  isMine:     boolean
+}
+
+export type CaixinhaEventDetail = {
+  event:   CaixinhaEvent
+  ranking: EventRankingEntry[]
+}
+
 // ── SignalR events (PR 8) ───────────────────────────────────────────
 
 export type DailyPlanGeneratedEvent = {
