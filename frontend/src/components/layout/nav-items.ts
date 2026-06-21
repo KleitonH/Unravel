@@ -1,4 +1,4 @@
-import { BookPlus, Home, Map, ShieldCheck, ShoppingBag, Swords, User, Users } from "lucide-react"
+import { BookPlus, Boxes, Home, Map, ShieldCheck, ShoppingBag, User, Users } from "lucide-react"
 import type { LucideIcon } from "lucide-react"
 
 export type NavItem = {
@@ -23,7 +23,7 @@ export const navItems: NavItem[] = [
   { to: "/trails",     label: "Trilhas",   Icon: Map },
   { to: "/loja",       label: "Loja",      Icon: ShoppingBag },
   { to: "/amigos",     label: "Amigos",    Icon: Users },
-  { to: "/desafio",    label: "Desafios",  Icon: Swords },
+  { to: "/caixinha",   label: "Caixinha",  Icon: Boxes },
   { to: "/profile",    label: "Perfil",    Icon: User },
   { to: "/admin",        label: "Admin",     Icon: ShieldCheck, requires: "Moderator" },
   { to: "/admin/trails", label: "Curadoria", Icon: BookPlus,    requires: "Moderator" },

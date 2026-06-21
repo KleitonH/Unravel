@@ -42,6 +42,7 @@ const MasteryPage         = lazy(() => import("@/features/mastery/mastery-page")
 const ShopPage            = lazy(() => import("@/features/shop/shop-page").then((m) => ({ default: m.ShopPage })))
 const BossFightPage       = lazy(() => import("@/features/boss/boss-fight-page").then((m) => ({ default: m.BossFightPage })))
 const FriendsPage         = lazy(() => import("@/features/friends/friends-page").then((m) => ({ default: m.FriendsPage })))
+const CaixinhaPage        = lazy(() => import("@/features/caixinha/caixinha-page").then((m) => ({ default: m.CaixinhaPage })))
 
 /** Wrapper que serializa Suspense fallback em cada rota lazy.
  *  Skeleton segue identidade visual; nada de spinner branco.
@@ -139,6 +140,7 @@ const profileRoute            = createRoute({ getParentRoute: () => authedLayout
 const desafioRoute            = createRoute({ getParentRoute: () => authedLayoutRoute, path: "/desafio",                        component: () => <Placeholder title="Desafios" /> })
 const shopRoute               = createRoute({ getParentRoute: () => authedLayoutRoute, path: "/loja",                           component: () => <Lazy Component={ShopPage} /> })
 const friendsRoute            = createRoute({ getParentRoute: () => authedLayoutRoute, path: "/amigos",                         component: () => <Lazy Component={FriendsPage} /> })
+const caixinhaRoute           = createRoute({ getParentRoute: () => authedLayoutRoute, path: "/caixinha",                       component: () => <Lazy Component={CaixinhaPage} /> })
 
 const routeTree = rootRoute.addChildren([
   indexRoute,
@@ -164,6 +166,7 @@ const routeTree = rootRoute.addChildren([
     bossFightRoute,
     shopRoute,
     friendsRoute,
+    caixinhaRoute,
     profileRoute,
     desafioRoute,
   ]),

@@ -459,6 +459,48 @@ export type UserSearchResult = {
   relationStatus: FriendRelation
 }
 
+// ── Social: Caixinha de Gatos / clã (PR 65) ─────────────────────────
+
+export type CaixinhaMember = {
+  userId:      string
+  name:        string
+  xp:          number
+  streakDays:  number
+  activeToday: boolean
+  role:        "Leader" | "Member"
+}
+
+export type CaixinhaMessage = {
+  id:         number
+  userId:     string
+  authorName: string
+  text:       string
+  createdAt:  string
+}
+
+export type CaixinhaDetail = {
+  id:               number
+  name:             string
+  emblem:           string
+  leaderId:         string
+  collectivePoints: number
+  memberCount:      number
+  activeTodayCount: number
+  rank:             number
+  myRole:           "Leader" | "Member"
+  members:          CaixinhaMember[]
+  mural:            CaixinhaMessage[]
+}
+
+export type CaixinhaSummary = {
+  id:               number
+  name:             string
+  emblem:           string
+  memberCount:      number
+  collectivePoints: number
+  rank:             number
+}
+
 // ── SignalR events (PR 8) ───────────────────────────────────────────
 
 export type DailyPlanGeneratedEvent = {
