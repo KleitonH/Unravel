@@ -1,0 +1,24 @@
+<!-- Gabarito de registro do NAVI — 1000x1050. Abra no Photopea/GIMP como
+     camada de referência POR CIMA da arte e alinhe as âncoras. Prefixo "_" e
+     extensão .svg → NÃO é bundlado como asset (o glob pega só .webp/.png). -->
+<svg width="1000" height="1050" viewBox="0 0 1000 1050" xmlns="http://www.w3.org/2000/svg">
+  <rect x="0" y="0" width="1000" height="1050" fill="none" stroke="#ff2db4" stroke-width="2" stroke-dasharray="6 6"/>
+  <!-- centro vertical -->
+  <line x1="500" y1="0" x2="500" y2="1050" stroke="#2dd4ff" stroke-width="1.5" stroke-dasharray="4 6"/>
+  <!-- linhas de âncora (y em % do canvas) -->
+  <g stroke="#ff2db4" stroke-width="1.5" font-family="monospace" font-size="16" fill="#ff2db4">
+    <line x1="0" y1="126" x2="1000" y2="126"/><text x="8" y="120">topo da cabeça · 12%</text>
+    <line x1="0" y1="410" x2="1000" y2="410"/><text x="8" y="404">olhos · 39%</text>
+    <line x1="0" y1="451" x2="1000" y2="451"/><text x="8" y="445">nariz · 43%</text>
+    <line x1="0" y1="599" x2="1000" y2="599"/><text x="8" y="593">pescoço/gola · 57%</text>
+    <line x1="0" y1="756" x2="1000" y2="756"/><text x="8" y="750">centro do tronco · 72%</text>
+    <line x1="0" y1="987" x2="1000" y2="987"/><text x="8" y="981">pés · 94%</text>
+  </g>
+  <!-- centros dos olhos (40% / 60% x) -->
+  <g fill="#2dd4ff">
+    <circle cx="400" cy="410" r="5"/><circle cx="600" cy="410" r="5"/>
+  </g>
+  <!-- base da cauda (75% x, 67% y) -->
+  <circle cx="750" cy="703" r="6" fill="none" stroke="#2dd4ff" stroke-width="2"/>
+  <text x="760" y="700" font-family="monospace" font-size="14" fill="#2dd4ff">base da cauda</text>
+</svg>
