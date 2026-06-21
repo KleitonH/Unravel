@@ -542,6 +542,18 @@ export type LeagueMember = {
   isMine:   boolean
 }
 
+// ── Notificações (PR 69) ────────────────────────────────────────────
+
+export type AppNotification = {
+  id:        number
+  type:      string
+  title:     string
+  body:      string
+  link:      string | null
+  isRead:    boolean
+  createdAt: string
+}
+
 export type MyLeague = {
   tier:         string
   nextTier:     string | null
