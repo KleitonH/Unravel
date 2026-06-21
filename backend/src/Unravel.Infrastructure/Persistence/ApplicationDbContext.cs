@@ -40,6 +40,9 @@ public partial class ApplicationDbContext(DbContextOptions<ApplicationDbContext>
     public DbSet<CaixinhaEvent>      CaixinhaEvent      => Set<CaixinhaEvent>();
     public DbSet<CaixinhaEventScore> CaixinhaEventScore => Set<CaixinhaEventScore>();
 
+    // PR 66 — ligas semanais
+    public DbSet<UserLeague> UserLeague => Set<UserLeague>();
+
     protected override void OnModelCreating(ModelBuilder mb)
     {
         base.OnModelCreating(mb);
@@ -323,6 +326,22 @@ public partial class ApplicationDbContext(DbContextOptions<ApplicationDbContext>
             e.HasOne(s => s.Caixinha)
              .WithMany()
              .HasForeignKey(s => s.CaixinhaId)
+             .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        // PR 66 — ligas semanais. PK = UserId (1 estado por aluno).
+        mb.Entity<UserLeague>(e =>
+        {
+            e.HasKey(l => l.UserId);
+            e.Property(l => l.Tier).HasConversion<int>();
+            e.Property(l => l.WeekKey).HasMaxLength(10);
+            e.Property(l => l.PreviousResult).HasMaxLength(16);
+            // Leaderboard da semana: WHERE tier=? AND week_key=?
+            e.HasIndex(l => new { l.Tier, l.WeekKey });
+
+            e.HasOne(l => l.User)
+             .WithMany()
+             .HasForeignKey(l => l.UserId)
              .OnDelete(DeleteBehavior.Cascade);
         });
     }

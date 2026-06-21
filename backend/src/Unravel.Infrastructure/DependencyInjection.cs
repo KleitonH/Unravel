@@ -75,6 +75,9 @@ public static class DependencyInjection
         // PR 65c — eventos entre caixinhas.
         services.AddScoped<Application.Social.Ports.ICaixinhaEventService,
                            Social.CaixinhaEventService>();
+        // PR 66 — ligas semanais.
+        services.AddScoped<Application.Social.Ports.ILeagueService,
+                           Social.LeagueService>();
 
         // Journey planner (PR 3) — planner singleton (puro/stateless),
         // read model e use case escopados (dependem de DbContext).
