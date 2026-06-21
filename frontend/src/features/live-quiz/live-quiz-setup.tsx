@@ -2,7 +2,7 @@ import { useMemo, useState } from "react"
 import { useQueries, useQuery } from "@tanstack/react-query"
 import {
   Check, ChevronLeft, ChevronRight, Clock, Globe, ListChecks, ListOrdered,
-  Shuffle, Ticket, Trophy, Users,
+  Radio, Shuffle, Ticket, Trophy, Users,
 } from "lucide-react"
 import { turmasApi } from "@/api/turmas"
 import { Badge } from "@/components/ui/badge"
@@ -11,6 +11,7 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Skeleton } from "@/components/ui/skeleton"
 import { cn } from "@/lib/utils"
+import { LiveQuizQuestionPicker, type PickedQuestion } from "./live-quiz-question-picker"
 import type { TurmaMember } from "@/types/api"
 
 /**
@@ -38,7 +39,8 @@ export type LiveQuizConfig = {
 }
 
 export function LiveQuizSetup() {
-  const [step, setStep] = useState<1 | 2>(1)
+  const [step, setStep] = useState<1 | 2 | 3>(1)
+  const [picked, setPicked] = useState<PickedQuestion[]>([])
 
   const [mode, setMode] = useState<LiveQuizMode>("turma")
   const [questionCount, setQuestionCount] = useState(10)
@@ -100,7 +102,18 @@ export function LiveQuizSetup() {
   }
 
   if (step === 2) {
-    return <QuestionSelectionPlaceholder config={config} onBack={() => setStep(1)} />
+    return (
+      <LiveQuizQuestionPicker
+        target={questionCount}
+        initial={picked}
+        onBack={() => setStep(1)}
+        onConfirm={(p) => { setPicked(p); setStep(3) }}
+      />
+    )
+  }
+
+  if (step === 3) {
+    return <ReadyToStartPlaceholder config={config} picked={picked} onBack={() => setStep(2)} />
   }
 
   return (
@@ -287,21 +300,26 @@ function ToggleRow({ icon, label, on, onToggle }: {
   )
 }
 
-function QuestionSelectionPlaceholder({ config, onBack }: { config: LiveQuizConfig; onBack: () => void }) {
+function ReadyToStartPlaceholder({ config, picked, onBack }: { config: LiveQuizConfig; picked: PickedQuestion[]; onBack: () => void }) {
   return (
     <div className="space-y-4 max-w-3xl">
       <Button variant="ghost" size="sm" className="-ml-2" onClick={onBack}>
-        <ChevronLeft className="h-4 w-4 mr-1" />Voltar à configuração
+        <ChevronLeft className="h-4 w-4 mr-1" />Voltar à seleção
       </Button>
-      <Card className="border-dashed">
-        <CardContent className="py-10 text-center space-y-2">
-          <ListChecks className="h-10 w-10 text-muted-foreground mx-auto" />
-          <p className="font-display font-bold">Etapa 2 — Seleção de perguntas</p>
-          <p className="text-sm text-muted-foreground max-w-md mx-auto">
-            Em construção. Aqui você vai abrir seus conteúdos (e os da plataforma),
-            ver as perguntas autorais + as da IA e escolher
-            <strong> {config.questionCount}</strong> pra esta sessão
-            ({config.mode === "turma" ? `${config.studentIds.length} participante(s)` : "modo livre"}).
+      <Card className="border-primary/30 bg-primary/5">
+        <CardContent className="py-8 space-y-3 text-center">
+          <Radio className="h-10 w-10 text-primary mx-auto" />
+          <p className="font-display font-bold text-lg">Tudo pronto pra iniciar</p>
+          <div className="flex flex-wrap justify-center gap-2 text-sm">
+            <Badge variant="outline">{config.mode === "turma" ? `${config.studentIds.length} participante(s)` : "Quiz livre (token)"}</Badge>
+            <Badge variant="outline">{picked.length} pergunta(s)</Badge>
+            <Badge variant="outline">{config.secondsPerQuestion}s por pergunta</Badge>
+            {config.shuffleQuestions && <Badge variant="outline">ordem aleatória</Badge>}
+            {config.shuffleOptions && <Badge variant="outline">alternativas aleatórias</Badge>}
+          </div>
+          <p className="text-sm text-muted-foreground max-w-md mx-auto pt-1">
+            Próxima etapa: o lobby ao vivo (gerar token/sala, alunos entram, controle de
+            perguntas e ranking em tempo real) — em construção.
           </p>
         </CardContent>
       </Card>
