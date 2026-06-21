@@ -13,7 +13,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Skeleton } from "@/components/ui/skeleton"
 import { cn } from "@/lib/utils"
 import { QuestionRenderer } from "@/components/quiz/question-renderer"
-import { LivesIndicator } from "@/components/gamification/lives-indicator"
 import { OutOfLivesCard } from "@/components/gamification/out-of-lives"
 import { useQuizLives } from "@/components/gamification/use-quiz-lives"
 import type { PoolChallenge, SubmitPoolChallengeResponse } from "@/types/api"
@@ -57,7 +56,7 @@ export function ReinforcePage() {
 
   const [currentIdx, setCurrentIdx] = useState(0)
   const [answers, setAnswers]       = useState<Map<number, AnswerState>>(new Map())
-  const { lives, gameOver, applyTotalLives } = useQuizLives()
+  const { gameOver, applyTotalLives } = useQuizLives()
 
   const data       = quizQuery.data
   const challenges = data?.challenges ?? []
@@ -123,18 +122,15 @@ export function ReinforcePage() {
         </Link>
       </Button>
 
-      <header className="flex items-start justify-between gap-4">
-        <div className="space-y-1">
-          <h1 className="text-2xl font-display font-extrabold tracking-tight flex items-center gap-2">
-            <Target className="h-6 w-6 text-accent" />
-            Treinar fraquezas
-          </h1>
-          <p className="text-sm text-muted-foreground">
-            Perguntas focadas nos tópicos onde você ainda não consolidou o domínio.
-            Cada acerto sobe sua mastery; cada erro indica onde voltar e estudar.
-          </p>
-        </div>
-        {lives !== null && <LivesIndicator lives={lives} className="shrink-0 mt-1" />}
+      <header className="space-y-1">
+        <h1 className="text-2xl font-display font-extrabold tracking-tight flex items-center gap-2">
+          <Target className="h-6 w-6 text-accent" />
+          Treinar fraquezas
+        </h1>
+        <p className="text-sm text-muted-foreground">
+          Perguntas focadas nos tópicos onde você ainda não consolidou o domínio.
+          Cada acerto sobe sua mastery; cada erro indica onde voltar e estudar.
+        </p>
       </header>
 
       {quizQuery.isLoading && (

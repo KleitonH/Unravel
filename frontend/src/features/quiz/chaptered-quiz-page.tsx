@@ -10,7 +10,6 @@ import { toast } from "sonner"
 import { chaptersApi } from "@/api/chapters"
 import { challengePoolApi } from "@/api/challenge-pool"
 import { QuestionRenderer } from "@/components/quiz/question-renderer"
-import { LivesIndicator } from "@/components/gamification/lives-indicator"
 import { OutOfLivesCard } from "@/components/gamification/out-of-lives"
 import { useQuizLives } from "@/components/gamification/use-quiz-lives"
 import { Badge } from "@/components/ui/badge"
@@ -141,7 +140,7 @@ export function ChapteredQuizPage() {
   })
 
   const [state, dispatch] = useReducer(reducer, INITIAL)
-  const { lives, gameOver, applyTotalLives } = useQuizLives()
+  const { gameOver, applyTotalLives } = useQuizLives()
   const data = dataQuery.data
 
   // ── Helpers ───────────────────────────────────────────────────────
@@ -252,7 +251,7 @@ export function ChapteredQuizPage() {
 
   return (
     <PageShell>
-      <Header data={data} state={state} lives={lives} />
+      <Header data={data} state={state} />
 
       {gameOver && (
         <OutOfLivesCard onLeave={() => navigate({ to: "/trails" })} leaveLabel="Voltar pra trilha" />
@@ -417,7 +416,7 @@ function PageShell({ children }: { children: React.ReactNode }) {
   )
 }
 
-function Header({ data, state, lives }: { data: ChapteredContent; state: WizardState; lives: number | null }) {
+function Header({ data, state }: { data: ChapteredContent; state: WizardState }) {
   const total       = data.chapters.length
   const currentIdx  = state.phase === "complete" || state.phase === "final-review"
     ? total
@@ -428,12 +427,9 @@ function Header({ data, state, lives }: { data: ChapteredContent; state: WizardS
         <h1 className="text-2xl font-display font-extrabold tracking-tight">
           {data.contentTitle}
         </h1>
-        <div className="flex items-center gap-2 shrink-0">
-          {lives !== null && <LivesIndicator lives={lives} size="sm" />}
-          <Badge variant="outline" className="text-xs font-bold">
-            {Math.min(currentIdx + 1, total)} / {total}
-          </Badge>
-        </div>
+        <Badge variant="outline" className="text-xs font-bold shrink-0">
+          {Math.min(currentIdx + 1, total)} / {total}
+        </Badge>
       </div>
       {/* Mini-progresso por capítulo */}
       <div className="flex gap-1.5">

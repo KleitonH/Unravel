@@ -10,7 +10,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Skeleton } from "@/components/ui/skeleton"
 import { cn } from "@/lib/utils"
 import { QuestionRenderer } from "@/components/quiz/question-renderer"
-import { LivesIndicator } from "@/components/gamification/lives-indicator"
 import { OutOfLivesCard } from "@/components/gamification/out-of-lives"
 import { useQuizLives } from "@/components/gamification/use-quiz-lives"
 import type { PoolChallenge, SubmitPoolChallengeResponse } from "@/types/api"
@@ -42,7 +41,7 @@ export function QuizPage() {
   const [currentIdx, setCurrentIdx] = useState(0)
   const [answers, setAnswers] = useState<Map<number, AnswerState>>(new Map())
   const [submitting, setSubmitting] = useState(false)
-  const { lives, gameOver, applyTotalLives } = useQuizLives()
+  const { gameOver, applyTotalLives } = useQuizLives()
 
   const data = poolQuery.data
   const current: PoolChallenge | null = data?.challenges[currentIdx] ?? null
@@ -125,12 +124,9 @@ export function QuizPage() {
                 Domínio atual: <strong>{Math.round(data.targetUserMastery * 100)}%</strong>
               </p>
             </div>
-            <div className="flex items-center gap-2 shrink-0">
-              {lives !== null && <LivesIndicator lives={lives} />}
-              <Badge variant="outline" className="font-bold text-sm py-1 px-3">
-                {currentIdx + 1} / {total}
-              </Badge>
-            </div>
+            <Badge variant="outline" className="font-bold text-sm py-1 px-3 shrink-0">
+              {currentIdx + 1} / {total}
+            </Badge>
           </header>
 
           {gameOver ? (

@@ -18,7 +18,7 @@ const ICON: Record<string, string> = {
  * (poll a cada 60s); dropdown lista as recentes; clicar marca como lida e
  * navega pro link.
  */
-export function NotificationBell() {
+export function NotificationBell({ inline = false }: { inline?: boolean }) {
   const qc = useQueryClient()
   const navigate = useNavigate()
   const [open, setOpen] = useState(false)
@@ -49,11 +49,10 @@ export function NotificationBell() {
     if (n.link) { setOpen(false); navigate({ to: n.link }) }
   }
 
-  return (
-    <div className="fixed top-3 right-3 z-50">
+  const bell = (
       <DropdownMenu open={open} onOpenChange={setOpen}>
         <DropdownMenuTrigger asChild>
-          <Button variant="outline" size="icon" className="relative rounded-full shadow-sm bg-card" title="Notificações">
+          <Button variant="ghost" size="icon" className="relative rounded-full" title="Notificações">
             <Bell className="h-4 w-4" />
             {count > 0 && (
               <span className="absolute -top-1 -right-1 h-5 min-w-5 px-1 rounded-full bg-accent text-accent-foreground text-[10px] font-bold inline-flex items-center justify-center">
@@ -92,6 +91,8 @@ export function NotificationBell() {
           </div>
         </DropdownMenuContent>
       </DropdownMenu>
-    </div>
   )
+
+  if (inline) return bell
+  return <div className="fixed top-3 right-3 z-50">{bell}</div>
 }

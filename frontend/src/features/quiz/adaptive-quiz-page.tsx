@@ -12,7 +12,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Skeleton } from "@/components/ui/skeleton"
 import { cn } from "@/lib/utils"
 import { QuestionRenderer } from "@/components/quiz/question-renderer"
-import { LivesIndicator } from "@/components/gamification/lives-indicator"
 import { OutOfLivesCard } from "@/components/gamification/out-of-lives"
 import { useQuizLives } from "@/components/gamification/use-quiz-lives"
 import type {
@@ -59,7 +58,7 @@ export function AdaptiveQuizPage() {
   const [ability, setAbility] = useState<number>(0.3)
   const [done, setDone]       = useState<{ reason: AdaptiveStopReason } | null>(null)
   const [loading, setLoading] = useState(true)
-  const { lives, gameOver, applyTotalLives } = useQuizLives()
+  const { gameOver, applyTotalLives } = useQuizLives()
 
   // Track simples de acertos pra resultado final
   const correctCount = history.filter((h) => h.wasCorrect).length
@@ -146,18 +145,15 @@ export function AdaptiveQuizPage() {
         </Link>
       </Button>
 
-      <header className="flex items-start justify-between gap-4">
-        <div className="space-y-1">
-          <h1 className="text-2xl font-display font-extrabold tracking-tight flex items-center gap-2">
-            <Activity className="h-6 w-6 text-accent" />
-            Modo adaptativo
-          </h1>
-          <p className="text-sm text-muted-foreground">
-            A próxima pergunta se ajusta à sua estimativa de domínio
-            (CAT — Computerized Adaptive Testing). Acertou: nível sobe; errou: baixa.
-          </p>
-        </div>
-        {lives !== null && <LivesIndicator lives={lives} className="shrink-0 mt-1" />}
+      <header className="space-y-1">
+        <h1 className="text-2xl font-display font-extrabold tracking-tight flex items-center gap-2">
+          <Activity className="h-6 w-6 text-accent" />
+          Modo adaptativo
+        </h1>
+        <p className="text-sm text-muted-foreground">
+          A próxima pergunta se ajusta à sua estimativa de domínio
+          (CAT — Computerized Adaptive Testing). Acertou: nível sobe; errou: baixa.
+        </p>
       </header>
 
       {/* Ability estimate — indicador visual */}
