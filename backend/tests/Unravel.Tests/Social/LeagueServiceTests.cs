@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Unravel.Application.Social.Ports;
 using Unravel.Domain.Entities;
 using Unravel.Domain.ValueObjects;
+using Unravel.Infrastructure.Notifications;
 using Unravel.Infrastructure.Persistence;
 using Unravel.Infrastructure.Social;
 
@@ -25,7 +26,7 @@ public class LeagueServiceTests : IDisposable
             .UseInMemoryDatabase(Guid.NewGuid().ToString())
             .Options;
         _db = new ApplicationDbContext(options);
-        _sut = new LeagueService(_db);
+        _sut = new LeagueService(_db, new NotificationService(_db));
     }
 
     private User MakeUser(string name, int xp)

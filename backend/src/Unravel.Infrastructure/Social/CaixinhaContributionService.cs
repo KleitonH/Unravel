@@ -1,5 +1,7 @@
 using Microsoft.EntityFrameworkCore;
+using Unravel.Application.Notifications.Ports;
 using Unravel.Application.Social.Ports;
+using Unravel.Domain.Entities;
 using Unravel.Infrastructure.Persistence;
 
 namespace Unravel.Infrastructure.Social;
@@ -8,7 +10,7 @@ namespace Unravel.Infrastructure.Social;
 /// PR 67 — meta coletiva diária. Acumula o XP do dia na caixinha do usuário e,
 /// ao bater a meta, dá bônus de moedas a todos os membros (uma vez por dia).
 /// </summary>
-public class CaixinhaContributionService(ApplicationDbContext db) : ICaixinhaContributionService
+public class CaixinhaContributionService(ApplicationDbContext db, INotificationService notifications) : ICaixinhaContributionService
 {
     /// <summary>Bônus de moedas por membro quando a caixinha bate a meta diária.</summary>
     public const int DailyBonusCoins = 20;
@@ -45,10 +47,12 @@ public class CaixinhaContributionService(ApplicationDbContext db) : ICaixinhaCon
         }
         caixinha.DailyPoints += xpEarned;
 
+        var goalJustReached = false;
         if (caixinha.DailyPoints >= caixinha.DailyGoal && caixinha.DailyGoalAwardedAt?.Date != today)
         {
             caixinha.DailyGoalAwardedAt = now;
             foreach (var u in members) u.Coins += DailyBonusCoins;
+            goalJustReached = true;
         }
 
         // ── Ofensiva coletiva ── (todos ativos hoje → avança 1x/dia)
@@ -64,5 +68,17 @@ public class CaixinhaContributionService(ApplicationDbContext db) : ICaixinhaCon
         }
 
         await db.SaveChangesAsync(ct);
+
+        if (goalJustReached)
+        {
+            try
+            {
+                await notifications.CreateManyAsync(memberIds, NotificationType.CaixinhaGoal,
+                    "Meta diária batida! 🎉",
+                    $"A {caixinha.Name} bateu a meta de hoje — +{DailyBonusCoins} 🪙 pra todo mundo.",
+                    "/caixinha", ct);
+            }
+            catch { /* best-effort */ }
+        }
     }
 }

@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Unravel.Domain.Entities;
 using Unravel.Domain.ValueObjects;
+using Unravel.Infrastructure.Notifications;
 using Unravel.Infrastructure.Persistence;
 using Unravel.Infrastructure.Social;
 
@@ -25,7 +26,7 @@ public class CaixinhaContributionServiceTests : IDisposable
             .UseInMemoryDatabase(Guid.NewGuid().ToString())
             .Options;
         _db = new ApplicationDbContext(options);
-        _sut = new CaixinhaContributionService(_db);
+        _sut = new CaixinhaContributionService(_db, new NotificationService(_db));
 
         _ana = User.Create("Ana", Email.Create("ana@u.test"), "h");
         _bia = User.Create("Bia", Email.Create("bia@u.test"), "h");

@@ -1,5 +1,6 @@
 using System.Globalization;
 using Microsoft.EntityFrameworkCore;
+using Unravel.Application.Notifications.Ports;
 using Unravel.Application.Social.Ports;
 using Unravel.Domain.Entities;
 using Unravel.Infrastructure.Persistence;
@@ -14,7 +15,7 @@ namespace Unravel.Infrastructure.Social;
 ///
 /// Deferido (cron/escala): salas de N=30 por tier; rollover atômico agendado.
 /// </summary>
-public class LeagueService(ApplicationDbContext db) : ILeagueService
+public class LeagueService(ApplicationDbContext db, INotificationService notifications) : ILeagueService
 {
     private const int PromoteCount  = 5;
     private const int RelegateCount = 5;
@@ -96,6 +97,9 @@ public class LeagueService(ApplicationDbContext db) : ILeagueService
         var n = ranked.Count;
         var canRelegate = n > PromoteCount + RelegateCount;
 
+        var promoted = new List<(Guid UserId, LeagueTier NewTier)>();
+        var relegated = new List<(Guid UserId, LeagueTier NewTier)>();
+
         for (var i = 0; i < n; i++)
         {
             var rank = i + 1;
@@ -107,10 +111,12 @@ public class LeagueService(ApplicationDbContext db) : ILeagueService
             if (rank <= PromoteCount && tier < LeagueTier.Mestre && weekly > 0)
             {
                 newTier = tier + 1; result = "promoted";
+                promoted.Add((m.UserId, newTier));
             }
             else if (canRelegate && rank > n - RelegateCount && tier > LeagueTier.Bronze)
             {
                 newTier = tier - 1; result = "relegated";
+                relegated.Add((m.UserId, newTier));
             }
 
             m.Tier           = newTier;
@@ -122,6 +128,18 @@ public class LeagueService(ApplicationDbContext db) : ILeagueService
         }
 
         await db.SaveChangesAsync(ct);
+
+        // Notifica resultado da semana (best-effort).
+        try
+        {
+            foreach (var p in promoted)
+                await notifications.CreateAsync(p.UserId, NotificationType.LeaguePromoted,
+                    "Você subiu de liga! 🎉", $"Bem-vindo à Liga {p.NewTier}. Continue assim!", "/liga", ct);
+            foreach (var r in relegated)
+                await notifications.CreateAsync(r.UserId, NotificationType.LeagueRelegated,
+                    "Você caiu de liga", $"Foi pra Liga {r.NewTier}. Bora reagir esta semana!", "/liga", ct);
+        }
+        catch { /* best-effort */ }
     }
 
     // ── semana (segunda-feira, ISO) ──────────────────────────────────

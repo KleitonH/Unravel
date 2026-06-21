@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Unravel.Application.Notifications.Ports;
 using Unravel.Application.Social.Ports;
 using Unravel.Domain.Entities;
 using Unravel.Infrastructure.Persistence;
@@ -10,7 +11,7 @@ namespace Unravel.Infrastructure.Social;
 /// (mesmo padrão de CosmeticShopService/ContentChaptersService). O par é
 /// tratado como simétrico: toda checagem olha as duas direções.
 /// </summary>
-public class FriendshipService(ApplicationDbContext db) : IFriendshipService
+public class FriendshipService(ApplicationDbContext db, INotificationService notifications) : IFriendshipService
 {
     public async Task<IReadOnlyList<FriendDto>> GetFriendsAsync(Guid userId, CancellationToken ct = default)
     {
@@ -140,6 +141,11 @@ public class FriendshipService(ApplicationDbContext db) : IFriendshipService
         };
         db.Friendship.Add(friendship);
         await db.SaveChangesAsync(ct);
+
+        var requesterName = await db.User.AsNoTracking().Where(u => u.Id == requesterId).Select(u => u.Name).FirstOrDefaultAsync(ct);
+        await NotifySafe(addresseeId, NotificationType.FriendRequest, "Novo pedido de amizade",
+            $"{requesterName} quer ser seu amigo.", "/amigos", ct);
+
         return new FriendActionResult(FriendActionOutcome.Ok, friendship.Id);
     }
 
@@ -164,6 +170,14 @@ public class FriendshipService(ApplicationDbContext db) : IFriendshipService
             db.Friendship.Remove(friendship);
         }
         await db.SaveChangesAsync(ct);
+
+        if (accept)
+        {
+            var responderName = await db.User.AsNoTracking().Where(u => u.Id == userId).Select(u => u.Name).FirstOrDefaultAsync(ct);
+            await NotifySafe(friendship.RequesterId, NotificationType.FriendAccepted, "Pedido aceito!",
+                $"{responderName} aceitou seu pedido de amizade.", "/amigos", ct);
+        }
+
         return new FriendActionResult(FriendActionOutcome.Ok, friendship.Id);
     }
 
@@ -179,5 +193,12 @@ public class FriendshipService(ApplicationDbContext db) : IFriendshipService
         db.Friendship.Remove(friendship);
         await db.SaveChangesAsync(ct);
         return new FriendActionResult(FriendActionOutcome.Ok);
+    }
+
+    /// <summary>Cria notificação sem deixar uma falha derrubar a ação social.</summary>
+    private async Task NotifySafe(Guid userId, NotificationType type, string title, string body, string? link, CancellationToken ct)
+    {
+        try { await notifications.CreateAsync(userId, type, title, body, link, ct); }
+        catch { /* best-effort */ }
     }
 }

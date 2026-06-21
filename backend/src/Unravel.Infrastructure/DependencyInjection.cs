@@ -81,6 +81,9 @@ public static class DependencyInjection
         // PR 67 — meta coletiva diária (write-path no submit).
         services.AddScoped<Application.Social.Ports.ICaixinhaContributionService,
                            Social.CaixinhaContributionService>();
+        // PR 69 — central de notificações in-app.
+        services.AddScoped<Application.Notifications.Ports.INotificationService,
+                           Notifications.NotificationService>();
 
         // Journey planner (PR 3) — planner singleton (puro/stateless),
         // read model e use case escopados (dependem de DbContext).

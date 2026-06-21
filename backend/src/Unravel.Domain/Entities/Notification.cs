@@ -1,0 +1,26 @@
+namespace Unravel.Domain.Entities;
+
+/// <summary>PR 69 — central de notificações in-app (hábito/engajamento).</summary>
+public enum NotificationType
+{
+    System          = 0,
+    FriendRequest   = 1,
+    FriendAccepted  = 2,
+    CaixinhaGoal    = 3,
+    CaixinhaStreak  = 4,
+    LeaguePromoted  = 5,
+    LeagueRelegated = 6,
+    EventStarted    = 7,
+}
+
+public class Notification
+{
+    public int              Id        { get; set; }
+    public Guid             UserId    { get; set; }
+    public NotificationType Type      { get; set; }
+    public string           Title     { get; set; } = string.Empty;
+    public string           Body      { get; set; } = string.Empty;
+    public string?          Link      { get; set; } // rota in-app (ex: "/amigos")
+    public bool             IsRead    { get; set; }
+    public DateTime         CreatedAt { get; set; } = DateTime.UtcNow;
+}

@@ -43,6 +43,9 @@ public partial class ApplicationDbContext(DbContextOptions<ApplicationDbContext>
     // PR 66 — ligas semanais
     public DbSet<UserLeague> UserLeague => Set<UserLeague>();
 
+    // PR 69 — notificações in-app
+    public DbSet<Notification> Notification => Set<Notification>();
+
     protected override void OnModelCreating(ModelBuilder mb)
     {
         base.OnModelCreating(mb);
@@ -344,6 +347,18 @@ public partial class ApplicationDbContext(DbContextOptions<ApplicationDbContext>
              .WithMany()
              .HasForeignKey(l => l.UserId)
              .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        // PR 69 — notificações in-app.
+        mb.Entity<Notification>(e =>
+        {
+            e.HasKey(n => n.Id);
+            e.Property(n => n.Type).HasConversion<int>();
+            e.Property(n => n.Title).HasMaxLength(120).IsRequired();
+            e.Property(n => n.Body).HasMaxLength(300).IsRequired();
+            e.Property(n => n.Link).HasMaxLength(120);
+            // Listagem/contador: WHERE user_id=? [AND is_read=false] ORDER BY created_at DESC
+            e.HasIndex(n => new { n.UserId, n.IsRead, n.CreatedAt });
         });
     }
 }

@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Unravel.Application.Social.Ports;
 using Unravel.Domain.Entities;
 using Unravel.Domain.ValueObjects;
+using Unravel.Infrastructure.Notifications;
 using Unravel.Infrastructure.Persistence;
 using Unravel.Infrastructure.Social;
 
@@ -26,7 +27,7 @@ public class FriendshipServiceTests : IDisposable
             .UseInMemoryDatabase(Guid.NewGuid().ToString())
             .Options;
         _db = new ApplicationDbContext(options);
-        _sut = new FriendshipService(_db);
+        _sut = new FriendshipService(_db, new NotificationService(_db));
 
         _ana  = User.Create("Ana Silva",   Email.Create("ana@unravel.test"),  "hash");
         _bia  = User.Create("Bia Souza",   Email.Create("bia@unravel.test"),  "hash");
