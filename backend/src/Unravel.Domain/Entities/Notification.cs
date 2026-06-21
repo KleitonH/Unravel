@@ -11,6 +11,7 @@ public enum NotificationType
     LeaguePromoted  = 5,
     LeagueRelegated = 6,
     EventStarted    = 7,
+    StreakRisk      = 8,
 }
 
 public class Notification
