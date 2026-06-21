@@ -10,6 +10,9 @@ import { toast } from "sonner"
 import { chaptersApi } from "@/api/chapters"
 import { challengePoolApi } from "@/api/challenge-pool"
 import { QuestionRenderer } from "@/components/quiz/question-renderer"
+import { LivesIndicator } from "@/components/gamification/lives-indicator"
+import { OutOfLivesCard } from "@/components/gamification/out-of-lives"
+import { useQuizLives } from "@/components/gamification/use-quiz-lives"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -138,19 +141,21 @@ export function ChapteredQuizPage() {
   })
 
   const [state, dispatch] = useReducer(reducer, INITIAL)
+  const { lives, gameOver, applyTotalLives } = useQuizLives()
   const data = dataQuery.data
 
   // ── Helpers ───────────────────────────────────────────────────────
 
   /** Submete resposta usando mesma rota do quiz tradicional. */
   async function submit(challenge: PoolChallenge, index: number) {
-    if (state.submitting || state.answers.has(challenge.id)) return
+    if (state.submitting || state.answers.has(challenge.id) || gameOver) return
     dispatch({ type: "ANSWER_LOADING" })
     try {
       const r: SubmitPoolChallengeResponse = await challengePoolApi.submit(
         contentIdNum,
         { generatedChallengeId: challenge.id, selectedOptionIndex: index },
       )
+      applyTotalLives(r.totalLives)
       dispatch({
         type: "ANSWER_DONE",
         challengeId: challenge.id,
@@ -247,10 +252,14 @@ export function ChapteredQuizPage() {
 
   return (
     <PageShell>
-      <Header data={data} state={state} />
+      <Header data={data} state={state} lives={lives} />
+
+      {gameOver && (
+        <OutOfLivesCard onLeave={() => navigate({ to: "/trails" })} leaveLabel="Voltar pra trilha" />
+      )}
 
       {/* Phase: STUDY */}
-      {state.phase === "study" && chapter && (
+      {!gameOver && state.phase === "study" && chapter && (
         <Card>
           <CardHeader>
             <div className="flex items-center gap-2 text-xs text-muted-foreground uppercase tracking-wider">
@@ -289,7 +298,7 @@ export function ChapteredQuizPage() {
       )}
 
       {/* Phase: QUESTIONS */}
-      {state.phase === "questions" && currentQ && chapter && (
+      {!gameOver && state.phase === "questions" && currentQ && chapter && (
         <Card>
           <CardContent className="pt-6 space-y-4">
             <div className="flex items-center justify-between text-xs text-muted-foreground">
@@ -327,7 +336,7 @@ export function ChapteredQuizPage() {
       )}
 
       {/* Phase: RECAP */}
-      {state.phase === "recap" && chapter && (
+      {!gameOver && state.phase === "recap" && chapter && (
         <ChapterRecap
           chapter={chapter}
           answers={state.answers}
@@ -337,7 +346,7 @@ export function ChapteredQuizPage() {
       )}
 
       {/* Phase: FINAL REVIEW */}
-      {state.phase === "final-review" && (() => {
+      {!gameOver && state.phase === "final-review" && (() => {
         const id = state.finalReviewIds[state.finalReviewIdx]
         const q = allQuestions(data).find((q) => q.id === id)
         if (!q) {
@@ -408,7 +417,7 @@ function PageShell({ children }: { children: React.ReactNode }) {
   )
 }
 
-function Header({ data, state }: { data: ChapteredContent; state: WizardState }) {
+function Header({ data, state, lives }: { data: ChapteredContent; state: WizardState; lives: number | null }) {
   const total       = data.chapters.length
   const currentIdx  = state.phase === "complete" || state.phase === "final-review"
     ? total
@@ -419,9 +428,12 @@ function Header({ data, state }: { data: ChapteredContent; state: WizardState })
         <h1 className="text-2xl font-display font-extrabold tracking-tight">
           {data.contentTitle}
         </h1>
-        <Badge variant="outline" className="text-xs font-bold">
-          {Math.min(currentIdx + 1, total)} / {total}
-        </Badge>
+        <div className="flex items-center gap-2 shrink-0">
+          {lives !== null && <LivesIndicator lives={lives} size="sm" />}
+          <Badge variant="outline" className="text-xs font-bold">
+            {Math.min(currentIdx + 1, total)} / {total}
+          </Badge>
+        </div>
       </div>
       {/* Mini-progresso por capítulo */}
       <div className="flex gap-1.5">

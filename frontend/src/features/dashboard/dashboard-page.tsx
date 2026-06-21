@@ -1,6 +1,6 @@
 import { useQuery, useQueries } from "@tanstack/react-query"
 import { Link, useNavigate } from "@tanstack/react-router"
-import { Brain, CheckCircle2, ChevronRight, Coins, Flame, Heart, Plus, Star, TrendingUp, Trophy } from "lucide-react"
+import { Brain, CheckCircle2, ChevronRight, Coins, Flame, Plus, Star, TrendingUp, Trophy } from "lucide-react"
 import { useAuth } from "@/stores/auth"
 import { trailsApi } from "@/api/trails"
 import { journeyApi } from "@/api/journey"
@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
+import { LivesIndicator } from "@/components/gamification/lives-indicator"
 import { cn } from "@/lib/utils"
 import type { JourneyPlan, JourneyReason, Profile, StudentProfile, Trail } from "@/types/api"
 
@@ -151,24 +152,29 @@ function Hero({ name, profile, loading }: { name: string; profile: Profile | nul
           </CardDescription>
         </div>
 
-        <div className="hidden sm:flex gap-2">
-          {loading ? (
-            <>
-              <StatSkeleton /><StatSkeleton /><StatSkeleton />
-            </>
-          ) : isStudent && s ? (
-            <>
-              <Stat idx={0} icon={<Star  className="h-4 w-4" />} value={fmt(s.xp)}         label="XP" />
-              <Stat idx={1} icon={<Flame className="h-4 w-4" />} value={fmt(s.streakDays)} label={s.streakDays === 1 ? "dia" : "dias"} />
-              <Stat idx={2} icon={<Heart className="h-4 w-4" />} value={fmt(s.lives)}      label={s.lives === 1 ? "vida" : "vidas"} />
-              <Stat idx={3} icon={<Coins className="h-4 w-4" />} value={fmt(s.coins)}      label="coins" />
-            </>
-          ) : profile?.role === "Moderator" ? (
-            <>
-              <Stat idx={0} icon={<Star className="h-4 w-4" />} value={fmt(profile.metrics.totalStudents)} label="alunos" />
-              <Stat idx={1} icon={<Star className="h-4 w-4" />} value={fmt(profile.metrics.totalTrails)}   label="trilhas" />
-            </>
-          ) : null}
+        <div className="flex items-center gap-2">
+          {/* Vidas — sempre visível (inclusive no mobile) e em destaque, pra
+              o aluno saber a qualquer momento quantas vidas tem. */}
+          {!loading && isStudent && s && <LivesIndicator lives={s.lives} size="lg" />}
+
+          <div className="hidden sm:flex gap-2">
+            {loading ? (
+              <>
+                <StatSkeleton /><StatSkeleton /><StatSkeleton />
+              </>
+            ) : isStudent && s ? (
+              <>
+                <Stat idx={0} icon={<Star  className="h-4 w-4" />} value={fmt(s.xp)}         label="XP" />
+                <Stat idx={1} icon={<Flame className="h-4 w-4" />} value={fmt(s.streakDays)} label={s.streakDays === 1 ? "dia" : "dias"} />
+                <Stat idx={2} icon={<Coins className="h-4 w-4" />} value={fmt(s.coins)}      label="coins" />
+              </>
+            ) : profile?.role === "Moderator" ? (
+              <>
+                <Stat idx={0} icon={<Star className="h-4 w-4" />} value={fmt(profile.metrics.totalStudents)} label="alunos" />
+                <Stat idx={1} icon={<Star className="h-4 w-4" />} value={fmt(profile.metrics.totalTrails)}   label="trilhas" />
+              </>
+            ) : null}
+          </div>
         </div>
       </CardHeader>
     </Card>

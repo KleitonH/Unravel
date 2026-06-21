@@ -2,6 +2,8 @@ import { useQuery } from "@tanstack/react-query"
 import { Link } from "@tanstack/react-router"
 import { Compass, MapPin, RefreshCw, Search, Sparkles } from "lucide-react"
 import { trailsApi } from "@/api/trails"
+import { profileApi } from "@/api/profile"
+import { LivesIndicator } from "@/components/gamification/lives-indicator"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -24,6 +26,9 @@ export function TrailsPage() {
   const trailsQuery = useQuery({ queryKey: ["trails"], queryFn: trailsApi.list })
   const enrolled    = (trailsQuery.data ?? []).filter((t) => t.userProgress >= 0)
 
+  const profileQuery = useQuery({ queryKey: ["profile", "me"], queryFn: profileApi.me, staleTime: 60_000 })
+  const lives = profileQuery.data && profileQuery.data.role === "Student" ? profileQuery.data.lives : null
+
   return (
     <div className="p-6 lg:p-10 space-y-6">
       <header className="flex items-start justify-between gap-4 flex-wrap">
@@ -36,7 +41,9 @@ export function TrailsPage() {
             Continue de onde parou. Cada trilha tem seu próprio mapa de ilhas pra explorar.
           </p>
         </div>
-        {enrolled.length > 0 && (
+        <div className="flex items-center gap-2 flex-wrap">
+          {lives !== null && <LivesIndicator lives={lives} />}
+          {enrolled.length > 0 && (
           <div className="flex gap-2 flex-wrap">
             <Button asChild variant="outline">
               <Link to="/trails/discover">
@@ -54,7 +61,8 @@ export function TrailsPage() {
               </Link>
             </Button>
           </div>
-        )}
+          )}
+        </div>
       </header>
 
       {trailsQuery.isLoading ? (

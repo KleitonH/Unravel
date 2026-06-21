@@ -10,6 +10,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Skeleton } from "@/components/ui/skeleton"
 import { cn } from "@/lib/utils"
 import { QuestionRenderer } from "@/components/quiz/question-renderer"
+import { LivesIndicator } from "@/components/gamification/lives-indicator"
+import { OutOfLivesCard } from "@/components/gamification/out-of-lives"
+import { useQuizLives } from "@/components/gamification/use-quiz-lives"
 import type { PoolChallenge, SubmitPoolChallengeResponse } from "@/types/api"
 
 type AnswerState = {
@@ -39,6 +42,7 @@ export function QuizPage() {
   const [currentIdx, setCurrentIdx] = useState(0)
   const [answers, setAnswers] = useState<Map<number, AnswerState>>(new Map())
   const [submitting, setSubmitting] = useState(false)
+  const { lives, gameOver, applyTotalLives } = useQuizLives()
 
   const data = poolQuery.data
   const current: PoolChallenge | null = data?.challenges[currentIdx] ?? null
@@ -50,13 +54,14 @@ export function QuizPage() {
   const isFinished = total > 0 && answers.size === total
 
   async function choose(index: number) {
-    if (!current || answered || submitting) return
+    if (!current || answered || submitting || gameOver) return
     setSubmitting(true)
     try {
       const r: SubmitPoolChallengeResponse = await challengePoolApi.submit(contentIdNum, {
         generatedChallengeId: current.id,
         selectedOptionIndex: index,
       })
+      applyTotalLives(r.totalLives)
       const state: AnswerState = {
         selectedIndex: index,
         isCorrect: r.isCorrect,
@@ -120,11 +125,18 @@ export function QuizPage() {
                 Domínio atual: <strong>{Math.round(data.targetUserMastery * 100)}%</strong>
               </p>
             </div>
-            <Badge variant="outline" className="font-bold text-sm py-1 px-3">
-              {currentIdx + 1} / {total}
-            </Badge>
+            <div className="flex items-center gap-2 shrink-0">
+              {lives !== null && <LivesIndicator lives={lives} />}
+              <Badge variant="outline" className="font-bold text-sm py-1 px-3">
+                {currentIdx + 1} / {total}
+              </Badge>
+            </div>
           </header>
 
+          {gameOver ? (
+            <OutOfLivesCard onLeave={() => navigate({ to: "/dashboard" })} leaveLabel="Voltar ao início" />
+          ) : (
+          <>
           {current && (
             <Card>
               <CardContent className="pt-6 space-y-4">
@@ -186,6 +198,8 @@ export function QuizPage() {
                 <p className="text-sm text-muted-foreground">acertos</p>
               </CardContent>
             </Card>
+          )}
+          </>
           )}
         </>
       )}
