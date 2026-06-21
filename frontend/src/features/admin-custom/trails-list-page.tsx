@@ -1,7 +1,7 @@
 import { useState } from "react"
 import { Link } from "@tanstack/react-router"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import { BarChart3, Eye, EyeOff, FileText, Loader2, Map, Trash2, Users } from "lucide-react"
+import { BarChart3, Eye, EyeOff, FileText, Loader2, Map, Radio, Trash2, Users } from "lucide-react"
 import { toast } from "sonner"
 import { adminCustomApi } from "@/api/admin-custom"
 import { tokensApi } from "@/api/tokens"
@@ -12,6 +12,7 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { YarnBall } from "@/components/yarn/yarn-ball"
 import { ForgeActivityChip } from "@/components/forge/forge-activity-chip"
 import { TurmasPanel } from "@/features/turmas/turmas-panel"
+import { LiveQuizSetup } from "@/features/live-quiz/live-quiz-setup"
 import { cn } from "@/lib/utils"
 import { NewTrailDialog } from "./trail-form-dialog"
 import type { CustomTrailDto } from "@/types/admin-custom"
@@ -38,7 +39,7 @@ export function TrailsListPage() {
     staleTime: 30_000,
   })
 
-  const [tab, setTab] = useState<"trilhas" | "turmas">("trilhas")
+  const [tab, setTab] = useState<"trilhas" | "turmas" | "quiz">("trilhas")
 
   return (
     <div className="p-6 lg:p-10 max-w-5xl space-y-5">
@@ -53,10 +54,13 @@ export function TrailsListPage() {
       <div className="flex gap-1 border-b border-border">
         <TabButton active={tab === "trilhas"} onClick={() => setTab("trilhas")} icon={<Map className="h-4 w-4" />} label="Trilhas" />
         <TabButton active={tab === "turmas"}  onClick={() => setTab("turmas")}  icon={<Users className="h-4 w-4" />} label="Turmas" />
+        <TabButton active={tab === "quiz"}    onClick={() => setTab("quiz")}    icon={<Radio className="h-4 w-4" />} label="Quiz ao Vivo" />
       </div>
 
       {tab === "turmas" ? (
         <TurmasPanel />
+      ) : tab === "quiz" ? (
+        <LiveQuizSetup />
       ) : (
         <TrilhasTab data={data} isLoading={isLoading} error={error} balanceQuery={balanceQuery} />
       )}
