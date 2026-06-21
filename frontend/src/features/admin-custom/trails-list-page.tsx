@@ -1,6 +1,7 @@
+import { useState } from "react"
 import { Link } from "@tanstack/react-router"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import { BarChart3, Eye, EyeOff, FileText, Loader2, Trash2 } from "lucide-react"
+import { BarChart3, Eye, EyeOff, FileText, Loader2, Map, Trash2, Users } from "lucide-react"
 import { toast } from "sonner"
 import { adminCustomApi } from "@/api/admin-custom"
 import { tokensApi } from "@/api/tokens"
@@ -10,8 +11,11 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
 import { YarnBall } from "@/components/yarn/yarn-ball"
 import { ForgeActivityChip } from "@/components/forge/forge-activity-chip"
+import { TurmasPanel } from "@/features/turmas/turmas-panel"
+import { cn } from "@/lib/utils"
 import { NewTrailDialog } from "./trail-form-dialog"
 import type { CustomTrailDto } from "@/types/admin-custom"
+import type { TokenBalance } from "@/types/tokens"
 
 /**
  * Lista trilhas custom do moderador autenticado. Backend filtra por
@@ -34,37 +38,75 @@ export function TrailsListPage() {
     staleTime: 30_000,
   })
 
+  const [tab, setTab] = useState<"trilhas" | "turmas">("trilhas")
+
   return (
     <div className="p-6 lg:p-10 max-w-5xl space-y-5">
-      <header className="flex items-start justify-between gap-4 flex-wrap">
-        <div>
-          <h1 className="text-3xl font-display font-extrabold tracking-tight">
-            🛠️ Minhas trilhas
-          </h1>
-          <p className="text-muted-foreground mt-1">
-            Trilhas customizadas que você criou. Trilhas oficiais (Angular,
-            etc.) são gerenciadas via repositório e não aparecem aqui.
-          </p>
-        </div>
-        <div className="flex items-center gap-3 flex-wrap">
-          {balanceQuery.data && (
-            <YarnBall
-              tier={balanceQuery.data.tier}
-              balanceCm={balanceQuery.data.balanceCm}
-              displayBalance={balanceQuery.data.displayBalance}
-              size="sm"
-            />
-          )}
-          <ForgeActivityChip />
-          <Button asChild variant="outline" size="sm" className="h-9">
-            <Link to="/admin/forge">
-              <BarChart3 className="h-4 w-4 mr-1" />
-              <span className="text-xs font-semibold">Stats</span>
-            </Link>
-          </Button>
-          <NewTrailDialog />
-        </div>
+      <header>
+        <h1 className="text-3xl font-display font-extrabold tracking-tight">🛠️ Curadoria</h1>
+        <p className="text-muted-foreground mt-1">
+          Suas trilhas customizadas e suas turmas de alunos.
+        </p>
       </header>
+
+      {/* Abas */}
+      <div className="flex gap-1 border-b border-border">
+        <TabButton active={tab === "trilhas"} onClick={() => setTab("trilhas")} icon={<Map className="h-4 w-4" />} label="Trilhas" />
+        <TabButton active={tab === "turmas"}  onClick={() => setTab("turmas")}  icon={<Users className="h-4 w-4" />} label="Turmas" />
+      </div>
+
+      {tab === "turmas" ? (
+        <TurmasPanel />
+      ) : (
+        <TrilhasTab data={data} isLoading={isLoading} error={error} balanceQuery={balanceQuery} />
+      )}
+    </div>
+  )
+}
+
+function TabButton({ active, onClick, icon, label }: { active: boolean; onClick: () => void; icon: React.ReactNode; label: string }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={cn(
+        "inline-flex items-center gap-1.5 px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors",
+        active ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground",
+      )}
+    >
+      {icon}{label}
+    </button>
+  )
+}
+
+function TrilhasTab({
+  data, isLoading, error, balanceQuery,
+}: {
+  data: CustomTrailDto[] | undefined
+  isLoading: boolean
+  error: Error | null
+  balanceQuery: { data?: TokenBalance }
+}) {
+  return (
+    <div className="space-y-5">
+      <div className="flex items-center justify-end gap-3 flex-wrap">
+        {balanceQuery.data && (
+          <YarnBall
+            tier={balanceQuery.data.tier}
+            balanceCm={balanceQuery.data.balanceCm}
+            displayBalance={balanceQuery.data.displayBalance}
+            size="sm"
+          />
+        )}
+        <ForgeActivityChip />
+        <Button asChild variant="outline" size="sm" className="h-9">
+          <Link to="/admin/forge">
+            <BarChart3 className="h-4 w-4 mr-1" />
+            <span className="text-xs font-semibold">Stats</span>
+          </Link>
+        </Button>
+        <NewTrailDialog />
+      </div>
 
       {error && (
         <Card className="border-destructive/40 bg-destructive/5">

@@ -585,3 +585,51 @@ export type StreakResetEvent = {
   previousStreak: number
   resetAt: string
 }
+
+// ── Turmas (vínculo professor↔aluno) ────────────────────────────────
+
+export type Turma = {
+  id:           number
+  name:         string
+  description:  string | null
+  emblem:       string | null
+  ownerUserId:  string
+  ownerName:    string
+  memberCount:  number
+  pendingCount: number
+  createdAt:    string
+}
+
+export type TurmaMember = {
+  memberId:    number
+  userId:      string
+  name:        string
+  xp:          number
+  activeTitle: string | null
+  status:      "active" | "invited"
+}
+
+export type TurmaDetail = {
+  id:          number
+  name:        string
+  description: string | null
+  emblem:      string | null
+  members:     TurmaMember[]
+}
+
+export type TurmaInvite = {
+  memberId:  number
+  turmaId:   number
+  turmaName: string
+  emblem:    string | null
+  ownerName: string
+  invitedAt: string
+}
+
+export type TurmaStudentSearch = {
+  userId:      string
+  name:        string
+  xp:          number
+  activeTitle: string | null
+  relation:    "none" | "invited" | "member"
+}

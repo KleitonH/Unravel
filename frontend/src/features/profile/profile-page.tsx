@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query"
 import { Link } from "@tanstack/react-router"
 import { Coins, Flame, Heart, Sparkles, Star, Trophy } from "lucide-react"
 import { profileApi } from "@/api/profile"
+import { MyTurmasSection } from "@/features/turmas/my-turmas-section"
 import { UserNavi } from "@/components/navi/user-navi"
 import { useAuth } from "@/stores/auth"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
@@ -100,6 +101,9 @@ export function ProfilePage() {
           </CardContent>
         </Card>
       )}
+
+      {/* Minhas turmas (aluno) */}
+      {s && <MyTurmasSection />}
 
       {/* Trilhas */}
       {s && s.trailProgress.length > 0 && (
