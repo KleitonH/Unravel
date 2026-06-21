@@ -93,6 +93,10 @@ public static class DependencyInjection
         services.AddScoped<Application.Classes.Ports.ITurmaService,
                            Classes.TurmaService>();
 
+        // Quiz ao Vivo — núcleo de sessão (snapshot/estado/scoring).
+        services.AddScoped<Application.LiveQuiz.Ports.ILiveQuizService,
+                           LiveQuiz.LiveQuizService>();
+
         // Journey planner (PR 3) — planner singleton (puro/stateless),
         // read model e use case escopados (dependem de DbContext).
         services.AddSingleton<IJourneyPlanner, JourneyPlanner>();

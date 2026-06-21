@@ -50,6 +50,13 @@ public partial class ApplicationDbContext(DbContextOptions<ApplicationDbContext>
     public DbSet<Turma>       Turma       => Set<Turma>();
     public DbSet<TurmaMember> TurmaMember => Set<TurmaMember>();
 
+    // Quiz ao Vivo (sessão síncrona estilo Kahoot)
+    public DbSet<LiveQuizSession>     LiveQuizSession     => Set<LiveQuizSession>();
+    public DbSet<LiveQuizQuestion>    LiveQuizQuestion    => Set<LiveQuizQuestion>();
+    public DbSet<LiveQuizParticipant> LiveQuizParticipant => Set<LiveQuizParticipant>();
+    public DbSet<LiveQuizAllowedUser> LiveQuizAllowedUser => Set<LiveQuizAllowedUser>();
+    public DbSet<LiveQuizAnswer>      LiveQuizAnswer      => Set<LiveQuizAnswer>();
+
     protected override void OnModelCreating(ModelBuilder mb)
     {
         base.OnModelCreating(mb);
@@ -397,6 +404,61 @@ public partial class ApplicationDbContext(DbContextOptions<ApplicationDbContext>
              .WithMany()
              .HasForeignKey(m => m.UserId)
              .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        // Quiz ao Vivo — sessão + snapshot de perguntas + participantes + respostas.
+        mb.Entity<LiveQuizSession>(e =>
+        {
+            e.HasKey(s => s.Id);
+            e.Property(s => s.Mode).HasConversion<int>();
+            e.Property(s => s.Status).HasConversion<int>();
+            e.Property(s => s.JoinCode).HasMaxLength(12).IsRequired();
+            // Busca por código (sala). Não único no schema — reciclamos códigos
+            // após sessões encerradas; a unicidade entre ativas é garantida no service.
+            e.HasIndex(s => s.JoinCode);
+            e.HasIndex(s => s.HostUserId);
+        });
+
+        mb.Entity<LiveQuizQuestion>(e =>
+        {
+            e.HasKey(q => q.Id);
+            e.Property(q => q.Prompt).IsRequired();
+            e.Property(q => q.OptionsJson).IsRequired();
+            e.Property(q => q.Shape).HasMaxLength(40);
+            e.HasIndex(q => new { q.SessionId, q.OrderIndex }).IsUnique();
+            e.HasOne(q => q.Session)
+             .WithMany(s => s.Questions)
+             .HasForeignKey(q => q.SessionId)
+             .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        mb.Entity<LiveQuizAllowedUser>(e =>
+        {
+            e.HasKey(a => a.Id);
+            e.HasIndex(a => new { a.SessionId, a.UserId }).IsUnique();
+            e.HasOne(a => a.Session)
+             .WithMany(s => s.AllowedUsers)
+             .HasForeignKey(a => a.SessionId)
+             .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        mb.Entity<LiveQuizParticipant>(e =>
+        {
+            e.HasKey(p => p.Id);
+            e.Property(p => p.DisplayName).HasMaxLength(120).IsRequired();
+            e.HasIndex(p => new { p.SessionId, p.UserId }).IsUnique();
+            e.HasOne(p => p.Session)
+             .WithMany(s => s.Participants)
+             .HasForeignKey(p => p.SessionId)
+             .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        mb.Entity<LiveQuizAnswer>(e =>
+        {
+            e.HasKey(a => a.Id);
+            // Uma resposta por participante por pergunta.
+            e.HasIndex(a => new { a.ParticipantId, a.QuestionOrderIndex }).IsUnique();
+            e.HasIndex(a => a.SessionId);
         });
     }
 }
