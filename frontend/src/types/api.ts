@@ -528,6 +528,31 @@ export type CaixinhaEventDetail = {
   ranking: EventRankingEntry[]
 }
 
+// ── Ligas semanais (PR 66) ──────────────────────────────────────────
+
+export type LeagueMember = {
+  userId:   string
+  name:     string
+  weeklyXp: number
+  rank:     number
+  isMine:   boolean
+}
+
+export type MyLeague = {
+  tier:         string
+  nextTier:     string | null
+  prevTier:     string | null
+  weeklyXp:     number
+  rank:         number
+  size:         number
+  promoteZone:  number
+  relegateZone: number
+  lastResult:   "promoted" | "relegated" | "stayed" | null
+  lastRank:     number | null
+  weekEndsAt:   string
+  leaderboard:  LeagueMember[]
+}
+
 // ── SignalR events (PR 8) ───────────────────────────────────────────
 
 export type DailyPlanGeneratedEvent = {

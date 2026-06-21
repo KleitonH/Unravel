@@ -1,10 +1,11 @@
 import { useQuery, useQueries } from "@tanstack/react-query"
 import { Link, useNavigate } from "@tanstack/react-router"
-import { Brain, CheckCircle2, Coins, Flame, Heart, Plus, Star, TrendingUp } from "lucide-react"
+import { Brain, CheckCircle2, ChevronRight, Coins, Flame, Heart, Plus, Star, TrendingUp, Trophy } from "lucide-react"
 import { useAuth } from "@/stores/auth"
 import { trailsApi } from "@/api/trails"
 import { journeyApi } from "@/api/journey"
 import { profileApi } from "@/api/profile"
+import { leagueApi } from "@/api/league"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
@@ -16,6 +17,33 @@ const REASON_LABEL: Record<JourneyReason, string> = {
   NewLearning: "Novo",
   DueReview: "Revisão",
   Reinforce: "Reforço",
+}
+
+const LEAGUE_EMOJI: Record<string, string> = {
+  Bronze: "🥉", Prata: "🥈", Ouro: "🥇", Diamante: "💎", Mestre: "👑",
+}
+
+/** PR 66 — banner compacto da liga no dashboard, linkando pra /liga. */
+function LeagueBanner() {
+  const q = useQuery({ queryKey: ["league"], queryFn: leagueApi.mine, staleTime: 60_000 })
+  if (q.isLoading || !q.data) return null
+  const d = q.data
+  return (
+    <Link to="/liga" className="block">
+      <Card className="hover:border-primary/50 transition-colors">
+        <CardContent className="flex items-center gap-3 py-3">
+          <span className="text-3xl">{LEAGUE_EMOJI[d.tier] ?? "🏆"}</span>
+          <div className="flex-1 min-w-0">
+            <p className="font-display font-bold">Liga {d.tier}</p>
+            <p className="text-xs text-muted-foreground">
+              {d.rank}º de {d.size} · <Trophy className="inline h-3 w-3" /> {d.weeklyXp} XP esta semana
+            </p>
+          </div>
+          <ChevronRight className="h-5 w-5 text-muted-foreground" />
+        </CardContent>
+      </Card>
+    </Link>
+  )
 }
 
 /**
@@ -59,6 +87,8 @@ export function DashboardPage() {
         profile={profileQuery.data ?? null}
         loading={profileQuery.isLoading}
       />
+
+      <LeagueBanner />
 
       {isLoading ? (
         <SkeletonList />
