@@ -110,6 +110,79 @@ inspirada em jogos (mapa de fases estilo *Super Mario World*).
 
 ---
 
+## 1.5 Modelo de sustentabilidade
+
+Embora o Unravel seja desenvolvido como Trabalho de Conclusão de Curso, seu
+desenho contempla uma estratégia de **sustentabilidade financeira** que permita,
+no futuro, custear a operação — em especial o custo variável de **geração de
+questões por Inteligência Artificial** (consumo de tokens de LLM), o principal
+gasto recorrente da plataforma.
+
+### 1.5.1 Princípio inviolável: o ensino é gratuito
+
+A premissa central do modelo é que **toda a camada de aprendizagem é, e
+permanece, gratuita**: trilhas, jornadas, questões geradas por IA, quiz
+adaptativo, repetição espaçada, radar de fraquezas e demais mecânicas
+pedagógicas estão disponíveis sem qualquer pagamento. Coerente com o objetivo
+de combater a *memorização mecânica* (decoreba) e promover a **compreensão**,
+o projeto adota uma restrição ética explícita: **não se comercializa
+aprendizagem nem vantagem de conhecimento**. Ficam, portanto, vedados quaisquer
+recursos pagos que pulem questões, revelem respostas, concedam pontuação de
+domínio (*mastery*/XP) ou automatizem desafios. A monetização ocorre
+exclusivamente ao redor da experiência — **identidade, conveniência, análise e
+apoio** — nunca no ato de aprender.
+
+### 1.5.2 Atores e papéis econômicos
+
+- **Estudantes** — beneficiários do ensino gratuito; eventuais pagantes apenas
+  de itens não pedagógicos.
+- **Professores/moderadores** — **não pagam** pela plataforma. Como produzem e
+  curam o conteúdo (e, ao fazê-lo, geram o custo de IA), são tratados como
+  **colaboradores** do ecossistema, e não como clientes.
+- **Instituições de ensino** — potenciais contratantes no modelo B2B.
+
+### 1.5.3 Frentes de receita
+
+O modelo prioriza **volume com baixo valor unitário** (muitos usuários
+contribuindo pouco) em vez de margens altas por usuário, alinhando-se à baixa
+disposição a pagar típica do público estudantil:
+
+1. **B2B / institucional.** Instituições (cursos, faculdades, escolas técnicas)
+   contratam o uso para seus alunos — modelo onde tradicionalmente se concentra
+   a receita em *EdTech*. A instituição passa a custear o serviço, mantendo o
+   acesso gratuito ao aluno final.
+
+2. **Apoiadores.** Assinatura voluntária enquadrada como **apoio direto à
+   manutenção da Inteligência Artificial** que gera as questões. A narrativa é
+   transparente e coerente com o ethos colaborativo (o professor contribui com
+   conteúdo; o aluno apoiador contribui com a sustentação da IA). O apoiador
+   recebe um **selo de reconhecimento** e benefícios não pedagógicos.
+
+3. **Passe de Temporada ("Passe NAVI").** Assinatura de baixo custo, de preço
+   deliberadamente **generoso ao estudante**, baseada no modelo *freemium* de
+   produtos como o Duolingo: ganha-se pouco por assinante, mas em **larga
+   escala**. Oferece uma trilha de **recompensas cosméticas exclusivas por
+   temporada** para a personalização do mascote NAVI.
+
+### 1.5.4 Benefícios da assinatura (não pedagógicos)
+
+Os planos pagos concentram-se em valor que **não interfere no aprendizado**:
+
+- **Identidade e status:** cosméticos, poses, raças e pelagens exclusivos do
+  mascote; itens animados; personalização do ambiente; selo de apoiador.
+- **Conveniência:** vidas ilimitadas e proteção de ofensiva (*streak freeze*),
+  ausência de anúncios, modo offline e prioridade na fila de geração.
+- **Análise aprofundada:** relatórios e certificados de evolução, indicadores
+  preditivos de prontidão e analítica detalhada de desempenho.
+- **Multiplicador de moedas:** acelera a obtenção de cosméticos — atuando
+  **apenas sobre a economia estética**, sem qualquer efeito sobre o aprendizado.
+
+A camada gratuita permanece **plenamente funcional para estudar**: além de todo
+o conteúdo e mecânicas pedagógicas, inclui vidas em quantidade generosa,
+cosméticos obteníveis com a moeda do jogo e indicadores básicos de progresso.
+
+---
+
 # 2. Metodologia
 
 O desenvolvimento do Unravel adota uma abordagem **híbrida Scrum + Kanban**
