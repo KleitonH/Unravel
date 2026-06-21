@@ -12,7 +12,8 @@ public enum NotificationType
     LeagueRelegated = 6,
     EventStarted    = 7,
     StreakRisk      = 8,
-    ClassInvite     = 9, // convite pra entrar numa turma de um professor
+    ClassInvite     = 9,  // convite pra entrar numa turma de um professor
+    LiveQuizStarted = 10, // professor abriu um Quiz ao Vivo pra turma
 }
 
 public class Notification

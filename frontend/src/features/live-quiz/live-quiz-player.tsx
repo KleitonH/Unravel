@@ -25,11 +25,15 @@ type Phase = "enter" | "lobby" | "question" | "answered" | "reveal" | "podium"
  * livre é aberto), responde ao vivo com timer e vê sua posição + pódio.
  * Acessível por /ao-vivo (opcionalmente com ?code=).
  */
-export function LiveQuizPlayer({ initialCode = "" }: { initialCode?: string }) {
+export function LiveQuizPlayer() {
   const myId = useAuth((s) => s.user?.id)
+  const urlCode = (typeof window !== "undefined"
+    ? new URLSearchParams(window.location.search).get("code")
+    : null) ?? ""
 
   const [phase, setPhase]       = useState<Phase>("enter")
-  const [code, setCode]         = useState(initialCode)
+  const [code, setCode]         = useState(urlCode)
+  const autoJoined = useRef(false)
   const [error, setError]       = useState<string | null>(null)
   const [session, setSession]   = useState<LiveSession | null>(null)
   const [question, setQuestion] = useState<LiveQuestion | null>(null)
@@ -58,6 +62,14 @@ export function LiveQuizPlayer({ initialCode = "" }: { initialCode?: string }) {
 
   const connecting = state !== HubConnectionState.Connected
   const myRow = board.find((r) => r.userId === myId)
+
+  // Veio de notificação/banner (?code=) → entra sozinho assim que conectar.
+  useEffect(() => {
+    if (!autoJoined.current && urlCode && state === HubConnectionState.Connected && phase === "enter") {
+      autoJoined.current = true
+      void join(urlCode)
+    }
+  }, [state, urlCode, phase, join])
 
   function choose(i: number) {
     if (!question || selected !== null || !session) return

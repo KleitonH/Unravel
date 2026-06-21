@@ -3,6 +3,7 @@ using Unravel.Application.LiveQuiz.Ports;
 using Unravel.Domain.Entities;
 using Unravel.Domain.Forge;
 using Unravel.Infrastructure.LiveQuiz;
+using Unravel.Infrastructure.Notifications;
 using Unravel.Infrastructure.Persistence;
 
 namespace Unravel.Tests.LiveQuiz;
@@ -22,7 +23,7 @@ public class LiveQuizServiceTests : IDisposable
             .UseInMemoryDatabase(Guid.NewGuid().ToString())
             .Options;
         _db = new ApplicationDbContext(options);
-        _sut = new LiveQuizService(_db);
+        _sut = new LiveQuizService(_db, new NotificationService(_db));
     }
 
     /// <summary>Cria uma pergunta no pool com correctIndex 0 (opção "A").</summary>

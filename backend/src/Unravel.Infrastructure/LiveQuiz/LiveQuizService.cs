@@ -1,6 +1,7 @@
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using Unravel.Application.LiveQuiz.Ports;
+using Unravel.Application.Notifications.Ports;
 using Unravel.Domain.Entities;
 using Unravel.Domain.Gamification;
 using Unravel.Infrastructure.Persistence;
@@ -13,7 +14,7 @@ namespace Unravel.Infrastructure.LiveQuiz;
 /// (independe da pergunta original mudar depois); estado e pontuação são a
 /// fonte da verdade — o SignalR só empurra o que acontece aqui.
 /// </summary>
-public class LiveQuizService(ApplicationDbContext db) : ILiveQuizService
+public class LiveQuizService(ApplicationDbContext db, INotificationService notifications) : ILiveQuizService
 {
     // Alfabeto sem ambíguos (0/O/1/I) pra código fácil de ditar/digitar.
     private const string CodeAlphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
@@ -70,6 +71,24 @@ public class LiveQuizService(ApplicationDbContext db) : ILiveQuizService
 
         db.LiveQuizSession.Add(session);
         await db.SaveChangesAsync(ct);
+
+        // Modo turma: avisa os participantes pra entrarem (notificação + deep-link).
+        if (session.Mode == LiveQuizMode.Turma && session.AllowedUsers.Count > 0)
+        {
+            var ownerName = await db.User.AsNoTracking().Where(u => u.Id == hostUserId).Select(u => u.Name).FirstOrDefaultAsync(ct);
+            var link = $"/ao-vivo?code={session.JoinCode}";
+            foreach (var a in session.AllowedUsers)
+            {
+                try
+                {
+                    await notifications.CreateAsync(a.UserId, NotificationType.LiveQuizStarted,
+                        "Quiz ao Vivo começando! 📣",
+                        $"{ownerName} abriu uma sala. Entre pra jogar.", link, ct);
+                }
+                catch { /* best-effort */ }
+            }
+        }
+
         return ToDto(session, session.Questions.Count, 0);
     }
 
@@ -250,6 +269,25 @@ public class LiveQuizService(ApplicationDbContext db) : ILiveQuizService
 
     public Task<int> AnsweredCountAsync(int sessionId, int orderIndex, CancellationToken ct = default)
         => db.LiveQuizAnswer.CountAsync(a => a.SessionId == sessionId && a.QuestionOrderIndex == orderIndex, ct);
+
+    public async Task<IReadOnlyList<LiveQuizActiveDto>> ActiveForUserAsync(Guid userId, CancellationToken ct = default)
+    {
+        var rows = await db.LiveQuizSession.AsNoTracking()
+            .Where(s => s.Mode == LiveQuizMode.Turma
+                     && s.Status != LiveQuizStatus.Finished
+                     && s.AllowedUsers.Any(a => a.UserId == userId))
+            .OrderByDescending(s => s.CreatedAt)
+            .Select(s => new
+            {
+                s.Id, s.JoinCode, s.Status,
+                Owner = db.User.Where(u => u.Id == s.HostUserId).Select(u => u.Name).FirstOrDefault(),
+                Qc = s.Questions.Count,
+            })
+            .ToListAsync(ct);
+
+        return rows.Select(r => new LiveQuizActiveDto(
+            r.Id, r.JoinCode, r.Owner ?? "Professor", r.Status.ToString(), r.Qc)).ToList();
+    }
 
     // ── helpers ───────────────────────────────────────────────────────
 

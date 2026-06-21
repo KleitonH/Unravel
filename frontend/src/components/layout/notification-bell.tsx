@@ -11,7 +11,7 @@ import type { AppNotification } from "@/types/api"
 const ICON: Record<string, string> = {
   FriendRequest: "👋", FriendAccepted: "🤝", CaixinhaGoal: "🎯", CaixinhaStreak: "🔥",
   LeaguePromoted: "⬆️", LeagueRelegated: "⬇️", EventStarted: "⚔️", System: "🔔",
-  ClassInvite: "🎓",
+  ClassInvite: "🎓", LiveQuizStarted: "📣",
 }
 
 /**
@@ -47,7 +47,13 @@ export function NotificationBell({ inline = false }: { inline?: boolean }) {
 
   function onClickItem(n: AppNotification) {
     if (!n.isRead) markRead.mutate(n.id)
-    if (n.link) { setOpen(false); navigate({ to: n.link }) }
+    if (n.link) {
+      setOpen(false)
+      // Links com query (ex.: /ao-vivo?code=XYZ) o router tipado não navega
+      // bem via `to`; usamos navegação real pra carregar a query.
+      if (n.link.includes("?")) window.location.assign(n.link)
+      else navigate({ to: n.link })
+    }
   }
 
   const bell = (

@@ -49,6 +49,14 @@ public enum JoinOutcome { Ok, NotFound, NotAllowed, Finished }
 
 public record JoinResult(JoinOutcome Outcome, LiveQuizParticipantDto? Participant = null, LiveQuizSessionDto? Session = null);
 
+/// <summary>Sessão de turma ativa (lobby/rodando) que o aluno pode entrar.</summary>
+public record LiveQuizActiveDto(
+    int    Id,
+    string JoinCode,
+    string OwnerName,
+    string Status,
+    int    QuestionCount);
+
 public record SubmitLiveAnswerResult(
     bool Accepted,      // false = duplicada/fora de hora
     bool IsCorrect,
@@ -85,4 +93,7 @@ public interface ILiveQuizService
 
     /// <summary>Quantos participantes já responderam a pergunta de índice dado.</summary>
     Task<int> AnsweredCountAsync(int sessionId, int orderIndex, CancellationToken ct = default);
+
+    /// <summary>Sessões de turma ativas (não encerradas) em que o aluno está na lista.</summary>
+    Task<IReadOnlyList<LiveQuizActiveDto>> ActiveForUserAsync(Guid userId, CancellationToken ct = default);
 }

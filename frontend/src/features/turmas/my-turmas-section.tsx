@@ -1,7 +1,9 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import { Check, GraduationCap, LogOut, X } from "lucide-react"
+import { Link } from "@tanstack/react-router"
+import { Check, GraduationCap, LogOut, Radio, X } from "lucide-react"
 import { toast } from "sonner"
 import { turmasApi } from "@/api/turmas"
+import { liveQuizApi } from "@/api/live-quiz"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -16,6 +18,8 @@ export function MyTurmasSection() {
 
   const mine    = useQuery({ queryKey: ["turmas", "mine"], queryFn: turmasApi.mine })
   const invites = useQuery({ queryKey: ["turmas", "invites"], queryFn: turmasApi.invites })
+  // Quiz ao Vivo ativo nas turmas do aluno (poll leve pra aparecer logo).
+  const live    = useQuery({ queryKey: ["live-quiz", "active"], queryFn: liveQuizApi.activeForMe, refetchInterval: 30_000 })
 
   const refresh = () => {
     qc.invalidateQueries({ queryKey: ["turmas", "mine"] })
@@ -52,6 +56,20 @@ export function MyTurmasSection() {
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-3">
+        {/* Quiz ao Vivo em andamento — entrar direto */}
+        {(live.data ?? []).map((s) => (
+          <Link key={s.id} to="/ao-vivo" search={{ code: s.joinCode }} className="block">
+            <div className="flex items-center gap-3 rounded-md border border-primary/40 bg-primary/10 px-3 py-2.5 hover:border-primary/60 transition-colors">
+              <Radio className="h-5 w-5 text-primary shrink-0 animate-pulse" />
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-bold">Quiz ao Vivo {s.status === "Lobby" ? "abrindo" : "em andamento"}!</p>
+                <p className="text-xs text-muted-foreground truncate">Prof. {s.ownerName} · {s.questionCount} pergunta(s) · toque pra entrar</p>
+              </div>
+              <Badge className="shrink-0">Entrar</Badge>
+            </div>
+          </Link>
+        ))}
+
         {/* Convites pendentes */}
         {pendingList.map((inv) => (
           <div key={inv.memberId} className="flex items-center gap-3 rounded-md border border-warning/40 bg-warning/5 px-3 py-2">

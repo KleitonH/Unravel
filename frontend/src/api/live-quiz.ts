@@ -44,6 +44,14 @@ export type CreateLiveQuizBody = {
   allowedUserIds:       string[]
 }
 
+export type LiveActiveSession = {
+  id:            number
+  joinCode:      string
+  ownerName:     string
+  status:        string
+  questionCount: number
+}
+
 export const liveQuizApi = {
   create: (body: CreateLiveQuizBody) =>
     api.post<LiveSession>("/api/live-quiz", body).then((r) => r.data),
@@ -53,4 +61,8 @@ export const liveQuizApi = {
 
   byCode: (code: string) =>
     api.get<LiveSession>(`/api/live-quiz/by-code/${code}`).then((r) => r.data),
+
+  /** Sessões de turma ativas que o aluno pode entrar (pra banner "Minhas turmas"). */
+  activeForMe: () =>
+    api.get<LiveActiveSession[]>("/api/live-quiz/active-for-me").then((r) => r.data),
 }

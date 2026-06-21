@@ -129,6 +129,11 @@ public class LiveQuizController(ILiveQuizService live) : ControllerBase
     public async Task<IActionResult> Leaderboard(int id, CancellationToken ct)
         => Ok(await live.LeaderboardAsync(id, ct));
 
+    /// <summary>Sessões de turma ativas em que o aluno pode entrar (banner "Minhas turmas").</summary>
+    [HttpGet("active-for-me")]
+    public async Task<IActionResult> ActiveForMe(CancellationToken ct)
+        => Ok(await live.ActiveForUserAsync(UserId, ct));
+
     [HttpGet("{id:int}/question/{orderIndex:int}/result")]
     public async Task<IActionResult> QuestionResult(int id, int orderIndex, CancellationToken ct)
     {

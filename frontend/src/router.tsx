@@ -144,7 +144,7 @@ const shopRoute               = createRoute({ getParentRoute: () => authedLayout
 const friendsRoute            = createRoute({ getParentRoute: () => authedLayoutRoute, path: "/amigos",                         component: () => <Lazy Component={FriendsPage} /> })
 const caixinhaRoute           = createRoute({ getParentRoute: () => authedLayoutRoute, path: "/caixinha",                       component: () => <Lazy Component={CaixinhaPage} /> })
 const leagueRoute             = createRoute({ getParentRoute: () => authedLayoutRoute, path: "/liga",                           component: () => <Lazy Component={LeaguePage} /> })
-const liveQuizRoute           = createRoute({ getParentRoute: () => authedLayoutRoute, path: "/ao-vivo",                       component: () => <Lazy Component={LiveQuizPlayerPage} /> })
+const liveQuizRoute           = createRoute({ getParentRoute: () => authedLayoutRoute, path: "/ao-vivo",                       component: () => <Lazy Component={LiveQuizPlayerPage} />, validateSearch: (s: Record<string, unknown>): { code?: string } => ({ code: typeof s.code === "string" ? s.code : undefined }) })
 
 const routeTree = rootRoute.addChildren([
   indexRoute,
