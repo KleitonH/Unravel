@@ -84,6 +84,10 @@ public static class DependencyInjection
         // PR 69 — central de notificações in-app.
         services.AddScoped<Application.Notifications.Ports.INotificationService,
                            Notifications.NotificationService>();
+        // PR 70 — lembrete de hábito (ofensiva em risco). Hosted service
+        // registrado em Program.cs.
+        services.AddScoped<Application.Notifications.Ports.IHabitReminderService,
+                           Notifications.HabitReminderService>();
 
         // Journey planner (PR 3) — planner singleton (puro/stateless),
         // read model e use case escopados (dependem de DbContext).

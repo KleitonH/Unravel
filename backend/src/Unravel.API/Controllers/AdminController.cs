@@ -28,7 +28,8 @@ public sealed class AdminController(
     DailyReplanService replan,
     KnowledgeImporter  knowledgeImporter,
     IConfiguration     configuration,
-    IWebHostEnvironment env) : ControllerBase
+    IWebHostEnvironment env,
+    Unravel.Application.Notifications.Ports.IHabitReminderService habitReminders) : ControllerBase
 {
     /// <summary>Roda o lote de replanejamento <i>agora</i>. Idempotente:
     /// se já rodou hoje, faz upsert dos snapshots (não duplica).
@@ -38,6 +39,15 @@ public sealed class AdminController(
     {
         var report = await replan.RunAsync(DateTime.UtcNow, ct);
         return Ok(report);
+    }
+
+    /// <summary>PR 70 — dispara os lembretes de ofensiva-em-risco <i>agora</i>
+    /// (idempotente por dia). Útil pra demo sem esperar as 21:00 UTC.</summary>
+    [HttpPost("habit-reminders")]
+    public async Task<IActionResult> HabitReminders(CancellationToken ct)
+    {
+        var sent = await habitReminders.RunAsync(DateTime.UtcNow, ct);
+        return Ok(new { sent });
     }
 
     /// <summary>

@@ -146,6 +146,9 @@ builder.Services.AddHostedService<Unravel.Infrastructure.Journey.DailyReplanHost
 // PR 17 — auto-desativador semanal de perguntas com CorrectRate extrema.
 builder.Services.AddHostedService<Unravel.Infrastructure.Forge.GeneratedChallengeMaintenanceHostedService>();
 
+// PR 70 — lembrete de hábito (ofensiva em risco) uma vez/dia às 21:00 UTC.
+builder.Services.AddHostedService<Unravel.Infrastructure.Notifications.HabitReminderHostedService>();
+
 // PR 20 — lote noturno de geração via LLM. O serviço inicia sempre,
 // mas o orchestrator interno só faz algo se Llm:Enabled=true (caso
 // contrário, IServiceProvider.GetRequiredService<ILlmGenerationOrchestrator>
