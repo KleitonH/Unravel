@@ -1,6 +1,8 @@
 import { useQuery } from "@tanstack/react-query"
+import { Link } from "@tanstack/react-router"
 import { Coins, Flame, Heart, Sparkles, Star, Trophy } from "lucide-react"
 import { profileApi } from "@/api/profile"
+import { UserNavi } from "@/components/navi/user-navi"
 import { useAuth } from "@/stores/auth"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
@@ -63,6 +65,23 @@ export function ProfilePage() {
           <Button variant="destructive" onClick={logout}>Sair</Button>
         </CardContent>
       </Card>
+
+      {/* NAVI do usuário — espaço da personalização ativa (Student only) */}
+      {s && (
+        <Card className="animate-pop-in" style={{ animationDelay: "30ms" }}>
+          <CardHeader className="flex-row items-center justify-between">
+            <CardTitle className="text-sm font-display font-bold uppercase tracking-wider text-muted-foreground">
+              Seu NAVI
+            </CardTitle>
+            <Button asChild variant="outline" size="sm">
+              <Link to="/loja">Personalizar</Link>
+            </Button>
+          </CardHeader>
+          <CardContent className="flex justify-center py-2">
+            <UserNavi size={168} mood="happy" />
+          </CardContent>
+        </Card>
+      )}
 
       {/* Stats — Student only */}
       {profileQuery.isLoading && <Skeleton className="h-32" />}

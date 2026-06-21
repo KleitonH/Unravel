@@ -12,6 +12,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Skeleton } from "@/components/ui/skeleton"
 import { cn } from "@/lib/utils"
 import { QuestionRenderer } from "@/components/quiz/question-renderer"
+import { UserNavi } from "@/components/navi/user-navi"
 import type { BossFightAnswer, BossFightResultResponse } from "@/types/api"
 
 type Stage = "intro" | "quiz" | "result"
@@ -109,8 +110,18 @@ export function BossFightPage() {
       <Container>
         <Header trailName={session.trailName} />
         <Card className="bg-gradient-to-br from-warning/10 via-card to-card border-warning/40">
-          <CardHeader className="text-center space-y-2">
-            <Crown className="h-12 w-12 text-warning mx-auto" />
+          <CardContent className="flex items-center justify-center gap-5 pt-6 pb-0">
+            <div className="text-center">
+              <UserNavi size={88} mood="excited" />
+              <p className="text-[10px] uppercase tracking-wider text-muted-foreground mt-1">Você</p>
+            </div>
+            <span className="font-display text-2xl font-extrabold text-muted-foreground/70">VS</span>
+            <div className="text-center">
+              <Crown className="h-14 w-14 text-warning mx-auto" />
+              <p className="text-[10px] uppercase tracking-wider text-muted-foreground mt-1">Boss</p>
+            </div>
+          </CardContent>
+          <CardHeader className="text-center space-y-2 pt-4">
             <CardTitle className="text-2xl">Desafio final</CardTitle>
             <CardDescription className="max-w-md mx-auto">
               {session.totalQuestions} perguntas cruzando todos os tópicos da trilha,
