@@ -96,5 +96,56 @@ public class CaixinhaContributionServiceTests : IDisposable
         Assert.Equal(0, (await Reload()).DailyPoints);
     }
 
+    // ── Ofensiva coletiva (PR 68) ──
+
+    private void SetActive(User u, DateTime when)
+    {
+        var tracked = _db.User.First(x => x.Id == u.Id);
+        tracked.LastActivityDate = when;
+        _db.SaveChanges();
+    }
+
+    [Fact]
+    public async Task Streak_AdvancesWhenAllActiveToday()
+    {
+        // No fluxo real o gateway marca o autor ativo antes de contribuir;
+        // aqui marcamos ambos ativos hoje.
+        SetActive(_ana, _now); SetActive(_bia, _now);
+        await _sut.ContributeAsync(_ana.Id, 10, _now);
+
+        var c = await Reload();
+        Assert.Equal(1, c.StreakDays);
+        Assert.Equal(_now.Date, c.StreakLastDate?.Date);
+    }
+
+    [Fact]
+    public async Task Streak_NotAllActive_DoesNotAdvance()
+    {
+        SetActive(_ana, _now); // só Ana ativa; Bia não
+        await _sut.ContributeAsync(_ana.Id, 10, _now);
+        Assert.Equal(0, (await Reload()).StreakDays);
+    }
+
+    [Fact]
+    public async Task Streak_ConsecutiveDays_Increment_GapResets()
+    {
+        // Dia 1: todos ativos
+        SetActive(_ana, _now); SetActive(_bia, _now);
+        await _sut.ContributeAsync(_ana.Id, 10, _now);
+        Assert.Equal(1, (await Reload()).StreakDays);
+
+        // Dia 2 (consecutivo): todos ativos → 2
+        var d2 = _now.AddDays(1);
+        SetActive(_ana, d2); SetActive(_bia, d2);
+        await _sut.ContributeAsync(_ana.Id, 10, d2);
+        Assert.Equal(2, (await Reload()).StreakDays);
+
+        // Pula o dia 3; dia 4 todos ativos → reseta pra 1
+        var d4 = _now.AddDays(3);
+        SetActive(_ana, d4); SetActive(_bia, d4);
+        await _sut.ContributeAsync(_ana.Id, 10, d4);
+        Assert.Equal(1, (await Reload()).StreakDays);
+    }
+
     public void Dispose() => _db.Dispose();
 }

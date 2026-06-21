@@ -58,12 +58,16 @@ public class CaixinhaService(ApplicationDbContext db) : ICaixinhaService
 
         var dailyPoints  = caixinha.DailyPointsDate?.Date == today ? caixinha.DailyPoints : 0;
         var goalReached  = caixinha.DailyGoalAwardedAt?.Date == today;
+        // Ofensiva efetiva: válida só se avançou hoje ou ontem (senão quebrou).
+        var yesterday    = today.AddDays(-1);
+        var streak       = caixinha.StreakLastDate?.Date == today || caixinha.StreakLastDate?.Date == yesterday
+            ? caixinha.StreakDays : 0;
 
         return new CaixinhaDetailDto(
             caixinha.Id, caixinha.Name, caixinha.Emblem, caixinha.LeaderId,
             points, memberDtos.Count, memberDtos.Count(m => m.ActiveToday), rank,
             me.Role.ToString(),
-            caixinha.DailyGoal, dailyPoints, goalReached,
+            caixinha.DailyGoal, dailyPoints, goalReached, streak,
             memberDtos, muralDtos);
     }
 

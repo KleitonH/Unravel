@@ -31,6 +31,7 @@ public record CaixinhaDetailDto(
     int     DailyGoal,           // PR 67 — meta coletiva diária
     int     DailyPoints,         // pontos do dia (0 se virou o dia)
     bool    GoalReachedToday,
+    int     StreakDays,          // PR 68 — ofensiva coletiva efetiva
     IReadOnlyList<CaixinhaMemberDto>  Members,
     IReadOnlyList<CaixinhaMessageDto> Mural);
 

@@ -180,7 +180,14 @@ function Panel({ detail, onChange }: { detail: import("@/types/api").CaixinhaDet
         <CardContent className="py-4 space-y-2">
           <div className="flex items-center justify-between text-sm">
             <span className="font-display font-bold uppercase tracking-wider text-muted-foreground text-xs">🎯 Meta de hoje</span>
-            <span className="text-muted-foreground tabular-nums">{detail.dailyPoints}/{detail.dailyGoal} XP</span>
+            <span className="flex items-center gap-3">
+              {detail.streakDays > 0 && (
+                <span className="inline-flex items-center gap-1 text-warning font-semibold" title="Ofensiva: dias seguidos com todos estudando">
+                  <Flame className="h-3.5 w-3.5" />{detail.streakDays}d em equipe
+                </span>
+              )}
+              <span className="text-muted-foreground tabular-nums">{detail.dailyPoints}/{detail.dailyGoal} XP</span>
+            </span>
           </div>
           <div className="h-2.5 rounded-full bg-muted/40 overflow-hidden">
             <div className={cn("h-full transition-all", detail.goalReachedToday ? "bg-success" : "bg-primary")}

@@ -29,6 +29,12 @@ public class Caixinha
     public DateTime? DailyPointsDate    { get; set; }
     public DateTime? DailyGoalAwardedAt { get; set; }
 
+    // PR 68 — ofensiva de caixinha: dias consecutivos em que TODOS os membros
+    // estudaram. Avança 1x/dia quando todos ficam ativos; reseta se um dia passa
+    // sem todos. StreakLastDate = último dia em que avançou.
+    public int       StreakDays     { get; set; }
+    public DateTime? StreakLastDate { get; set; }
+
     public ICollection<CaixinhaMember>  Members  { get; set; } = new List<CaixinhaMember>();
     public ICollection<CaixinhaMessage> Messages { get; set; } = new List<CaixinhaMessage>();
 

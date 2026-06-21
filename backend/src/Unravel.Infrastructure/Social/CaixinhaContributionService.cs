@@ -13,6 +13,9 @@ public class CaixinhaContributionService(ApplicationDbContext db) : ICaixinhaCon
     /// <summary>Bônus de moedas por membro quando a caixinha bate a meta diária.</summary>
     public const int DailyBonusCoins = 20;
 
+    /// <summary>Bônus por dia de ofensiva coletiva, por membro (capado em 10 dias).</summary>
+    public const int StreakBonusPerDay = 5;
+
     public async Task ContributeAsync(Guid userId, int xpEarned, DateTime now, CancellationToken ct = default)
     {
         if (xpEarned <= 0) return;
@@ -26,29 +29,38 @@ public class CaixinhaContributionService(ApplicationDbContext db) : ICaixinhaCon
 
         var today = now.Date;
 
-        // Vira o dia → zera o acumulado e o flag de bônus.
+        // Membros da caixinha (rastreados — pode creditar bônus de moedas).
+        var memberIds = await db.CaixinhaMember
+            .Where(m => m.CaixinhaId == caixinha.Id)
+            .Select(m => m.UserId)
+            .ToListAsync(ct);
+        var members = await db.User.Where(u => memberIds.Contains(u.Id)).ToListAsync(ct);
+
+        // ── Meta coletiva diária ──
         if (caixinha.DailyPointsDate?.Date != today)
         {
             caixinha.DailyPoints = 0;
             caixinha.DailyPointsDate = today;
             caixinha.DailyGoalAwardedAt = null;
         }
-
         caixinha.DailyPoints += xpEarned;
 
-        // Bateu a meta e ainda não premiou hoje → bônus pra todos.
         if (caixinha.DailyPoints >= caixinha.DailyGoal && caixinha.DailyGoalAwardedAt?.Date != today)
         {
             caixinha.DailyGoalAwardedAt = now;
+            foreach (var u in members) u.Coins += DailyBonusCoins;
+        }
 
-            var memberIds = await db.CaixinhaMember
-                .Where(m => m.CaixinhaId == caixinha.Id)
-                .Select(m => m.UserId)
-                .ToListAsync(ct);
+        // ── Ofensiva coletiva ── (todos ativos hoje → avança 1x/dia)
+        var allActive = members.Count > 0 && members.All(u => u.LastActivityDate?.Date == today);
+        if (allActive && caixinha.StreakLastDate?.Date != today)
+        {
+            var yesterday = today.AddDays(-1);
+            caixinha.StreakDays = caixinha.StreakLastDate?.Date == yesterday ? caixinha.StreakDays + 1 : 1;
+            caixinha.StreakLastDate = today;
 
-            var users = await db.User.Where(u => memberIds.Contains(u.Id)).ToListAsync(ct);
-            foreach (var u in users)
-                u.Coins += DailyBonusCoins;
+            var streakBonus = Math.Min(caixinha.StreakDays, 10) * StreakBonusPerDay;
+            foreach (var u in members) u.Coins += streakBonus;
         }
 
         await db.SaveChangesAsync(ct);
