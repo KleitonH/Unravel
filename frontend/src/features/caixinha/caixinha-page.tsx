@@ -1,6 +1,6 @@
 import { useState } from "react"
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
-import { Crown, Flame, LogOut, Search, Send, Trophy, UserMinus, Users } from "lucide-react"
+import { Crown, Flame, LogOut, MoreVertical, Search, Send, Trophy, UserMinus, Users } from "lucide-react"
 import { toast } from "sonner"
 import { caixinhaApi } from "@/api/caixinha"
 import { EventsSection } from "./caixinha-events"
@@ -8,6 +8,7 @@ import { useAuth } from "@/stores/auth"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { Input } from "@/components/ui/input"
 import { Skeleton } from "@/components/ui/skeleton"
 import { cn } from "@/lib/utils"
@@ -159,18 +160,27 @@ function Panel({ detail, onChange }: { detail: import("@/types/api").CaixinhaDet
             <p className="font-display text-2xl font-extrabold text-primary">{fmt(detail.collectivePoints)}</p>
             <p className="text-[10px] uppercase tracking-wider text-muted-foreground">pontos coletivos</p>
           </div>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="icon" className="self-start -mr-1 -mt-1" title="Opções" disabled={leaveMut.isPending}>
+                <MoreVertical className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem destructive onClick={() => leaveMut.mutate()}>
+                <LogOut className="h-4 w-4 mr-2" /> Sair da caixinha
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </CardContent>
       </Card>
 
       {/* Membros */}
       <Card>
-        <CardHeader className="flex-row items-center justify-between">
+        <CardHeader>
           <CardTitle className="text-sm font-display font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-2">
             <Users className="h-4 w-4" /> Membros ({detail.memberCount})
           </CardTitle>
-          <Button variant="ghost" size="sm" className="text-destructive" onClick={() => leaveMut.mutate()} disabled={leaveMut.isPending}>
-            <LogOut className="h-4 w-4 mr-1" /> Sair
-          </Button>
         </CardHeader>
         <CardContent className="space-y-2">
           {detail.members.map((m) => (
