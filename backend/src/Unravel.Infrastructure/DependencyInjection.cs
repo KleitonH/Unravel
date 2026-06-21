@@ -65,6 +65,10 @@ public static class DependencyInjection
         services.AddScoped<Application.Gamification.Ports.ICosmeticShopService,
                            Gamification.CosmeticShopService>();
 
+        // PR 64 — mecânicas sociais (Amigos/Parcerias).
+        services.AddScoped<Application.Social.Ports.IFriendshipService,
+                           Social.FriendshipService>();
+
         // Journey planner (PR 3) — planner singleton (puro/stateless),
         // read model e use case escopados (dependem de DbContext).
         services.AddSingleton<IJourneyPlanner, JourneyPlanner>();

@@ -28,6 +28,9 @@ public partial class ApplicationDbContext(DbContextOptions<ApplicationDbContext>
     public DbSet<ModeratorTokenBalance>    ModeratorTokenBalance    => Set<ModeratorTokenBalance>();
     public DbSet<ModeratorTokenTransaction> ModeratorTokenTransaction => Set<ModeratorTokenTransaction>();
 
+    // PR 64 — mecânicas sociais (Amigos/Parcerias)
+    public DbSet<Friendship> Friendship => Set<Friendship>();
+
     protected override void OnModelCreating(ModelBuilder mb)
     {
         base.OnModelCreating(mb);
@@ -214,6 +217,32 @@ public partial class ApplicationDbContext(DbContextOptions<ApplicationDbContext>
 
             // Lookup do evaluator: WHERE ContentId IN (...) AND IsActive
             e.HasIndex(g => new { g.ContentId, g.IsActive });
+        });
+
+        // PR 64 — Friendship: vínculo entre dois usuários. Armazenado 1x na
+        // direção requester→addressee; o serviço trata o par como simétrico.
+        // Índice único no par previne duplicata na mesma direção; o serviço
+        // checa as duas direções antes de criar. Índice no addressee acelera
+        // "pedidos recebidos".
+        mb.Entity<Friendship>(e =>
+        {
+            e.HasKey(f => f.Id);
+            e.Property(f => f.Status).HasConversion<int>();
+            e.HasIndex(f => new { f.RequesterId, f.AddresseeId }).IsUnique();
+            e.HasIndex(f => f.AddresseeId);
+
+            e.HasOne(f => f.Requester)
+             .WithMany()
+             .HasForeignKey(f => f.RequesterId)
+             .OnDelete(DeleteBehavior.Cascade);
+
+            // Addressee = Restrict pra evitar múltiplos caminhos de cascata
+            // (ambas FKs apontam pra User). Usuário é soft-deleted (IsActive),
+            // então cascata dupla não é necessária na prática.
+            e.HasOne(f => f.Addressee)
+             .WithMany()
+             .HasForeignKey(f => f.AddresseeId)
+             .OnDelete(DeleteBehavior.Restrict);
         });
     }
 }
