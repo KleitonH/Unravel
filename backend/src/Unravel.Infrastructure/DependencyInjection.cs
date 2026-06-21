@@ -89,6 +89,10 @@ public static class DependencyInjection
         services.AddScoped<Application.Notifications.Ports.IHabitReminderService,
                            Notifications.HabitReminderService>();
 
+        // Turmas — vínculo professor↔aluno (roster do Kahoot).
+        services.AddScoped<Application.Classes.Ports.ITurmaService,
+                           Classes.TurmaService>();
+
         // Journey planner (PR 3) — planner singleton (puro/stateless),
         // read model e use case escopados (dependem de DbContext).
         services.AddSingleton<IJourneyPlanner, JourneyPlanner>();

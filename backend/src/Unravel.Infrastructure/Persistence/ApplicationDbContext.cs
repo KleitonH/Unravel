@@ -46,6 +46,10 @@ public partial class ApplicationDbContext(DbContextOptions<ApplicationDbContext>
     // PR 69 — notificações in-app
     public DbSet<Notification> Notification => Set<Notification>();
 
+    // Turmas — vínculo professor↔aluno (roster do Kahoot)
+    public DbSet<Turma>       Turma       => Set<Turma>();
+    public DbSet<TurmaMember> TurmaMember => Set<TurmaMember>();
+
     protected override void OnModelCreating(ModelBuilder mb)
     {
         base.OnModelCreating(mb);
@@ -359,6 +363,40 @@ public partial class ApplicationDbContext(DbContextOptions<ApplicationDbContext>
             e.Property(n => n.Link).HasMaxLength(120);
             // Listagem/contador: WHERE user_id=? [AND is_read=false] ORDER BY created_at DESC
             e.HasIndex(n => new { n.UserId, n.IsRead, n.CreatedAt });
+        });
+
+        // Turmas — professor (Owner) agrupa alunos (Members).
+        mb.Entity<Turma>(e =>
+        {
+            e.HasKey(t => t.Id);
+            e.Property(t => t.Name).HasMaxLength(60).IsRequired();
+            e.Property(t => t.Description).HasMaxLength(300);
+            e.Property(t => t.Emblem).HasMaxLength(10);
+            e.HasIndex(t => t.OwnerUserId);
+
+            e.HasOne(t => t.Owner)
+             .WithMany()
+             .HasForeignKey(t => t.OwnerUserId)
+             .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        mb.Entity<TurmaMember>(e =>
+        {
+            e.HasKey(m => m.Id);
+            e.Property(m => m.Status).HasConversion<int>();
+            // Um aluno aparece no máximo uma vez por turma.
+            e.HasIndex(m => new { m.TurmaId, m.UserId }).IsUnique();
+            e.HasIndex(m => m.UserId);
+
+            e.HasOne(m => m.Turma)
+             .WithMany(t => t.Members)
+             .HasForeignKey(m => m.TurmaId)
+             .OnDelete(DeleteBehavior.Cascade);
+
+            e.HasOne(m => m.User)
+             .WithMany()
+             .HasForeignKey(m => m.UserId)
+             .OnDelete(DeleteBehavior.Cascade);
         });
     }
 }
