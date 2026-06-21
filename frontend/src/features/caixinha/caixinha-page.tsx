@@ -175,6 +175,25 @@ function Panel({ detail, onChange }: { detail: import("@/types/api").CaixinhaDet
         </CardContent>
       </Card>
 
+      {/* Meta coletiva diária */}
+      <Card>
+        <CardContent className="py-4 space-y-2">
+          <div className="flex items-center justify-between text-sm">
+            <span className="font-display font-bold uppercase tracking-wider text-muted-foreground text-xs">🎯 Meta de hoje</span>
+            <span className="text-muted-foreground tabular-nums">{detail.dailyPoints}/{detail.dailyGoal} XP</span>
+          </div>
+          <div className="h-2.5 rounded-full bg-muted/40 overflow-hidden">
+            <div className={cn("h-full transition-all", detail.goalReachedToday ? "bg-success" : "bg-primary")}
+              style={{ width: `${Math.min(100, Math.round((detail.dailyPoints / Math.max(1, detail.dailyGoal)) * 100))}%` }} />
+          </div>
+          <p className="text-xs text-muted-foreground">
+            {detail.goalReachedToday
+              ? "✓ Meta batida hoje! Todos ganharam bônus de moedas. 🪙"
+              : "Estudem juntos: ao bater a meta, todos da caixinha ganham bônus de moedas."}
+          </p>
+        </CardContent>
+      </Card>
+
       {/* Membros */}
       <Card>
         <CardHeader>

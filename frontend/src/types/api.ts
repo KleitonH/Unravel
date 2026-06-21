@@ -488,6 +488,9 @@ export type CaixinhaDetail = {
   activeTodayCount: number
   rank:             number
   myRole:           "Leader" | "Member"
+  dailyGoal:        number
+  dailyPoints:      number
+  goalReachedToday: boolean
   members:          CaixinhaMember[]
   mural:            CaixinhaMessage[]
 }
