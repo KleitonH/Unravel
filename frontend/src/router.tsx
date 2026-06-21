@@ -31,6 +31,7 @@ const JornadaPage      = lazy(() => import("@/features/trail-map/trail-map-page"
 const ContentStudyPage = lazy(() => import("@/features/content-study/content-study-page").then((m) => ({ default: m.ContentStudyPage })))
 const QuizPage         = lazy(() => import("@/features/quiz/quiz-page").then((m) => ({ default: m.QuizPage })))
 const AdaptiveQuizPage = lazy(() => import("@/features/quiz/adaptive-quiz-page").then((m) => ({ default: m.AdaptiveQuizPage })))
+const LiveQuizPlayerPage = lazy(() => import("@/features/live-quiz/live-quiz-player").then((m) => ({ default: m.LiveQuizPlayer })))
 const AdminPage           = lazy(() => import("@/features/admin/admin-page").then((m) => ({ default: m.AdminPage })))
 const AdminTrailsPage     = lazy(() => import("@/features/admin-custom/trails-list-page").then((m) => ({ default: m.TrailsListPage })))
 const AdminTrailDetail    = lazy(() => import("@/features/admin-custom/trail-detail-page").then((m) => ({ default: m.TrailDetailPage })))
@@ -143,6 +144,7 @@ const shopRoute               = createRoute({ getParentRoute: () => authedLayout
 const friendsRoute            = createRoute({ getParentRoute: () => authedLayoutRoute, path: "/amigos",                         component: () => <Lazy Component={FriendsPage} /> })
 const caixinhaRoute           = createRoute({ getParentRoute: () => authedLayoutRoute, path: "/caixinha",                       component: () => <Lazy Component={CaixinhaPage} /> })
 const leagueRoute             = createRoute({ getParentRoute: () => authedLayoutRoute, path: "/liga",                           component: () => <Lazy Component={LeaguePage} /> })
+const liveQuizRoute           = createRoute({ getParentRoute: () => authedLayoutRoute, path: "/ao-vivo",                       component: () => <Lazy Component={LiveQuizPlayerPage} /> })
 
 const routeTree = rootRoute.addChildren([
   indexRoute,
@@ -170,6 +172,7 @@ const routeTree = rootRoute.addChildren([
     friendsRoute,
     caixinhaRoute,
     leagueRoute,
+    liveQuizRoute,
     profileRoute,
     desafioRoute,
   ]),

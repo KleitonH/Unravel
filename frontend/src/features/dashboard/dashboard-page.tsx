@@ -1,6 +1,6 @@
 import { useQuery, useQueries } from "@tanstack/react-query"
 import { Link, useNavigate } from "@tanstack/react-router"
-import { Brain, CheckCircle2, ChevronRight, Plus, Star, TrendingUp, Trophy } from "lucide-react"
+import { Brain, CheckCircle2, ChevronRight, Plus, Radio, Star, TrendingUp, Trophy } from "lucide-react"
 import { useAuth } from "@/stores/auth"
 import { trailsApi } from "@/api/trails"
 import { journeyApi } from "@/api/journey"
@@ -38,6 +38,24 @@ function LeagueBanner() {
             <p className="text-xs text-muted-foreground">
               {d.rank}º de {d.size} · <Trophy className="inline h-3 w-3" /> {d.weeklyXp} XP esta semana
             </p>
+          </div>
+          <ChevronRight className="h-5 w-5 text-muted-foreground" />
+        </CardContent>
+      </Card>
+    </Link>
+  )
+}
+
+/** Atalho pro aluno entrar num Quiz ao Vivo digitando o código da sala. */
+function LiveQuizJoinCard() {
+  return (
+    <Link to="/ao-vivo" className="block">
+      <Card className="hover:border-primary/50 transition-colors border-primary/20 bg-primary/5">
+        <CardContent className="flex items-center gap-3 py-3">
+          <Radio className="h-5 w-5 text-primary shrink-0" />
+          <div className="flex-1 min-w-0">
+            <p className="font-display font-bold text-sm">Quiz ao Vivo</p>
+            <p className="text-xs text-muted-foreground">Tem um código da sala? Entre e jogue ao vivo.</p>
           </div>
           <ChevronRight className="h-5 w-5 text-muted-foreground" />
         </CardContent>
@@ -89,6 +107,8 @@ export function DashboardPage() {
       />
 
       <LeagueBanner />
+
+      {profileQuery.data?.role === "Student" && <LiveQuizJoinCard />}
 
       {isLoading ? (
         <SkeletonList />
