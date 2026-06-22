@@ -67,6 +67,11 @@ public partial class ApplicationDbContext(DbContextOptions<ApplicationDbContext>
     public DbSet<Title>     Title     => Set<Title>();
     public DbSet<UserTitle> UserTitle => Set<UserTitle>();
 
+    // Parceria — "Novelo de Lã / Parceiro de Trilha" (Ideia 1 / UC17)
+    public DbSet<Partnership>    Partnership    => Set<Partnership>();
+    public DbSet<YarnBall>       YarnBall       => Set<YarnBall>();
+    public DbSet<PartnershipLog> PartnershipLog => Set<PartnershipLog>();
+
     protected override void OnModelCreating(ModelBuilder mb)
     {
         base.OnModelCreating(mb);
@@ -529,6 +534,53 @@ public partial class ApplicationDbContext(DbContextOptions<ApplicationDbContext>
             e.HasOne(u => u.Title)
              .WithMany(t => t.UserTitles)
              .HasForeignKey(u => u.TitleId)
+             .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        // Parceria — "Novelo de Lã / Parceiro de Trilha" (Ideia 1 / UC17).
+        // Vínculo armazenado 1x (requester→addressee); serviço trata como
+        // simétrico. Sem unique no par porque uma dupla pode ter histórico de
+        // parcerias desfeitas/recusadas e formar outra depois.
+        mb.Entity<Partnership>(e =>
+        {
+            e.HasKey(p => p.Id);
+            e.Property(p => p.Status).HasConversion<int>();
+            e.HasIndex(p => p.RequesterId);
+            e.HasIndex(p => p.AddresseeId);
+            e.HasIndex(p => p.Status);
+
+            e.HasOne(p => p.Requester)
+             .WithMany()
+             .HasForeignKey(p => p.RequesterId)
+             .OnDelete(DeleteBehavior.Cascade);
+
+            // Addressee = Restrict pra evitar múltiplos caminhos de cascata.
+            e.HasOne(p => p.Addressee)
+             .WithMany()
+             .HasForeignKey(p => p.AddresseeId)
+             .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        mb.Entity<YarnBall>(e =>
+        {
+            e.HasKey(y => y.Id);
+            e.Property(y => y.State).HasConversion<int>();
+            e.HasIndex(y => new { y.PartnershipId, y.IsCompleted });
+            e.HasOne(y => y.Partnership)
+             .WithMany(p => p.YarnBalls)
+             .HasForeignKey(y => y.PartnershipId)
+             .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        mb.Entity<PartnershipLog>(e =>
+        {
+            e.HasKey(l => l.Id);
+            e.Property(l => l.Type).HasConversion<int>();
+            e.Property(l => l.Message).HasMaxLength(200);
+            e.HasIndex(l => l.PartnershipId);
+            e.HasOne(l => l.Partnership)
+             .WithMany(p => p.Logs)
+             .HasForeignKey(l => l.PartnershipId)
              .OnDelete(DeleteBehavior.Cascade);
         });
     }

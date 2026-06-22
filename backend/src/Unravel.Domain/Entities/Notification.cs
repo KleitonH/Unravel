@@ -15,6 +15,9 @@ public enum NotificationType
     ClassInvite     = 9,  // convite pra entrar numa turma de um professor
     LiveQuizStarted = 10, // professor abriu um Quiz ao Vivo pra turma
     ArenaChallenge  = 11, // desafio/duelo na Arena (PvP)
+    PartnershipRequest  = 12, // convite de Parceria (Novelo / Parceiro de Trilha)
+    PartnershipAccepted = 13, // parceiro aceitou o convite
+    YarnPassed          = 14, // o novelo passou pra você (ou novelo concluído)
 }
 
 public class Notification

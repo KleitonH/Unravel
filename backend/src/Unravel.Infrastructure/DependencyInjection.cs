@@ -105,6 +105,10 @@ public static class DependencyInjection
         services.AddScoped<Application.Achievements.Ports.ITitleService,
                            Achievements.TitleService>();
 
+        // Parceria — "Novelo de Lã / Parceiro de Trilha" (Ideia 1 / UC17).
+        services.AddScoped<Application.Social.Ports.IPartnershipService,
+                           Social.PartnershipService>();
+
         // Journey planner (PR 3) — planner singleton (puro/stateless),
         // read model e use case escopados (dependem de DbContext).
         services.AddSingleton<IJourneyPlanner, JourneyPlanner>();
