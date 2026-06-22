@@ -101,6 +101,10 @@ public static class DependencyInjection
         services.AddScoped<Application.Arena.Ports.IArenaService,
                            Arena.ArenaService>();
 
+        // Títulos desbloqueáveis + ranking global (Ideia 5).
+        services.AddScoped<Application.Achievements.Ports.ITitleService,
+                           Achievements.TitleService>();
+
         // Journey planner (PR 3) — planner singleton (puro/stateless),
         // read model e use case escopados (dependem de DbContext).
         services.AddSingleton<IJourneyPlanner, JourneyPlanner>();

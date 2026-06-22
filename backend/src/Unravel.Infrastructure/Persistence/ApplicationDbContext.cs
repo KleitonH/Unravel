@@ -63,6 +63,10 @@ public partial class ApplicationDbContext(DbContextOptions<ApplicationDbContext>
     public DbSet<ArenaRanking>    ArenaRanking    => Set<ArenaRanking>();
     public DbSet<ArenaQueueEntry> ArenaQueueEntry => Set<ArenaQueueEntry>();
 
+    // Títulos desbloqueáveis (Ideia 5)
+    public DbSet<Title>     Title     => Set<Title>();
+    public DbSet<UserTitle> UserTitle => Set<UserTitle>();
+
     protected override void OnModelCreating(ModelBuilder mb)
     {
         base.OnModelCreating(mb);
@@ -505,6 +509,27 @@ public partial class ApplicationDbContext(DbContextOptions<ApplicationDbContext>
             e.HasKey(q => q.Id);
             e.HasIndex(q => q.UserId).IsUnique();
             e.HasIndex(q => q.TrailId);
+        });
+
+        // Títulos desbloqueáveis (Ideia 5).
+        mb.Entity<Title>(e =>
+        {
+            e.HasKey(t => t.Id);
+            e.Property(t => t.Code).HasMaxLength(40).IsRequired();
+            e.Property(t => t.Text).HasMaxLength(80).IsRequired();
+            e.Property(t => t.Category).HasConversion<int>();
+            e.Property(t => t.Criterion).HasConversion<int>();
+            e.HasIndex(t => t.Code).IsUnique();
+        });
+
+        mb.Entity<UserTitle>(e =>
+        {
+            e.HasKey(u => u.Id);
+            e.HasIndex(u => new { u.UserId, u.TitleId }).IsUnique();
+            e.HasOne(u => u.Title)
+             .WithMany(t => t.UserTitles)
+             .HasForeignKey(u => u.TitleId)
+             .OnDelete(DeleteBehavior.Cascade);
         });
     }
 }
