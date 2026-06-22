@@ -57,6 +57,12 @@ public partial class ApplicationDbContext(DbContextOptions<ApplicationDbContext>
     public DbSet<LiveQuizAllowedUser> LiveQuizAllowedUser => Set<LiveQuizAllowedUser>();
     public DbSet<LiveQuizAnswer>      LiveQuizAnswer      => Set<LiveQuizAnswer>();
 
+    // Arena (PvP)
+    public DbSet<ArenaMatch>      ArenaMatch      => Set<ArenaMatch>();
+    public DbSet<ArenaRound>      ArenaRound      => Set<ArenaRound>();
+    public DbSet<ArenaRanking>    ArenaRanking    => Set<ArenaRanking>();
+    public DbSet<ArenaQueueEntry> ArenaQueueEntry => Set<ArenaQueueEntry>();
+
     protected override void OnModelCreating(ModelBuilder mb)
     {
         base.OnModelCreating(mb);
@@ -459,6 +465,46 @@ public partial class ApplicationDbContext(DbContextOptions<ApplicationDbContext>
             // Uma resposta por participante por pergunta.
             e.HasIndex(a => new { a.ParticipantId, a.QuestionOrderIndex }).IsUnique();
             e.HasIndex(a => a.SessionId);
+        });
+
+        // Arena (PvP).
+        mb.Entity<ArenaMatch>(e =>
+        {
+            e.HasKey(m => m.Id);
+            e.Property(m => m.Status).HasConversion<int>();
+            e.HasIndex(m => m.Player1Id);
+            e.HasIndex(m => m.Player2Id);
+            e.HasIndex(m => m.Status);
+        });
+
+        mb.Entity<ArenaRound>(e =>
+        {
+            e.HasKey(r => r.Id);
+            e.Property(r => r.Prompt).IsRequired();
+            e.Property(r => r.OptionsJson).IsRequired();
+            e.Property(r => r.Shape).HasMaxLength(40);
+            e.HasIndex(r => new { r.MatchId, r.OrderIndex }).IsUnique();
+            e.HasOne(r => r.Match)
+             .WithMany(m => m.Rounds)
+             .HasForeignKey(r => r.MatchId)
+             .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        mb.Entity<ArenaRanking>(e =>
+        {
+            e.HasKey(r => r.UserId);
+            e.HasIndex(r => r.Points);
+            e.HasOne(r => r.User)
+             .WithMany()
+             .HasForeignKey(r => r.UserId)
+             .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        mb.Entity<ArenaQueueEntry>(e =>
+        {
+            e.HasKey(q => q.Id);
+            e.HasIndex(q => q.UserId).IsUnique();
+            e.HasIndex(q => q.TrailId);
         });
     }
 }

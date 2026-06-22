@@ -97,6 +97,10 @@ public static class DependencyInjection
         services.AddScoped<Application.LiveQuiz.Ports.ILiveQuizService,
                            LiveQuiz.LiveQuizService>();
 
+        // Arena (PvP) — matchmaking/desafio + ciclo da partida + ranking.
+        services.AddScoped<Application.Arena.Ports.IArenaService,
+                           Arena.ArenaService>();
+
         // Journey planner (PR 3) — planner singleton (puro/stateless),
         // read model e use case escopados (dependem de DbContext).
         services.AddSingleton<IJourneyPlanner, JourneyPlanner>();

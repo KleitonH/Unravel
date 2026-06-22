@@ -14,6 +14,7 @@ public enum NotificationType
     StreakRisk      = 8,
     ClassInvite     = 9,  // convite pra entrar numa turma de um professor
     LiveQuizStarted = 10, // professor abriu um Quiz ao Vivo pra turma
+    ArenaChallenge  = 11, // desafio/duelo na Arena (PvP)
 }
 
 public class Notification
