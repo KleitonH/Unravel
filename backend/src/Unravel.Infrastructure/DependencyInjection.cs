@@ -96,6 +96,9 @@ public static class DependencyInjection
         // Quiz ao Vivo — núcleo de sessão (snapshot/estado/scoring).
         services.AddScoped<Application.LiveQuiz.Ports.ILiveQuizService,
                            LiveQuiz.LiveQuizService>();
+        // UC30 — relatório pedagógico da turma (agrega respostas da sessão).
+        services.AddScoped<Application.LiveQuiz.Ports.ILiveQuizReportService,
+                           LiveQuiz.LiveQuizReportService>();
 
         // Arena (PvP) — matchmaking/desafio + ciclo da partida + ranking.
         services.AddScoped<Application.Arena.Ports.IArenaService,
