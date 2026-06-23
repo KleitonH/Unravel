@@ -2,6 +2,8 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.SignalR;
+using Unravel.API.Hubs;
 using Unravel.Application.Arena.Ports;
 
 namespace Unravel.API.Controllers;
@@ -18,7 +20,7 @@ public record SubmitArenaBody(int RoundIndex, int SelectedIndex);
 [ApiController]
 [Route("api/arena")]
 [Authorize]
-public class ArenaController(IArenaService arena) : ControllerBase
+public class ArenaController(IArenaService arena, IHubContext<ArenaHub> hub) : ControllerBase
 {
     private Guid UserId => Guid.Parse(
         User.FindFirstValue(JwtRegisteredClaimNames.Sub)
@@ -27,7 +29,11 @@ public class ArenaController(IArenaService arena) : ControllerBase
     // POST /api/arena/queue  → pareia ou entra na fila
     [HttpPost("queue")]
     public async Task<IActionResult> Enqueue([FromBody] EnqueueArenaBody body, CancellationToken ct)
-        => Ok(await arena.EnqueueAsync(UserId, body.TrailId, ct));
+    {
+        var r = await arena.EnqueueAsync(UserId, body.TrailId, ct);
+        if (r.Matched && r.MatchId is int mid) await PushMatchedAsync(mid, ct);
+        return Ok(r);
+    }
 
     [HttpDelete("queue")]
     public async Task<IActionResult> LeaveQueue(CancellationToken ct)
@@ -53,7 +59,11 @@ public class ArenaController(IArenaService arena) : ControllerBase
 
     [HttpPut("matches/{id:int}/accept")]
     public async Task<IActionResult> Accept(int id, CancellationToken ct)
-        => Respond(await arena.RespondChallengeAsync(id, UserId, accept: true, ct));
+    {
+        var r = await arena.RespondChallengeAsync(id, UserId, accept: true, ct);
+        if (r.Outcome == ArenaActionOutcome.Ok && r.MatchId is int mid) await PushMatchedAsync(mid, ct);
+        return Respond(r);
+    }
 
     [HttpPut("matches/{id:int}/decline")]
     public async Task<IActionResult> Decline(int id, CancellationToken ct)
@@ -91,6 +101,18 @@ public class ArenaController(IArenaService arena) : ControllerBase
     [HttpGet("my-matches")]
     public async Task<IActionResult> MyMatches(CancellationToken ct)
         => Ok(await arena.MyOpenMatchesAsync(UserId, ct));
+
+    /// <summary>Avisa os dois jogadores que o pareamento aconteceu (push direto
+    /// via SignalR) — quem estava na fila/aguardando entra no duelo na hora,
+    /// sem polling.</summary>
+    private async Task PushMatchedAsync(int matchId, CancellationToken ct)
+    {
+        var m = await arena.GetMatchAsync(matchId, ct);
+        if (m is null) return;
+        await hub.Clients.User(m.Player1Id.ToString()).SendAsync("Matched", new { matchId }, ct);
+        if (m.Player2Id is Guid p2)
+            await hub.Clients.User(p2.ToString()).SendAsync("Matched", new { matchId }, ct);
+    }
 
     private IActionResult Respond(ArenaActionResult r) => r.Outcome switch
     {

@@ -21,20 +21,38 @@ public class ArenaService(ApplicationDbContext db, INotificationService notifica
 
     public async Task<EnqueueResult> EnqueueAsync(Guid userId, int trailId, CancellationToken ct = default)
     {
-        // Já há alguém esperando no mesmo tema? Pareia.
-        var waiting = await db.ArenaQueueEntry
-            .Where(q => q.TrailId == trailId && q.UserId != userId)
-            .OrderBy(q => q.CreatedAt)
-            .FirstOrDefaultAsync(ct);
+        // Candidatos esperando no mesmo tema, já com pontos de Arena (ranking)
+        // e XP (nível) — pra parear pelo mais próximo, não mais FIFO.
+        var candidates = await (
+            from q in db.ArenaQueueEntry
+            where q.TrailId == trailId && q.UserId != userId
+            join u in db.User on q.UserId equals u.Id
+            join r in db.ArenaRanking on q.UserId equals r.UserId into rr
+            from r in rr.DefaultIfEmpty()
+            select new { q.UserId, q.CreatedAt, Points = r != null ? r.Points : 0, u.Xp }
+        ).ToListAsync(ct);
 
-        if (waiting is not null)
+        if (candidates.Count > 0)
         {
-            db.ArenaQueueEntry.Remove(waiting);
+            // Rating do solicitante (pontos de Arena + XP como nível).
+            var mePoints = await db.ArenaRanking.Where(r => r.UserId == userId)
+                .Select(r => (int?)r.Points).FirstOrDefaultAsync(ct) ?? 0;
+            var meXp = await db.User.Where(u => u.Id == userId).Select(u => u.Xp).FirstOrDefaultAsync(ct);
+
+            // Mais próximo em pontos de ranking; desempata por XP (nível) e, por
+            // fim, por tempo de espera (quem espera há mais tempo entra antes).
+            var best = candidates
+                .OrderBy(c => Math.Abs(c.Points - mePoints))
+                .ThenBy(c => Math.Abs(c.Xp - meXp))
+                .ThenBy(c => c.CreatedAt)
+                .First();
+
+            await RemoveQueueAsync(best.UserId, ct);
             await RemoveQueueAsync(userId, ct);
 
             var match = new ArenaMatch
             {
-                Player1Id = waiting.UserId,
+                Player1Id = best.UserId,
                 Player2Id = userId,
                 TrailId   = trailId,
                 IsDirectChallenge = false,
@@ -42,7 +60,7 @@ public class ArenaService(ApplicationDbContext db, INotificationService notifica
             if (!await SnapshotAndStartAsync(match, trailId, ct))
             {
                 // Sem questões: devolve o oponente pra fila e aborta.
-                db.ArenaQueueEntry.Add(new ArenaQueueEntry { UserId = waiting.UserId, TrailId = trailId });
+                db.ArenaQueueEntry.Add(new ArenaQueueEntry { UserId = best.UserId, TrailId = trailId });
                 await db.SaveChangesAsync(ct);
                 return new EnqueueResult(false);
             }

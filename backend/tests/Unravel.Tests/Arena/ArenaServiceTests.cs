@@ -70,6 +70,29 @@ public class ArenaServiceTests : IDisposable
     }
 
     [Fact]
+    public async Task Enqueue_pairs_with_closest_ranking()
+    {
+        AddChallenges(5);
+        var low  = AddUser("Low");   // pontos 10
+        var high = AddUser("High");  // pontos 90
+        _db.ArenaRanking.Add(new ArenaRanking { UserId = low,  Points = 10 });
+        _db.ArenaRanking.Add(new ArenaRanking { UserId = high, Points = 90 });
+        _db.ArenaRanking.Add(new ArenaRanking { UserId = _ana, Points = 80 });
+        // Dois já esperando ao mesmo tempo (semeado direto — low entrou antes,
+        // FIFO escolheria ele).
+        _db.ArenaQueueEntry.Add(new ArenaQueueEntry { UserId = low,  TrailId = 1, CreatedAt = new DateTime(2026, 6, 1, 0, 0, 0, DateTimeKind.Utc) });
+        _db.ArenaQueueEntry.Add(new ArenaQueueEntry { UserId = high, TrailId = 1, CreatedAt = new DateTime(2026, 6, 1, 0, 1, 0, DateTimeKind.Utc) });
+        _db.SaveChanges();
+
+        // Quem chega com 80 pontos pareia com o mais próximo (high=90), não FIFO (low).
+        var r = await _sut.EnqueueAsync(_ana, 1);
+        Assert.True(r.Matched);
+        var pm = await _sut.GetMatchAsync(r.MatchId!.Value);
+        Assert.Equal(high, pm!.Player1Id);
+        Assert.Equal(_ana, pm.Player2Id);
+    }
+
+    [Fact]
     public async Task Challenge_creates_pending_notifies_and_accept_starts()
     {
         AddChallenges(2);

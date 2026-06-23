@@ -11,6 +11,7 @@ import { arenaApi } from "@/api/arena"
 import { cn } from "@/lib/utils"
 import type { ArenaMatch } from "@/api/arena"
 import { ArenaDuel } from "./arena-duel"
+import { useArenaLobby } from "./use-arena-lobby"
 
 /**
  * Hub da Arena (PvP). Escolhe a trilha-tema, entra na fila (matchmaking) ou
@@ -39,7 +40,10 @@ export function ArenaPage() {
     if (trailId === null && trails.length > 0) setTrailId(trails[0].trailId)
   }, [trails, trailId])
 
-  // Enquanto na fila, entra automaticamente quando surgir uma partida ativa.
+  // Push do pareamento via SignalR (instantâneo) — sem depender do polling.
+  useArenaLobby(!activeMatchId, (matchId) => { setQueueing(false); setActiveMatchId(matchId) })
+
+  // Fallback: enquanto na fila, entra quando surgir uma partida ativa no poll.
   useEffect(() => {
     if (!queueing || !myMatches.data) return
     const active = myMatches.data.find((m) => m.status === "Active")

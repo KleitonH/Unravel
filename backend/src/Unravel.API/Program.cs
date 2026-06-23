@@ -177,6 +177,9 @@ if (builder.Configuration.GetValue("Llm:Enabled", false))
 // AddSingleton da mesma interface vence). Mantemos o Logging como
 // fallback se SignalR for desligado no futuro.
 builder.Services.AddSignalR();
+// Identidade do SignalR pelo claim `sub` (pra Clients.User direcionar pushs).
+builder.Services.AddSingleton<Microsoft.AspNetCore.SignalR.IUserIdProvider,
+                              Unravel.API.Hubs.SubUserIdProvider>();
 builder.Services.AddSingleton<IJourneyEventBus, SignalRJourneyEventBus>();
 
 var app = builder.Build();
