@@ -316,7 +316,7 @@ public class ChallengeService : IChallengeService
         switch (user.LoginCycleDay)
         {
             case 1: case 2: case 3:
-                user.Lives = Math.Min(user.Lives + 1, 10);
+                user.Lives = Math.Min(user.Lives + 1, Domain.Gamification.LifeRefill.MaxLives);
                 break;
             case 4: case 5:
                 user.Coins += 25;

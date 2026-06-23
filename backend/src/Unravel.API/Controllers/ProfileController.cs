@@ -3,6 +3,7 @@ using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Unravel.Application.Gamification.Ports;
 using Unravel.Domain.Entities;
 using Unravel.Infrastructure.Persistence;
 
@@ -50,7 +51,7 @@ public record ModeratorProfileResponse(
 [ApiController]
 [Route("api/profile")]
 [Authorize]
-public class ProfileController(ApplicationDbContext db) : ControllerBase
+public class ProfileController(ApplicationDbContext db, ILifeRefillService lifeRefill) : ControllerBase
 {
     private Guid UserId => Guid.Parse(
         User.FindFirstValue(JwtRegisteredClaimNames.Sub)
@@ -130,6 +131,10 @@ public class ProfileController(ApplicationDbContext db) : ControllerBase
 
     private async Task<StudentProfileResponse> BuildStudentProfileAsync()
     {
+        // UC34 — recarga "lazy": garante que o perfil reflita +1 vida/h (teto 7)
+        // mesmo entre os ticks do cron, já que o front semeia as vidas daqui.
+        await lifeRefill.RefillUserAsync(UserId, DateTime.UtcNow);
+
         var user = await db.User
             .Include(u => u.Badges).ThenInclude(ub => ub.Badge)
             .Include(u => u.Cosmetics).ThenInclude(uc => uc.Cosmetic)

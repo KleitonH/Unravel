@@ -65,6 +65,11 @@ public static class DependencyInjection
         services.AddScoped<Application.Gamification.Ports.ICosmeticShopService,
                            Gamification.CosmeticShopService>();
 
+        // UC34 — recarga temporal de vidas (+1/h até o teto). Hosted service
+        // (cron) registrado em Program.cs.
+        services.AddScoped<Application.Gamification.Ports.ILifeRefillService,
+                           Gamification.LifeRefillService>();
+
         // PR 64 — mecânicas sociais (Amigos/Parcerias).
         services.AddScoped<Application.Social.Ports.IFriendshipService,
                            Social.FriendshipService>();

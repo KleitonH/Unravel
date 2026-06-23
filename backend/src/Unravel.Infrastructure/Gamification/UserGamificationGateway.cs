@@ -25,7 +25,8 @@ public sealed class UserGamificationGateway : IUserGamificationGateway
     private readonly ApplicationDbContext _db;
     private readonly ICaixinhaContributionService _caixinha;
     private readonly ILogger<UserGamificationGateway> _logger;
-    public const int MaxLives = 10;
+    /// <summary>Teto de vidas — canônico em <see cref="Domain.Gamification.LifeRefill"/> (UC34).</summary>
+    public const int MaxLives = Domain.Gamification.LifeRefill.MaxLives;
 
     public UserGamificationGateway(
         ApplicationDbContext db,

@@ -18,6 +18,10 @@ public partial class User
     public DateTime? LastLoginDate     { get; set; }
     public int       LoginCycleDay     { get; set; } = 0;
 
+    // UC34 — âncora da recarga temporal de vidas (+1/h até o teto). Null = relógio
+    // ainda não iniciado (começa na primeira recarga/leitura com vidas < teto).
+    public DateTime? LastLifeRefillAt  { get; set; }
+
     // Identidade social (Ideias 3 e 5)
     public string? ActiveTitle       { get; set; }
     public int?    ActiveCosmeticId  { get; set; }

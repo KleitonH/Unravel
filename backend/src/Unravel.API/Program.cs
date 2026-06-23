@@ -149,6 +149,9 @@ builder.Services.AddHostedService<Unravel.Infrastructure.Forge.GeneratedChalleng
 // PR 70 — lembrete de hábito (ofensiva em risco) uma vez/dia às 21:00 UTC.
 builder.Services.AddHostedService<Unravel.Infrastructure.Notifications.HabitReminderHostedService>();
 
+// UC34 — recarga temporal de vidas (+1/h até o teto de 7), em lote a cada 10 min.
+builder.Services.AddHostedService<Unravel.Infrastructure.Gamification.LifeRefillHostedService>();
+
 // PR 20 — lote noturno de geração via LLM. O serviço inicia sempre,
 // mas o orchestrator interno só faz algo se Llm:Enabled=true (caso
 // contrário, IServiceProvider.GetRequiredService<ILlmGenerationOrchestrator>
