@@ -1,6 +1,6 @@
 import { useQuery, useQueries } from "@tanstack/react-query"
 import { Link, useNavigate } from "@tanstack/react-router"
-import { Brain, CheckCircle2, ChevronRight, Plus, Radio, Star, TrendingUp, Trophy } from "lucide-react"
+import { Brain, CheckCircle2, ChevronRight, Plus, Radio, Star, Swords, TrendingUp, Trophy } from "lucide-react"
 import { useAuth } from "@/stores/auth"
 import { trailsApi } from "@/api/trails"
 import { journeyApi } from "@/api/journey"
@@ -64,6 +64,24 @@ function LiveQuizJoinCard() {
   )
 }
 
+/** Atalho pro modo Arena (duelos PvP 1×1). */
+function ArenaCard() {
+  return (
+    <Link to="/arena" className="block">
+      <Card className="hover:border-primary/50 transition-colors border-accent/30 bg-accent/5">
+        <CardContent className="flex items-center gap-3 py-3">
+          <Swords className="h-5 w-5 text-accent shrink-0" />
+          <div className="flex-1 min-w-0">
+            <p className="font-display font-bold text-sm">Arena</p>
+            <p className="text-xs text-muted-foreground">Duele 1×1: acerte rápido e suba no ranking.</p>
+          </div>
+          <ChevronRight className="h-5 w-5 text-muted-foreground" />
+        </CardContent>
+      </Card>
+    </Link>
+  )
+}
+
 /**
  * Dashboard = saudação + stats do user + cards por trilha inscrita
  * (cada um mostrando metaDia + 2 itens do today + CTA p/ /jornada).
@@ -108,7 +126,12 @@ export function DashboardPage() {
 
       <LeagueBanner />
 
-      {profileQuery.data?.role === "Student" && <LiveQuizJoinCard />}
+      {profileQuery.data?.role === "Student" && (
+        <div className="grid gap-3 sm:grid-cols-2">
+          <LiveQuizJoinCard />
+          <ArenaCard />
+        </div>
+      )}
 
       {isLoading ? (
         <SkeletonList />

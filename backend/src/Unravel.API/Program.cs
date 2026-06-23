@@ -243,6 +243,9 @@ app.MapHub<JourneyHub>("/hubs/journey");
 // Quiz ao Vivo — push em tempo real (lobby, perguntas, placar, pódio).
 app.MapHub<LiveQuizHub>("/hubs/live-quiz");
 
+// Arena (PvP) — duelo em tempo real (rodadas sincronizadas entre os 2 jogadores).
+app.MapHub<ArenaHub>("/hubs/arena");
+
 app.Run();
 return 0;
 
