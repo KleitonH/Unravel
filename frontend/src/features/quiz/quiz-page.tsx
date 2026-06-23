@@ -41,7 +41,7 @@ export function QuizPage() {
   const [currentIdx, setCurrentIdx] = useState(0)
   const [answers, setAnswers] = useState<Map<number, AnswerState>>(new Map())
   const [submitting, setSubmitting] = useState(false)
-  const { gameOver, applyTotalLives } = useQuizLives()
+  const { gameOver, applyTotalLives, secondsToNextLife } = useQuizLives()
 
   const data = poolQuery.data
   const current: PoolChallenge | null = data?.challenges[currentIdx] ?? null
@@ -130,7 +130,7 @@ export function QuizPage() {
           </header>
 
           {gameOver ? (
-            <OutOfLivesCard onLeave={() => navigate({ to: "/dashboard" })} leaveLabel="Voltar ao início" />
+            <OutOfLivesCard onLeave={() => navigate({ to: "/dashboard" })} leaveLabel="Voltar ao início" secondsToNextLife={secondsToNextLife} />
           ) : (
           <>
           {current && (

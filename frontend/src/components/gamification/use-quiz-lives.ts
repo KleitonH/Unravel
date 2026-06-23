@@ -28,13 +28,24 @@ export function useQuizLives() {
       ? profileQuery.data.lives
       : null
 
-  const lives = livesState ?? seeded
+  const base = livesState ?? seeded
+  // UC34 — recuperação ao longo do tempo: se zeramos (base <= 0) mas o servidor
+  // já regenerou vidas (refill +1/h), adota o valor fresco do profile. Só nesse
+  // caso (não-ambíguo) corrigimos pra cima — durante o jogo o livesState manda.
+  const lives =
+    base !== null && base <= 0 && seeded !== null && seeded > 0 ? seeded : base
+
   const ready = lives !== null
   const gameOver = ready && (lives as number) <= 0
+
+  const student =
+    profileQuery.data && profileQuery.data.role === "Student" ? profileQuery.data : null
+  const maxLives = student?.maxLives ?? 7
+  const secondsToNextLife = student?.secondsToNextLife ?? null
 
   function applyTotalLives(totalLives: number) {
     setLivesState(totalLives)
   }
 
-  return { lives, ready, gameOver, applyTotalLives }
+  return { lives, ready, gameOver, maxLives, secondsToNextLife, applyTotalLives }
 }

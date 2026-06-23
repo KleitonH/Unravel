@@ -5,6 +5,7 @@ import { profileApi } from "@/api/profile"
 import { useAuth } from "@/stores/auth"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { LivesIndicator } from "@/components/gamification/lives-indicator"
+import { LifeRefillTimer } from "@/components/gamification/life-refill-timer"
 import { xpLevel } from "@/components/gamification/xp-level"
 import { NaviFace } from "@/components/navi/navi-face"
 import { NotificationBell } from "./notification-bell"
@@ -39,7 +40,10 @@ export function TopHeader() {
       <div className="flex min-w-0 flex-1 items-center gap-1.5 overflow-x-auto sm:gap-2 [scrollbar-width:none]">
         {s && (
           <>
-            <LivesIndicator lives={s.lives} size="sm" />
+            <span className="flex shrink-0 items-center gap-1.5">
+              <LivesIndicator lives={s.lives} max={s.maxLives} size="sm" />
+              {s.lives < s.maxLives && <LifeRefillTimer seconds={s.secondsToNextLife} />}
+            </span>
             {lvl && (
               <StatPill
                 icon={<Zap className="h-3.5 w-3.5" />}

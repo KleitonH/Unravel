@@ -56,7 +56,7 @@ export function ReinforcePage() {
 
   const [currentIdx, setCurrentIdx] = useState(0)
   const [answers, setAnswers]       = useState<Map<number, AnswerState>>(new Map())
-  const { gameOver, applyTotalLives } = useQuizLives()
+  const { gameOver, applyTotalLives, secondsToNextLife } = useQuizLives()
 
   const data       = quizQuery.data
   const challenges = data?.challenges ?? []
@@ -218,7 +218,7 @@ export function ReinforcePage() {
       )}
 
       {gameOver && (
-        <OutOfLivesCard onLeave={() => navigate({ to: "/dashboard" })} leaveLabel="Voltar ao dashboard" />
+        <OutOfLivesCard onLeave={() => navigate({ to: "/dashboard" })} leaveLabel="Voltar ao dashboard" secondsToNextLife={secondsToNextLife} />
       )}
 
       {!gameOver && data && current && (

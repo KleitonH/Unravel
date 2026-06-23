@@ -67,6 +67,26 @@ public class LifeRefillTests
     }
 
     [Fact]
+    public void SecondsToNext_is_null_at_cap()
+    {
+        Assert.Null(LifeRefill.SecondsToNext(LifeRefill.MaxLives, Now.AddHours(-1), Now));
+    }
+
+    [Fact]
+    public void SecondsToNext_counts_down_within_the_hour()
+    {
+        // âncora 20 min atrás → faltam ~40 min (2400s) pra próxima vida.
+        var secs = LifeRefill.SecondsToNext(5, Now.AddMinutes(-20), Now);
+        Assert.Equal(2400, secs);
+    }
+
+    [Fact]
+    public void SecondsToNext_null_anchor_uses_full_interval()
+    {
+        Assert.Equal(3600, LifeRefill.SecondsToNext(5, null, Now));
+    }
+
+    [Fact]
     public void Above_cap_legacy_value_is_not_reduced()
     {
         // Dado legado (cap antigo 10): 8 vidas. Não reduz; só zera o relógio.

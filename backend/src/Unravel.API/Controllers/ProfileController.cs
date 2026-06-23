@@ -25,6 +25,8 @@ public record StudentProfileResponse(
     int     Coins,
     int     Stars,
     int     Lives,
+    int     MaxLives,            // UC34 — teto de vidas
+    int?    SecondsToNextLife,   // UC34 — null quando no teto
     int     StreakDays,
     int     LongestStreak,
     int     LoginCycleDay,
@@ -155,6 +157,8 @@ public class ProfileController(ApplicationDbContext db, ILifeRefillService lifeR
         return new StudentProfileResponse(
             user.Id, user.Name, user.Email, user.Role.ToString(),
             user.Xp, user.Coins, user.Stars, user.Lives,
+            Domain.Gamification.LifeRefill.MaxLives,
+            Domain.Gamification.LifeRefill.SecondsToNext(user.Lives, user.LastLifeRefillAt, DateTime.UtcNow),
             user.StreakDays, user.LongestStreak, user.LoginCycleDay,
             user.ActiveTitle,
             user.Badges.Select(ub => new BadgeDto(

@@ -140,7 +140,7 @@ export function ChapteredQuizPage() {
   })
 
   const [state, dispatch] = useReducer(reducer, INITIAL)
-  const { gameOver, applyTotalLives } = useQuizLives()
+  const { gameOver, applyTotalLives, secondsToNextLife } = useQuizLives()
   const data = dataQuery.data
 
   // ── Helpers ───────────────────────────────────────────────────────
@@ -254,7 +254,7 @@ export function ChapteredQuizPage() {
       <Header data={data} state={state} />
 
       {gameOver && (
-        <OutOfLivesCard onLeave={() => navigate({ to: "/trails" })} leaveLabel="Voltar pra trilha" />
+        <OutOfLivesCard onLeave={() => navigate({ to: "/trails" })} leaveLabel="Voltar pra trilha" secondsToNextLife={secondsToNextLife} />
       )}
 
       {/* Phase: STUDY */}

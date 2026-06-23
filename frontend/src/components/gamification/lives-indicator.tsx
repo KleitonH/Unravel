@@ -10,7 +10,7 @@ import { cn } from "@/lib/utils"
  */
 export function LivesIndicator({
   lives,
-  max = 10,
+  max = 7,
   size = "md",
   className,
 }: {

@@ -385,6 +385,8 @@ export type StudentProfile = {
   coins: number
   stars: number
   lives: number
+  maxLives: number                  // UC34 — teto de vidas
+  secondsToNextLife: number | null  // UC34 — null quando no teto
   streakDays: number
   longestStreak: number
   loginCycleDay: number

@@ -58,7 +58,7 @@ export function AdaptiveQuizPage() {
   const [ability, setAbility] = useState<number>(0.3)
   const [done, setDone]       = useState<{ reason: AdaptiveStopReason } | null>(null)
   const [loading, setLoading] = useState(true)
-  const { gameOver, applyTotalLives } = useQuizLives()
+  const { gameOver, applyTotalLives, secondsToNextLife } = useQuizLives()
 
   // Track simples de acertos pra resultado final
   const correctCount = history.filter((h) => h.wasCorrect).length
@@ -197,7 +197,7 @@ export function AdaptiveQuizPage() {
       )}
 
       {!loading && gameOver && (
-        <OutOfLivesCard onLeave={() => navigate({ to: "/dashboard" })} leaveLabel="Voltar ao início" />
+        <OutOfLivesCard onLeave={() => navigate({ to: "/dashboard" })} leaveLabel="Voltar ao início" secondsToNextLife={secondsToNextLife} />
       )}
 
       {!loading && !gameOver && current && (

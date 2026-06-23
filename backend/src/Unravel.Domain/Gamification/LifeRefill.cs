@@ -45,4 +45,18 @@ public static class LifeRefill
         var newAnchor = newLives >= MaxLives ? nowUtc : anchor.AddHours(grant);
         return new(newLives, newAnchor, grant);
     }
+
+    /// <summary>
+    /// Segundos até a próxima vida (pro contador da UI). null quando está no
+    /// teto. Pressupõe que o refill já foi aplicado (âncora atualizada); se a
+    /// âncora for nula, considera o relógio começando agora (intervalo cheio).
+    /// </summary>
+    public static int? SecondsToNext(int currentLives, DateTime? lastRefillAt, DateTime nowUtc)
+    {
+        if (currentLives >= MaxLives) return null;
+        var anchor    = lastRefillAt ?? nowUtc;
+        var remaining = (anchor + Interval) - nowUtc;
+        var secs      = (int)Math.Ceiling(remaining.TotalSeconds);
+        return secs < 0 ? 0 : secs;
+    }
 }
