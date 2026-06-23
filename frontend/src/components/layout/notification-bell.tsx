@@ -11,7 +11,8 @@ import type { AppNotification } from "@/types/api"
 const ICON: Record<string, string> = {
   FriendRequest: "👋", FriendAccepted: "🤝", CaixinhaGoal: "🎯", CaixinhaStreak: "🔥",
   LeaguePromoted: "⬆️", LeagueRelegated: "⬇️", EventStarted: "⚔️", System: "🔔",
-  ClassInvite: "🎓", LiveQuizStarted: "📣",
+  ClassInvite: "🎓", LiveQuizStarted: "📣", ArenaChallenge: "⚔️",
+  PartnershipRequest: "🧶", PartnershipAccepted: "🧶", YarnPassed: "🧶",
 }
 
 /**

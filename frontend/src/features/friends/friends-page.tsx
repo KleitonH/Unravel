@@ -1,4 +1,5 @@
 import { useState } from "react"
+import { Link } from "@tanstack/react-router"
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 import { Check, Flame, Search, Trophy, UserPlus, Users, UserMinus, X } from "lucide-react"
 import { toast } from "sonner"
@@ -71,6 +72,20 @@ export function FriendsPage() {
           Estude junto, compare progresso e motivem-se.
         </p>
       </header>
+
+      {/* Atalho pra Parcerias (Novelo de Lã) */}
+      <Link to="/parcerias" className="block">
+        <Card className="border-accent/30 bg-accent/5 transition-colors hover:border-accent/60">
+          <CardContent className="flex items-center gap-3 py-3">
+            <span className="text-xl">🧶</span>
+            <div className="min-w-0 flex-1">
+              <p className="font-display text-sm font-bold">Parceiros de Trilha</p>
+              <p className="text-xs text-muted-foreground">Formem uma dupla e passem o novelo cumprindo metas.</p>
+            </div>
+            <span className="text-muted-foreground">›</span>
+          </CardContent>
+        </Card>
+      </Link>
 
       {/* Abas */}
       <div className="flex gap-1 rounded-lg border border-border bg-popover/40 p-1">

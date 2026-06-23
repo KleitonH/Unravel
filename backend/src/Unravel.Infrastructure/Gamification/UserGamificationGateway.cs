@@ -24,6 +24,7 @@ public sealed class UserGamificationGateway : IUserGamificationGateway
 {
     private readonly ApplicationDbContext _db;
     private readonly ICaixinhaContributionService _caixinha;
+    private readonly IPartnershipService _partnerships;
     private readonly ILogger<UserGamificationGateway> _logger;
     /// <summary>Teto de vidas — canônico em <see cref="Domain.Gamification.LifeRefill"/> (UC34).</summary>
     public const int MaxLives = Domain.Gamification.LifeRefill.MaxLives;
@@ -31,10 +32,12 @@ public sealed class UserGamificationGateway : IUserGamificationGateway
     public UserGamificationGateway(
         ApplicationDbContext db,
         ICaixinhaContributionService caixinha,
+        IPartnershipService partnerships,
         ILogger<UserGamificationGateway> logger)
     {
         _db = db;
         _caixinha = caixinha;
+        _partnerships = partnerships;
         _logger = logger;
     }
 
@@ -65,6 +68,17 @@ public sealed class UserGamificationGateway : IUserGamificationGateway
         catch (Exception ex)
         {
             _logger.LogWarning(ex, "Falha ao contribuir XP pra meta da caixinha (user {UserId}).", userId);
+        }
+
+        // UC17 — cada desafio concluído desenrola +1 o novelo das parcerias em
+        // que o usuário é o dono atual. Best-effort: não pode quebrar o submit.
+        try
+        {
+            await _partnerships.AddProgressAsync(userId, 1, ct);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Falha ao avançar o novelo das parcerias (user {UserId}).", userId);
         }
 
         return new UserGamificationSnapshot(

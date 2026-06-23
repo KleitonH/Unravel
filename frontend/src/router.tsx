@@ -46,6 +46,7 @@ const FriendsPage         = lazy(() => import("@/features/friends/friends-page")
 const CaixinhaPage        = lazy(() => import("@/features/caixinha/caixinha-page").then((m) => ({ default: m.CaixinhaPage })))
 const LeaguePage          = lazy(() => import("@/features/league/league-page").then((m) => ({ default: m.LeaguePage })))
 const ArenaPage           = lazy(() => import("@/features/arena/arena-page").then((m) => ({ default: m.ArenaPage })))
+const PartnershipsPage    = lazy(() => import("@/features/partnerships/partnerships-page").then((m) => ({ default: m.PartnershipsPage })))
 
 /** Wrapper que serializa Suspense fallback em cada rota lazy.
  *  Skeleton segue identidade visual; nada de spinner branco.
@@ -146,6 +147,7 @@ const friendsRoute            = createRoute({ getParentRoute: () => authedLayout
 const caixinhaRoute           = createRoute({ getParentRoute: () => authedLayoutRoute, path: "/caixinha",                       component: () => <Lazy Component={CaixinhaPage} /> })
 const leagueRoute             = createRoute({ getParentRoute: () => authedLayoutRoute, path: "/liga",                           component: () => <Lazy Component={LeaguePage} /> })
 const arenaRoute              = createRoute({ getParentRoute: () => authedLayoutRoute, path: "/arena",                          component: () => <Lazy Component={ArenaPage} /> })
+const partnershipsRoute       = createRoute({ getParentRoute: () => authedLayoutRoute, path: "/parcerias",                      component: () => <Lazy Component={PartnershipsPage} /> })
 const liveQuizRoute           = createRoute({ getParentRoute: () => authedLayoutRoute, path: "/ao-vivo",                       component: () => <Lazy Component={LiveQuizPlayerPage} />, validateSearch: (s: Record<string, unknown>): { code?: string } => ({ code: typeof s.code === "string" ? s.code : undefined }) })
 
 const routeTree = rootRoute.addChildren([
@@ -175,6 +177,7 @@ const routeTree = rootRoute.addChildren([
     caixinhaRoute,
     leagueRoute,
     arenaRoute,
+    partnershipsRoute,
     liveQuizRoute,
     profileRoute,
     desafioRoute,
