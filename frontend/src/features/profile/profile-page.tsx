@@ -3,6 +3,7 @@ import { Link } from "@tanstack/react-router"
 import { Coins, Flame, Heart, Sparkles, Star, Trophy } from "lucide-react"
 import { profileApi } from "@/api/profile"
 import { MyTurmasSection } from "@/features/turmas/my-turmas-section"
+import { TitlesSection, GlobalRankingSection } from "@/features/titles/titles-section"
 import { UserNavi } from "@/components/navi/user-navi"
 import { useAuth } from "@/stores/auth"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
@@ -150,6 +151,10 @@ export function ProfilePage() {
           </CardContent>
         </Card>
       )}
+
+      {/* Títulos + ranking global — Student only */}
+      {s && <TitlesSection />}
+      {s && <GlobalRankingSection />}
 
       {/* Moderator panel */}
       {profileQuery.data?.role === "Moderator" && (
