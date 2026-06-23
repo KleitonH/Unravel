@@ -296,9 +296,35 @@ public class ArenaService(ApplicationDbContext db, INotificationService notifica
     {
         var p1Name = await NameAsync(m.Player1Id, ct);
         var p2Name = m.Player2Id is null ? null : await NameAsync(m.Player2Id.Value, ct);
+        var p1Cos  = await CosmeticsAsync(m.Player1Id, ct);
+        var p2Cos  = m.Player2Id is null ? new List<ArenaCosmeticDto>() : await CosmeticsAsync(m.Player2Id.Value, ct);
         return new ArenaMatchDto(m.Id, m.Status.ToString(), m.TrailId, m.Player1Id, p1Name,
-            m.Player2Id, p2Name, m.Score1, m.Score2, m.WinnerId, m.CurrentRoundIndex, totalRounds, m.SecondsPerQuestion);
+            m.Player2Id, p2Name, m.Score1, m.Score2, m.WinnerId, m.CurrentRoundIndex, totalRounds, m.SecondsPerQuestion,
+            p1Cos, p2Cos);
     }
+
+    /// <summary>Cosméticos equipados de um jogador, no slot do NAVI (pra render no duelo).</summary>
+    private async Task<List<ArenaCosmeticDto>> CosmeticsAsync(Guid userId, CancellationToken ct)
+    {
+        var rows = await db.UserCosmetic.AsNoTracking()
+            .Where(uc => uc.UserId == userId && uc.IsEquipped)
+            .Select(uc => new { uc.Cosmetic.Type, uc.Cosmetic.AssetSlug })
+            .ToListAsync(ct);
+
+        return rows
+            .Select(r => new ArenaCosmeticDto(SlotOf(r.Type), r.AssetSlug))
+            .Where(c => c.Slot.Length > 0)
+            .ToList();
+    }
+
+    private static string SlotOf(CosmeticType type) => type switch
+    {
+        CosmeticType.Hat        => "hat",
+        CosmeticType.Accessory  => "accessory",
+        CosmeticType.Fur        => "fur",
+        CosmeticType.Expression => "mood",
+        _                       => "",
+    };
 
     private Task<string> NameAsync(Guid userId, CancellationToken ct)
         => db.User.AsNoTracking().Where(u => u.Id == userId).Select(u => u.Name).FirstOrDefaultAsync(ct)!;

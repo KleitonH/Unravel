@@ -1,5 +1,7 @@
 import { api } from "./client"
 
+export type ArenaCosmetic = { slot: string; assetSlug: string }
+
 export type ArenaMatch = {
   id:                 number
   status:             string // Pending | Active | Finished | Declined | Cancelled
@@ -14,6 +16,8 @@ export type ArenaMatch = {
   currentRoundIndex:  number
   totalRounds:        number
   secondsPerQuestion: number
+  player1Cosmetics:   ArenaCosmetic[]
+  player2Cosmetics:   ArenaCosmetic[]
 }
 
 export type ArenaRound = {

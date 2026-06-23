@@ -19,7 +19,12 @@ public record ArenaMatchDto(
     Guid?   WinnerId,
     int     CurrentRoundIndex,
     int     TotalRounds,
-    int     SecondsPerQuestion);
+    int     SecondsPerQuestion,
+    IReadOnlyList<ArenaCosmeticDto> Player1Cosmetics,
+    IReadOnlyList<ArenaCosmeticDto> Player2Cosmetics);
+
+/// <summary>Cosmético equipado de um jogador (pra montar o NAVI no duelo).</summary>
+public record ArenaCosmeticDto(string Slot, string AssetSlug);
 
 /// <summary>Rodada entregue aos jogadores — sem gabarito.</summary>
 public record ArenaRoundDto(
