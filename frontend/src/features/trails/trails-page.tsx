@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
+import { cn } from "@/lib/utils"
 import type { Trail } from "@/types/api"
 
 /**
@@ -25,7 +26,7 @@ export function TrailsPage() {
   const enrolled    = (trailsQuery.data ?? []).filter((t) => t.userProgress >= 0)
 
   return (
-    <div className="p-6 lg:p-10 space-y-6">
+    <div className="mx-auto w-full max-w-6xl p-6 lg:p-10 space-y-6">
       <header className="flex items-start justify-between gap-4 flex-wrap">
         <div>
           <h1 className="text-3xl font-display font-extrabold tracking-tight flex items-center gap-2">
@@ -109,31 +110,53 @@ function EmptyState() {
 }
 
 function EnrolledTrailCard({ trail }: { trail: Trail }) {
+  const pct = Math.max(0, Math.min(100, Math.round(trail.userProgress)))
+  const accent = trail.accentColor
+
   return (
-    <Card
-      className="border-l-4 h-full flex flex-col hover:border-l-primary transition-colors"
-      style={{ borderLeftColor: trail.accentColor }}
+    <Link
+      to="/jornada/$trailId"
+      params={{ trailId: String(trail.id) }}
+      className={cn(
+        "group relative flex h-full flex-col overflow-hidden rounded-2xl border border-border bg-card",
+        "p-4 pl-5 transition-all hover:-translate-y-0.5 hover:shadow-lg",
+      )}
+      style={{ ["--accent" as string]: accent }}
     >
-      <CardHeader>
-        <div className="flex items-start gap-3">
-          <span className="text-3xl leading-none">{trail.icon}</span>
-          <div className="flex-1 min-w-0">
-            <CardTitle className="text-base truncate">{trail.name}</CardTitle>
-            <CardDescription className="text-xs mt-1 line-clamp-2">{trail.description}</CardDescription>
+      {/* barra de accent à esquerda */}
+      <span
+        className="absolute left-0 top-3 bottom-3 w-1 rounded-r-full transition-all group-hover:top-2 group-hover:bottom-2"
+        style={{ background: accent }}
+      />
+
+      <div className="flex items-start gap-3">
+        <div
+          className="grid h-11 w-11 shrink-0 place-items-center rounded-xl text-2xl"
+          style={{ background: `${accent}22`, border: `1.5px solid ${accent}55` }}
+        >
+          {trail.icon}
+        </div>
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-2">
+            <span className="truncate font-semibold">{trail.name}</span>
+            <Badge variant="outline" className="shrink-0 text-[10px]">{trail.level}</Badge>
           </div>
+          <p className="mt-0.5 line-clamp-2 text-xs text-muted-foreground">{trail.description}</p>
+          <p className="mt-1 text-[11px] text-muted-foreground">{trail.totalContents} ilhas</p>
         </div>
-      </CardHeader>
-      <CardContent className="flex items-center justify-between gap-3 mt-auto">
-        <div className="flex gap-2 flex-wrap">
-          <Badge variant="outline" className="text-[10px]">{trail.level}</Badge>
-          <Badge variant="outline" className="text-[10px]">{trail.totalContents} ilhas</Badge>
-        </div>
-        <Button size="sm" asChild>
-          <Link to="/jornada/$trailId" params={{ trailId: String(trail.id) }}>
-            Continuar →
-          </Link>
-        </Button>
-      </CardContent>
-    </Card>
+        <span className="shrink-0 text-right text-xs font-bold" style={{ color: accent }}>
+          {pct}%
+        </span>
+      </div>
+
+      {/* barra de progresso */}
+      <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-muted">
+        <div className="h-full rounded-full transition-[width] duration-500" style={{ width: `${pct}%`, background: accent }} />
+      </div>
+
+      <span className="mt-3 inline-flex items-center gap-1 text-xs font-semibold text-primary">
+        Continuar <span className="transition-transform group-hover:translate-x-0.5">→</span>
+      </span>
+    </Link>
   )
 }
