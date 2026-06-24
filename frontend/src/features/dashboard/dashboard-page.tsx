@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
+import { NaviFace } from "@/components/navi/navi-face"
 import { cn } from "@/lib/utils"
 import type { JourneyPlan, JourneyReason, Profile, StudentProfile, Trail } from "@/types/api"
 
@@ -176,9 +177,13 @@ function Hero({ name, profile, loading }: { name: string; profile: Profile | nul
   const s = isStudent ? (profile as StudentProfile) : null
 
   return (
-    <Card className="bg-gradient-to-br from-primary/10 via-card to-card border-primary/20">
+    <Card className="relative overflow-hidden border-primary/20 bg-gradient-to-br from-primary/10 via-card to-card">
+      {/* barra de accent + glow (estilo protótipo) */}
+      <span className="absolute left-0 top-5 bottom-5 w-1.5 rounded-r-full bg-primary" />
+      <span className="pointer-events-none absolute -top-16 right-16 h-44 w-52 rounded-full bg-primary/15 blur-3xl" />
+
       <CardHeader className="flex-row items-center justify-between gap-4">
-        <div className="min-w-0">
+        <div className="min-w-0 pl-2">
           <CardTitle className="text-2xl truncate">
             Olá, {name}! 👋
             {s?.activeTitle && (
@@ -190,12 +195,12 @@ function Hero({ name, profile, loading }: { name: string; profile: Profile | nul
           <CardDescription>
             {profile?.role === "Moderator"
               ? "Painel global — métricas da plataforma."
-              : "Seu plano do dia está abaixo."}
+              : "Continue sua trilha — seu plano do dia está abaixo."}
           </CardDescription>
         </div>
 
-        {/* Stats do aluno (vidas/nível/ofensiva/moedas) agora vivem na
-            TopHeader global. Aqui mantemos só as métricas do moderador. */}
+        {/* Aluno: preview do NAVI customizado. Moderador: métricas globais. */}
+        {s && <NaviFace size={64} />}
         {profile?.role === "Moderator" && !loading && (
           <div className="hidden sm:flex gap-2">
             <Stat idx={0} icon={<Star className="h-4 w-4" />} value={fmt(profile.metrics.totalStudents)} label="alunos" />
