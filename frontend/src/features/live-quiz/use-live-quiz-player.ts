@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react"
-import { HubConnection, HubConnectionBuilder, HubConnectionState, LogLevel } from "@microsoft/signalr"
+import { HubConnection, HubConnectionState } from "@microsoft/signalr"
 import { useAuth } from "@/stores/auth"
-import { env } from "@/lib/env"
+import { buildHubConnection } from "@/lib/signalr"
 import type { LiveLeaderboardRow, LiveQuestion, LiveQuestionResult, LiveSession } from "@/api/live-quiz"
 
 type SubmitResult = {
@@ -27,18 +27,13 @@ export function useLiveQuizPlayer(handlers: PlayerHandlers) {
   handlersRef.current = handlers
   const connRef = useRef<HubConnection | null>(null)
   const [state, setState] = useState<HubConnectionState>(HubConnectionState.Disconnected)
+  const authed = useAuth((s) => !!s.accessToken)
+  const lastCodeRef = useRef<string | null>(null) // pra re-entrar na sala ao reconectar
 
   useEffect(() => {
-    const token = useAuth.getState().accessToken
-    if (!token) return
+    if (!authed) return
 
-    const conn = new HubConnectionBuilder()
-      .withUrl(`${env.apiUrl}/hubs/live-quiz`, {
-        accessTokenFactory: () => useAuth.getState().accessToken ?? "",
-      })
-      .withAutomaticReconnect()
-      .configureLogging(LogLevel.Warning)
-      .build()
+    const conn = buildHubConnection("/hubs/live-quiz")
     connRef.current = conn
 
     const h = handlersRef
@@ -50,7 +45,11 @@ export function useLiveQuizPlayer(handlers: PlayerHandlers) {
     conn.on("SessionEnded",   (r) => h.current.onSessionEnded?.(r))
 
     conn.onreconnecting(() => setState(HubConnectionState.Reconnecting))
-    conn.onreconnected(() => setState(HubConnectionState.Connected))
+    conn.onreconnected(() => {
+      setState(HubConnectionState.Connected)
+      // Reconectou → entra de novo na sala (o grupo SignalR se perde na queda).
+      if (lastCodeRef.current) void conn.invoke("JoinSession", lastCodeRef.current)
+    })
     conn.onclose(() => setState(HubConnectionState.Disconnected))
 
     setState(HubConnectionState.Connecting)
@@ -59,7 +58,8 @@ export function useLiveQuizPlayer(handlers: PlayerHandlers) {
       .catch(() => setState(HubConnectionState.Disconnected))
 
     return () => { connRef.current = null; void conn.stop() }
-  }, [])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [authed])
 
   const invoke = (method: string, ...args: unknown[]) =>
     connRef.current?.state === HubConnectionState.Connected
@@ -68,7 +68,11 @@ export function useLiveQuizPlayer(handlers: PlayerHandlers) {
 
   return {
     state,
-    join:   (code: string) => invoke("JoinSession", code.trim().toUpperCase()),
+    join:   (code: string) => {
+      const c = code.trim().toUpperCase()
+      lastCodeRef.current = c
+      return invoke("JoinSession", c)
+    },
     submit: (sessionId: number, orderIndex: number, optionIndex: number) =>
       invoke("SubmitAnswer", sessionId, orderIndex, optionIndex),
   }

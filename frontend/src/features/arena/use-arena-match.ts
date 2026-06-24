@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react"
-import { HubConnection, HubConnectionBuilder, HubConnectionState, LogLevel } from "@microsoft/signalr"
+import { HubConnection, HubConnectionState } from "@microsoft/signalr"
 import { useAuth } from "@/stores/auth"
-import { env } from "@/lib/env"
+import { buildHubConnection } from "@/lib/signalr"
 import type { ArenaMatch, ArenaRound, ArenaRoundResult } from "@/api/arena"
 
 type ArenaAnswerResult = {
@@ -33,18 +33,12 @@ export function useArenaMatch(matchId: number, handlers: Handlers) {
   handlersRef.current = handlers
   const connRef = useRef<HubConnection | null>(null)
   const [state, setState] = useState<HubConnectionState>(HubConnectionState.Disconnected)
+  const authed = useAuth((s) => !!s.accessToken)
 
   useEffect(() => {
-    const token = useAuth.getState().accessToken
-    if (!token || !matchId) return
+    if (!authed || !matchId) return
 
-    const conn = new HubConnectionBuilder()
-      .withUrl(`${env.apiUrl}/hubs/arena`, {
-        accessTokenFactory: () => useAuth.getState().accessToken ?? "",
-      })
-      .withAutomaticReconnect()
-      .configureLogging(LogLevel.Warning)
-      .build()
+    const conn = buildHubConnection("/hubs/arena")
     connRef.current = conn
 
     const h = handlersRef
@@ -71,7 +65,8 @@ export function useArenaMatch(matchId: number, handlers: Handlers) {
       .catch(() => setState(HubConnectionState.Disconnected))
 
     return () => { connRef.current = null; void conn.stop() }
-  }, [matchId])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [matchId, authed])
 
   const submit = (roundIndex: number, selectedIndex: number) =>
     connRef.current?.state === HubConnectionState.Connected

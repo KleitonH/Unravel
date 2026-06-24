@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react"
-import { HubConnection, HubConnectionBuilder, HubConnectionState, LogLevel } from "@microsoft/signalr"
+import { HubConnection, HubConnectionState } from "@microsoft/signalr"
 import { useAuth } from "@/stores/auth"
-import { env } from "@/lib/env"
+import { buildHubConnection } from "@/lib/signalr"
 import type { LiveLeaderboardRow, LiveQuestion, LiveQuestionResult, LiveSession } from "@/api/live-quiz"
 
 type HostHandlers = {
@@ -24,18 +24,12 @@ export function useLiveQuizHost(sessionId: number, handlers: HostHandlers) {
   handlersRef.current = handlers
   const connRef = useRef<HubConnection | null>(null)
   const [state, setState] = useState<HubConnectionState>(HubConnectionState.Disconnected)
+  const authed = useAuth((s) => !!s.accessToken)
 
   useEffect(() => {
-    const token = useAuth.getState().accessToken
-    if (!token || !sessionId) return
+    if (!authed || !sessionId) return
 
-    const conn = new HubConnectionBuilder()
-      .withUrl(`${env.apiUrl}/hubs/live-quiz`, {
-        accessTokenFactory: () => useAuth.getState().accessToken ?? "",
-      })
-      .withAutomaticReconnect()
-      .configureLogging(LogLevel.Warning)
-      .build()
+    const conn = buildHubConnection("/hubs/live-quiz")
     connRef.current = conn
 
     const h = handlersRef
@@ -58,7 +52,7 @@ export function useLiveQuizHost(sessionId: number, handlers: HostHandlers) {
 
     return () => { connRef.current = null; void conn.stop() }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [sessionId])
+  }, [sessionId, authed])
 
   const invoke = (method: string, ...args: unknown[]) =>
     connRef.current?.state === HubConnectionState.Connected

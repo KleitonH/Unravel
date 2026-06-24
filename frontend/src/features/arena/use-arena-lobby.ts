@@ -1,7 +1,7 @@
 import { useEffect, useRef } from "react"
-import { HubConnection, HubConnectionBuilder, LogLevel } from "@microsoft/signalr"
+import { HubConnection, LogLevel } from "@microsoft/signalr"
 import { useAuth } from "@/stores/auth"
-import { env } from "@/lib/env"
+import { buildHubConnection } from "@/lib/signalr"
 
 /**
  * Conexão SignalR "de lobby" da Arena. Mantém uma conexão leve a /hubs/arena
@@ -13,22 +13,17 @@ export function useArenaLobby(enabled: boolean, onMatched: (matchId: number) => 
   const cbRef = useRef(onMatched)
   cbRef.current = onMatched
 
+  const authed = useAuth((s) => !!s.accessToken)
+
   useEffect(() => {
-    if (!enabled) return
-    const token = useAuth.getState().accessToken
-    if (!token) return
+    if (!enabled || !authed) return
 
-    const conn: HubConnection = new HubConnectionBuilder()
-      .withUrl(`${env.apiUrl}/hubs/arena`, {
-        accessTokenFactory: () => useAuth.getState().accessToken ?? "",
-      })
-      .withAutomaticReconnect()
-      .configureLogging(LogLevel.Warning)
-      .build()
-
+    // Conexão best-effort: log em Critical pra não poluir o console com o
+    // abort esperado quando entramos no duelo (enabled→false aborta a negociação).
+    const conn: HubConnection = buildHubConnection("/hubs/arena", LogLevel.Critical)
     conn.on("Matched", (e: { matchId: number }) => cbRef.current(e.matchId))
     conn.start().catch(() => {})
 
     return () => { void conn.stop() }
-  }, [enabled])
+  }, [enabled, authed])
 }
