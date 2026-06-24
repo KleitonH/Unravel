@@ -95,3 +95,17 @@
 @keyframes coin-fly         { 0% { transform: translate(0,0) scale(1); opacity: 1; } 100% { transform: translate(var(--dx), var(--dy)) scale(0.4); opacity: 0; } }
 @keyframes slide-up         { from { transform: translateY(10px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
 @keyframes shake            { 0%,100% { transform: translateX(0); } 20%,60% { transform: translateX(-6px); } 40%,80% { transform: translateX(6px); } }
+
+/* Repaginação Jornada — keyframes do mapa "Arquipélago Flutuante" (estilo
+ * Super Mario World / Duolingo). Usadas via `animation:` inline no
+ * trail-map-page. Respeitam o reduced-motion acima. */
+@keyframes j-bob          { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-5px); } }
+@keyframes j-bob-sm       { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-3px); } }
+@keyframes j-hop          { 0%,100% { transform: translateY(0) scaleY(1); } 30% { transform: translateY(-14px) scaleY(1.06); } 60% { transform: translateY(0) scaleY(0.94); } }
+@keyframes j-island-float { 0%,100% { transform: translateY(0) rotate(-0.5deg); } 50% { transform: translateY(-6px) rotate(0.5deg); } }
+@keyframes j-ping         { 0% { transform: scale(1); opacity: .6; } 80%,100% { transform: scale(1.7); opacity: 0; } }
+@keyframes j-shine        { 0% { transform: translateX(-120%) skewX(-18deg); } 100% { transform: translateX(320%) skewX(-18deg); } }
+@keyframes j-flag-wave    { 0%,100% { transform: rotate(-2deg); } 50% { transform: rotate(3deg); } }
+@keyframes j-cloud        { from { transform: translateX(0); } to { transform: translateX(40px); } }
+@keyframes j-spark        { 0% { transform: translateY(0) scale(1); opacity: 0; } 20% { opacity: 1; } 100% { transform: translateY(-26px) scale(.4); opacity: 0; } }
+@keyframes j-shake        { 0%,100% { transform: translateX(0); } 20%,60% { transform: translateX(-6px); } 40%,80% { transform: translateX(6px); } }
