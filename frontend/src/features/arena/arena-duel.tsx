@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react"
-import { Swords, Trophy, Loader2, Check, X, Heart } from "lucide-react"
+import { Swords, Trophy, Loader2, Check, X, Heart, Timer } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { useAuth } from "@/stores/auth"
@@ -29,17 +29,21 @@ export function ArenaDuel({ matchId, onExit }: { matchId: number; onExit: () => 
   const [phase, setPhase] = useState<Phase>("connecting")
   const [dmg, setDmg] = useState<{ me: number; opp: number } | null>(null)
 
+  const [secsLeft, setSecsLeft] = useState<number | null>(null)
+
   const introDoneRef = useRef(false)
   const nextRoundRef = useRef<ArenaRound | null>(null)
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const phaseRef = useRef<Phase>(phase)
   phaseRef.current = phase
+  const selectedRef = useRef<number | null>(selected)
+  selectedRef.current = selected
 
   function startRound(r: ArenaRound) {
     setRound(r); setSelected(null); setReveal(null); setDmg(null); setPhase("answering")
   }
 
-  const { submit } = useArenaMatch(matchId, {
+  const { submit, timeUp } = useArenaMatch(matchId, {
     onMatch: (m) => setMatch(m),
     onRoundStarted: (r) => {
       if (!introDoneRef.current) {
@@ -79,6 +83,29 @@ export function ArenaDuel({ matchId, onExit }: { matchId: number; onExit: () => 
   })
 
   useEffect(() => () => { if (timerRef.current) clearTimeout(timerRef.current) }, [])
+
+  // Cronômetro por rodada: ao zerar, auto-pula (0 pts) se ainda não respondi e,
+  // como rede de segurança, avisa o servidor pra resolver mesmo se o oponente sumiu.
+  useEffect(() => {
+    if (phase !== "answering" || !round) { setSecsLeft(null); return }
+    const total = round.secondsPerQuestion || match?.secondsPerQuestion || 25
+    const startedAt = Date.now()
+    setSecsLeft(total)
+    let skipTimer: ReturnType<typeof setTimeout> | null = null
+
+    const tick = setInterval(() => {
+      const left = Math.max(0, total - Math.round((Date.now() - startedAt) / 1000))
+      setSecsLeft(left)
+      if (left <= 0) {
+        clearInterval(tick)
+        if (selectedRef.current === null) { setSelected(-1); void submit(round.orderIndex, -1) }
+        skipTimer = setTimeout(() => void timeUp(round.orderIndex), 2200) // folga p/ resolver no servidor
+      }
+    }, 250)
+
+    return () => { clearInterval(tick); if (skipTimer) clearTimeout(skipTimer) }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [phase, round?.orderIndex])
 
   if (!match || phase === "connecting") {
     return (
@@ -137,6 +164,14 @@ export function ArenaDuel({ matchId, onExit }: { matchId: number; onExit: () => 
               <span className="text-xs font-semibold uppercase text-muted-foreground">
                 Rodada {Math.min(match.currentRoundIndex + 1, match.totalRounds)}/{match.totalRounds}
               </span>
+              {secsLeft !== null && (
+                <span className={cn(
+                  "inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs font-bold tabular-nums",
+                  secsLeft <= 5 ? "border-destructive/50 bg-destructive/10 text-destructive animate-pulse" : "border-border text-muted-foreground",
+                )}>
+                  <Timer className="h-3.5 w-3.5" /> {secsLeft}s
+                </span>
+              )}
             </div>
             <p className="text-lg font-semibold">{round.prompt}</p>
             <div className="grid gap-2">
@@ -164,7 +199,15 @@ export function ArenaDuel({ matchId, onExit }: { matchId: number; onExit: () => 
                 )
               })}
             </div>
-            <p className="text-center text-xs text-muted-foreground">Acerte rápido — velocidade vira dano!</p>
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-xs text-muted-foreground">Acerte rápido — velocidade vira dano!</span>
+              {phase === "answering" && (
+                <Button size="sm" variant="ghost" className="text-muted-foreground"
+                  onClick={() => { setSelected(-1); void submit(round.orderIndex, -1) }}>
+                  Não sei — pular
+                </Button>
+              )}
+            </div>
           </CardContent>
         </Card>
       ) : null}

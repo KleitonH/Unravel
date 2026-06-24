@@ -78,5 +78,11 @@ export function useArenaMatch(matchId: number, handlers: Handlers) {
       ? connRef.current.invoke("SubmitAnswer", matchId, roundIndex, selectedIndex)
       : Promise.resolve()
 
-  return { state, submit }
+  // Avisa o servidor que o tempo da rodada acabou (resolve mesmo se o oponente sumiu).
+  const timeUp = (roundIndex: number) =>
+    connRef.current?.state === HubConnectionState.Connected
+      ? connRef.current.invoke("TimeUp", matchId, roundIndex)
+      : Promise.resolve()
+
+  return { state, submit, timeUp }
 }

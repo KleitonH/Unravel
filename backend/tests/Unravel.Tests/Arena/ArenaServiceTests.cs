@@ -93,6 +93,33 @@ public class ArenaServiceTests : IDisposable
     }
 
     [Fact]
+    public async Task ResolveExpired_skips_missing_player_and_advances()
+    {
+        AddChallenges(5);
+        await _sut.EnqueueAsync(_ana, 1);
+        var mid = (await _sut.EnqueueAsync(_bia, 1)).MatchId!.Value; // _ana = player1
+
+        // _ana responde a rodada 0 (acerta); _bia não responde.
+        await _sut.SubmitAnswerAsync(mid, _ana, 0, 0, DateTime.UtcNow);
+
+        // Dentro do prazo: não resolve.
+        Assert.False((await _sut.ResolveExpiredRoundAsync(mid, 0, DateTime.UtcNow)).Resolved);
+
+        // Tempo estoura → resolve, _bia "pula" (0 pts) e avança.
+        var res = await _sut.ResolveExpiredRoundAsync(mid, 0, DateTime.UtcNow.AddSeconds(60));
+        Assert.True(res.Resolved);
+        Assert.False(res.MatchFinished);
+
+        var m = await _sut.GetMatchAsync(mid);
+        Assert.Equal(1, m!.CurrentRoundIndex);
+        Assert.True(m.Score1 > 0); // _ana pontuou
+        Assert.Equal(0, m.Score2); // _bia pulou
+
+        // Idempotente: chamar de novo na rodada já avançada é no-op.
+        Assert.False((await _sut.ResolveExpiredRoundAsync(mid, 0, DateTime.UtcNow.AddSeconds(60))).Resolved);
+    }
+
+    [Fact]
     public async Task Challenge_creates_pending_notifies_and_accept_starts()
     {
         AddChallenges(2);

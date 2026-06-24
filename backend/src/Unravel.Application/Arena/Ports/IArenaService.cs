@@ -59,6 +59,9 @@ public record SubmitArenaResult(
     bool MatchFinished,
     int  CorrectIndex);
 
+/// <summary>Resultado de resolver uma rodada por tempo esgotado.</summary>
+public record ArenaResolveResult(bool Resolved, bool MatchFinished);
+
 public interface IArenaService
 {
     /// <summary>Entra na fila; pareia com um oponente esperando (mesmo tema) ou fica aguardando.</summary>
@@ -75,6 +78,12 @@ public interface IArenaService
 
     Task<SubmitArenaResult> SubmitAnswerAsync(
         int matchId, Guid userId, int roundIndex, int selectedIndex, DateTime now, CancellationToken ct = default);
+
+    /// <summary>Resolve a rodada se o tempo-limite (+ folga) estourou: preenche
+    /// "pulou" (0 pts) pra quem não respondeu e avança/encerra. Idempotente —
+    /// no-op se a rodada já avançou ou o prazo ainda não passou.</summary>
+    Task<ArenaResolveResult> ResolveExpiredRoundAsync(
+        int matchId, int roundIndex, DateTime now, CancellationToken ct = default);
 
     Task<IReadOnlyList<ArenaRankingRow>> RankingAsync(int top, CancellationToken ct = default);
 

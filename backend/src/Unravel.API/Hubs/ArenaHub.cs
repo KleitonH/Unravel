@@ -47,11 +47,26 @@ public sealed class ArenaHub(IArenaService arena) : Hub
 
         if (!r.RoundResolved) return;
 
-        // Rodada apurada (ambos responderam): revela e avança.
+        await PushResolvedAsync(matchId, roundIndex, r.MatchFinished);
+    }
+
+    /// <summary>Tempo da rodada esgotou: quem não respondeu "pula" (0 pts) e a
+    /// rodada avança — garante que ninguém fique travado (inclusive se o
+    /// oponente caiu). Idempotente no servidor; os dois clientes podem chamar.</summary>
+    public async Task TimeUp(int matchId, int roundIndex)
+    {
+        var r = await arena.ResolveExpiredRoundAsync(matchId, roundIndex, DateTime.UtcNow);
+        if (!r.Resolved) return;
+        await PushResolvedAsync(matchId, roundIndex, r.MatchFinished);
+    }
+
+    /// <summary>Revela o resultado da rodada e empurra a próxima (ou o fim).</summary>
+    private async Task PushResolvedAsync(int matchId, int roundIndex, bool matchFinished)
+    {
         var result = await arena.RoundResultAsync(matchId, roundIndex);
         await Clients.Group(Group(matchId)).SendAsync("RoundResult", result);
 
-        if (r.MatchFinished)
+        if (matchFinished)
         {
             await Clients.Group(Group(matchId)).SendAsync("MatchFinished", await arena.GetMatchAsync(matchId));
         }

@@ -18,6 +18,7 @@ public class ArenaService(ApplicationDbContext db, INotificationService notifica
 {
     private const int RoundsPerMatch = 5;
     private const int DefaultSeconds = 25;
+    private const int ExpiryGraceMs  = 1500; // folga antes de resolver por timeout
 
     public async Task<EnqueueResult> EnqueueAsync(Guid userId, int trailId, CancellationToken ct = default)
     {
@@ -162,7 +163,8 @@ public class ArenaService(ApplicationDbContext db, INotificationService notifica
 
         var startedAt = match.CurrentRoundStartedAt ?? now;
         var ms        = (int)Math.Max(0, (now - startedAt).TotalMilliseconds);
-        var isCorrect = selectedIndex == round.CorrectIndex;
+        // selectedIndex < 0 = "pulou / não sei" → 0 pontos.
+        var isCorrect = selectedIndex >= 0 && selectedIndex == round.CorrectIndex;
         var points    = LiveQuizScoring.Points(isCorrect, ms, match.SecondsPerQuestion);
 
         if (isP1) { round.SelectedIndex1 = selectedIndex; round.MsToAnswer1 = ms; round.Points1 = points; match.Score1 += points; }
@@ -180,6 +182,36 @@ public class ArenaService(ApplicationDbContext db, INotificationService notifica
 
         await db.SaveChangesAsync(ct);
         return new SubmitArenaResult(true, isCorrect, points, bothAnswered, finished, round.CorrectIndex);
+    }
+
+    public async Task<ArenaResolveResult> ResolveExpiredRoundAsync(
+        int matchId, int roundIndex, DateTime now, CancellationToken ct = default)
+    {
+        var match = await db.ArenaMatch.FirstOrDefaultAsync(m => m.Id == matchId, ct);
+        if (match is null || match.Status != ArenaMatchStatus.Active || match.CurrentRoundIndex != roundIndex)
+            return new ArenaResolveResult(false, false);
+
+        var startedAt  = match.CurrentRoundStartedAt ?? now;
+        var deadlineMs = match.SecondsPerQuestion * 1000.0 + ExpiryGraceMs;
+        if ((now - startedAt).TotalMilliseconds < deadlineMs)
+            return new ArenaResolveResult(false, false); // ainda dentro do prazo
+
+        var round = await db.ArenaRound.FirstOrDefaultAsync(r => r.MatchId == matchId && r.OrderIndex == roundIndex, ct);
+        if (round is null) return new ArenaResolveResult(false, false);
+
+        // Preenche "pulou" (0 pts) pra quem não respondeu.
+        var limitMs = match.SecondsPerQuestion * 1000;
+        if (round.SelectedIndex1 is null) { round.SelectedIndex1 = -1; round.MsToAnswer1 = limitMs; round.Points1 = 0; }
+        if (round.SelectedIndex2 is null) { round.SelectedIndex2 = -1; round.MsToAnswer2 = limitMs; round.Points2 = 0; }
+
+        var total = await db.ArenaRound.CountAsync(r => r.MatchId == matchId, ct);
+        var next  = match.CurrentRoundIndex + 1;
+        var finished = false;
+        if (next >= total) { await FinishAsync(match, ct); finished = true; }
+        else { match.CurrentRoundIndex = next; match.CurrentRoundStartedAt = now; }
+
+        await db.SaveChangesAsync(ct);
+        return new ArenaResolveResult(true, finished);
     }
 
     public async Task<ArenaMatchDto?> GetMatchAsync(int matchId, CancellationToken ct = default)
