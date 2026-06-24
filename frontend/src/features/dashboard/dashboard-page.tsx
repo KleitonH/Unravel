@@ -117,7 +117,7 @@ export function DashboardPage() {
   const isLoading = trailsQuery.isLoading
 
   return (
-    <div className="p-6 lg:p-10 space-y-6">
+    <div className="mx-auto w-full max-w-6xl p-6 lg:p-10 space-y-6">
       <Hero
         name={user?.name ?? "estudante"}
         profile={profileQuery.data ?? null}
@@ -148,7 +148,7 @@ export function DashboardPage() {
             </Button>
           </header>
 
-          <div className="grid gap-4 md:grid-cols-2">
+          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
             {enrolled.map((trail, i) => (
               // PR 27: stagger ~80ms entre cards. Cap em 6 pra não criar
               // "wave" muito longa quando o user tiver 10+ trilhas.

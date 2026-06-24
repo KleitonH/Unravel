@@ -93,7 +93,7 @@ export function ArenaPage() {
   const active = (myMatches.data ?? []).filter((m) => m.status === "Active")
 
   return (
-    <div className="mx-auto max-w-3xl space-y-6 p-4 sm:p-6 lg:p-10">
+    <div className="mx-auto w-full max-w-5xl space-y-6 p-4 sm:p-6 lg:p-10">
       <header className="flex items-center gap-3">
         <div className="grid h-11 w-11 place-items-center rounded-xl bg-primary/10 text-primary">
           <Swords className="h-6 w-6" />

@@ -36,7 +36,7 @@ export function MasteryPage() {
   const overall = report ? Math.round(report.averageEffectiveScore * 100) : 0
 
   return (
-    <div className="p-6 lg:p-10 max-w-4xl mx-auto space-y-5">
+    <div className="mx-auto w-full max-w-6xl p-6 lg:p-10 space-y-5">
       <Button asChild variant="ghost" size="sm" className="-ml-2">
         <Link to="/jornada/$trailId" params={{ trailId }}>
           <ChevronLeft className="h-4 w-4 mr-1" />

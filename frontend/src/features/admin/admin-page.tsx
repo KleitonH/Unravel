@@ -58,7 +58,7 @@ export function AdminPage() {
   })
 
   return (
-    <div className="p-6 lg:p-10 max-w-4xl space-y-5">
+    <div className="mx-auto w-full max-w-6xl p-6 lg:p-10 space-y-5">
       <header className="flex items-start justify-between gap-4">
         <div>
           <h1 className="text-3xl font-display font-extrabold tracking-tight">🛠️ Painel admin</h1>

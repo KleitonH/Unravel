@@ -63,7 +63,7 @@ export function FriendsPage() {
   const incomingCount = incoming.length
 
   return (
-    <div className="p-6 lg:p-10 max-w-3xl space-y-6">
+    <div className="mx-auto w-full max-w-5xl p-6 lg:p-10 space-y-6">
       <header className="space-y-1">
         <h1 className="text-3xl font-display font-extrabold tracking-tight flex items-center gap-2">
           <Users className="h-7 w-7 text-primary" /> Amigos

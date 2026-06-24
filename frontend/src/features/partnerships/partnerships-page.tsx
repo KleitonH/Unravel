@@ -55,7 +55,7 @@ export function PartnershipsPage() {
   const invitable = (friends.data ?? []).filter((f) => !busy.has(f.userId))
 
   return (
-    <div className="mx-auto max-w-2xl space-y-6 p-4 sm:p-6 lg:p-10">
+    <div className="mx-auto w-full max-w-3xl space-y-6 p-4 sm:p-6 lg:p-10">
       <header>
         <h1 className="font-display text-2xl font-extrabold">🧶 Parceiros de Trilha</h1>
         <p className="text-sm text-muted-foreground">

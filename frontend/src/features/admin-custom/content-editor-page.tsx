@@ -54,7 +54,7 @@ export function ContentEditorPage() {
   })
 
   return (
-    <div className="p-6 lg:p-10 max-w-6xl space-y-5">
+    <div className="mx-auto w-full max-w-6xl p-6 lg:p-10 space-y-5">
       <Button asChild variant="ghost" size="sm" className="-ml-2">
         <Link
           to={contentQuery.data?.trailId ? "/admin/trails/$trailId" : "/admin/trails"}

@@ -24,11 +24,11 @@ export function CaixinhaPage() {
   const mineQuery = useQuery({ queryKey: ["caixinha", "mine"], queryFn: caixinhaApi.mine })
 
   if (mineQuery.isLoading) {
-    return <div className="p-6 lg:p-10 max-w-3xl space-y-4"><Skeleton className="h-10 w-48" /><Skeleton className="h-40" /></div>
+    return <div className="mx-auto w-full max-w-5xl p-6 lg:p-10 space-y-4"><Skeleton className="h-10 w-48" /><Skeleton className="h-40" /></div>
   }
 
   return (
-    <div className="p-6 lg:p-10 max-w-3xl space-y-6">
+    <div className="mx-auto w-full max-w-5xl p-6 lg:p-10 space-y-6">
       <header className="space-y-1">
         <h1 className="text-3xl font-display font-extrabold tracking-tight flex items-center gap-2">
           📦 Caixinha de Gatos

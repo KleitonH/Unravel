@@ -106,7 +106,7 @@ export function OnboardingPage() {
   }
 
   return (
-    <div className="p-6 lg:p-10 max-w-3xl space-y-6">
+    <div className="mx-auto w-full max-w-3xl p-6 lg:p-10 space-y-6">
       <header className="space-y-3">
         <h1 className="text-3xl font-display font-extrabold tracking-tight">
           🐾 Vamos preparar sua jornada

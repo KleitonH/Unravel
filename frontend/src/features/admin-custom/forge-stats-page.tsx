@@ -42,7 +42,7 @@ export function ForgeStatsPage() {
   const s = statsQuery.data
 
   return (
-    <div className="p-6 lg:p-10 max-w-5xl space-y-5">
+    <div className="mx-auto w-full max-w-6xl p-6 lg:p-10 space-y-5">
       <Button asChild variant="ghost" size="sm" className="-ml-2">
         <Link to="/admin/trails">
           <ChevronLeft className="h-4 w-4 mr-1" />

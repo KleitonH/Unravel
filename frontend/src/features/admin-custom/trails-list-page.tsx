@@ -43,7 +43,7 @@ export function TrailsListPage() {
   const [tab, setTab] = useState<"trilhas" | "turmas" | "quiz" | "relatorios">("trilhas")
 
   return (
-    <div className="p-6 lg:p-10 max-w-5xl space-y-5">
+    <div className="mx-auto w-full max-w-6xl p-6 lg:p-10 space-y-5">
       <header>
         <h1 className="text-3xl font-display font-extrabold tracking-tight">🛠️ Curadoria</h1>
         <p className="text-muted-foreground mt-1">

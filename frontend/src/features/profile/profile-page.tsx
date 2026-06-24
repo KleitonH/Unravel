@@ -38,7 +38,7 @@ export function ProfilePage() {
   const s = isStudent ? (profileQuery.data as StudentProfile) : null
 
   return (
-    <div className="p-6 lg:p-10 max-w-3xl space-y-6">
+    <div className="mx-auto w-full max-w-5xl p-6 lg:p-10 space-y-6">
       <header>
         <h1 className="text-3xl font-display font-extrabold tracking-tight">👤 Perfil</h1>
       </header>

@@ -22,14 +22,14 @@ const TIER: Record<string, { emoji: string; color: string }> = {
 export function LeaguePage() {
   const q = useQuery({ queryKey: ["league"], queryFn: leagueApi.mine })
 
-  if (q.isLoading) return <div className="p-6 lg:p-10 max-w-2xl space-y-4"><Skeleton className="h-10 w-48" /><Skeleton className="h-64" /></div>
+  if (q.isLoading) return <div className="mx-auto w-full max-w-3xl p-6 lg:p-10 space-y-4"><Skeleton className="h-10 w-48" /><Skeleton className="h-64" /></div>
   if (!q.data) return <div className="p-6 lg:p-10 text-muted-foreground">Não foi possível carregar a liga.</div>
 
   const d = q.data
   const t = TIER[d.tier] ?? TIER.Bronze
 
   return (
-    <div className="p-6 lg:p-10 max-w-2xl space-y-5">
+    <div className="mx-auto w-full max-w-3xl p-6 lg:p-10 space-y-5">
       <header className="space-y-1">
         <h1 className="text-3xl font-display font-extrabold tracking-tight">🏆 Liga Semanal</h1>
         <p className="text-sm text-muted-foreground flex items-center gap-1.5">
