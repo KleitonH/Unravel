@@ -220,10 +220,11 @@ function IslandWorldMap({
 }) {
   // Castelo apoiado no chão: o chão (grama) é uma faixa cheia no rodapé; o
   // castelo afunda levemente nela pra parecer "no chão".
-  const GROUND   = desktop ? 88 : 68
+  const GROUND   = desktop ? 96 : 74
   const bossX    = nodeX(nodes.length, g.AMP)
-  const bossY    = nodeY(nodes.length, g)          // centro do castelo
-  const groundTop = bossY + g.BOSS / 2 - 8         // topo da grama (base afunda 8px)
+  const bossY    = nodeY(nodes.length, g) + (desktop ? 16 : 12)  // centro do castelo, um pouco mais baixo
+  // base do desenho do castelo ≈ 40% de BOSS abaixo do centro; grama encosta nela.
+  const groundTop = bossY + g.BOSS * 0.40 - 2      // base afunda ~2px na grama
   const mapHeight = groundTop + GROUND
 
   const points = useMemo(() => {
@@ -528,8 +529,8 @@ function BossCastle({ x, y, g, unlocked, onOpen }: { x: number; y: number; g: Ge
   const roof = unlocked ? HS(WARN) : "#3a3550"
   return (
     <div style={{ position: "absolute", left: `${x}%`, top: y, width: D, height: D, transform: "translate(-50%,-50%)", zIndex: 11 }}>
-      {/* sombra de contato (apoiado no chão) */}
-      <div style={{ position: "absolute", left: "50%", bottom: -6, transform: "translateX(-50%)", width: D * 0.66, height: 11, background: "rgba(0,0,0,0.38)", borderRadius: "50%", filter: "blur(4px)" }} />
+      {/* sombra de contato colada na base real do desenho (~90% do SVG) */}
+      <div style={{ position: "absolute", left: "50%", top: D * 0.9, transform: "translate(-50%,-50%)", width: D * 0.6, height: 10, background: "rgba(0,0,0,0.42)", borderRadius: "50%", filter: "blur(4px)" }} />
       {unlocked && <span style={{ position: "absolute", inset: -6, borderRadius: 20, border: `3px solid ${HS(WARN, 0.5)}`, animation: "j-ping 2s ease-out infinite" }} />}
       <button onClick={unlocked ? onOpen : undefined} disabled={!unlocked} title="Desafio final — Boss"
         style={{ position: "relative", width: "100%", height: "100%", border: "none", background: "none", cursor: unlocked ? "pointer" : "not-allowed", padding: 0 }}>
