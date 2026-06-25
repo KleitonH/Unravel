@@ -49,7 +49,7 @@ function geom(desktop: boolean): Geom {
   return {
     PAD_TOP: desktop ? 78 : 64,
     STEP:    desktop ? 150 : 124,
-    AMP:     desktop ? 24 : 26,
+    AMP:     desktop ? 32 : 28,   // amplitude do serpenteado (% da largura)
     NODE:    desktop ? 76 : 64,
     BOSS:    desktop ? 104 : 88,
     BOT:     70,
@@ -93,7 +93,7 @@ export function TrailMapPage() {
   }
 
   return (
-    <div className="p-6 lg:p-10 max-w-2xl mx-auto space-y-5">
+    <div className="p-6 lg:p-10 max-w-4xl mx-auto space-y-5">
       {/* HEADER */}
       <header className="flex items-start justify-between gap-3 flex-wrap">
         <div className="min-w-0">
@@ -218,14 +218,19 @@ function IslandWorldMap({
   onOpenNode:      (node: TrailMapNode) => void
   onOpenBoss:      () => void
 }) {
+  // Castelo apoiado no chão: o chão (grama) é uma faixa cheia no rodapé; o
+  // castelo afunda levemente nela pra parecer "no chão".
+  const GROUND   = desktop ? 88 : 68
+  const bossX    = nodeX(nodes.length, g.AMP)
+  const bossY    = nodeY(nodes.length, g)          // centro do castelo
+  const groundTop = bossY + g.BOSS / 2 - 8         // topo da grama (base afunda 8px)
+  const mapHeight = groundTop + GROUND
+
   const points = useMemo(() => {
     const pts = nodes.map((_, i) => ({ x: nodeX(i, g.AMP), y: nodeY(i, g) }))
-    pts.push({ x: nodeX(nodes.length, g.AMP), y: nodeY(nodes.length, g) }) // boss sempre visível
+    pts.push({ x: bossX, y: bossY }) // boss sempre visível
     return pts
-  }, [nodes, g])
-
-  const lastY     = points.length ? points[points.length - 1].y : g.PAD_TOP
-  const mapHeight = lastY + g.BOSS / 2 + g.BOT
+  }, [nodes, g, bossX, bossY])
 
   const activeIdx = nodes.findIndex((n) => n.contentId === activeContentId)
   const naviIdx   = activeIdx >= 0 ? activeIdx : 0
@@ -236,6 +241,7 @@ function IslandWorldMap({
   return (
     <div className="relative w-full overflow-hidden rounded-3xl border" style={{ height: mapHeight, borderColor: HS(BORD) }}>
       <SceneA desktop={desktop} />
+      <Ground top={groundTop} height={GROUND} />
       <PathLayer points={points} nodes={nodes} />
       {nodes.map((node, i) => (
         <IslandNode
@@ -249,14 +255,33 @@ function IslandWorldMap({
           onOpen={onOpenNode}
         />
       ))}
-      <BossCastle
-        g={g}
-        x={nodeX(nodes.length, g.AMP)}
-        y={nodeY(nodes.length, g)}
-        unlocked={bossUnlocked}
-        onOpen={onOpenBoss}
-      />
+      <BossCastle g={g} x={bossX} y={bossY} unlocked={bossUnlocked} onOpen={onOpenBoss} />
       {naviPos && <NaviWalker x={naviPos.x} y={naviPos.y} g={g} standR={naviStandR} />}
+    </div>
+  )
+}
+
+/* Faixa de chão (grama) preenchendo toda a largura no rodapé do mapa, com
+ * borda superior serrilhada (blades). O castelo do Boss fica apoiado nela. */
+function Ground({ top, height }: { top: number; height: number }) {
+  const teeth = 40, w = 1000, step = w / teeth
+  let d = `M0 18`
+  for (let i = 0; i < teeth; i++) d += ` L ${i * step + step / 2} 2 L ${(i + 1) * step} 18`
+  d += ` L ${w} 18 L ${w} 24 L 0 24 Z`
+  return (
+    <div className="absolute left-0 right-0" style={{ top, height, zIndex: 2 }}>
+      {/* serrilhado da grama no topo */}
+      <svg viewBox="0 0 1000 24" preserveAspectRatio="none" className="absolute left-0 w-full" style={{ top: -14, height: 18 }}>
+        <path d={d} fill="#5ed080" />
+      </svg>
+      {/* corpo do chão */}
+      <div className="absolute inset-0" style={{ background: "linear-gradient(180deg, #4cc879, #2f9a55 42%, #1f6b39)" }} />
+      {/* manchas sutis de grama */}
+      <svg className="absolute inset-0 h-full w-full" preserveAspectRatio="none" style={{ opacity: 0.35 }}>
+        {Array.from({ length: 16 }).map((_, i) => (
+          <ellipse key={i} cx={`${(i * 37) % 100}%`} cy={`${20 + ((i * 53) % 60)}%`} rx="20" ry="6" fill="#1f6b39" opacity="0.55" />
+        ))}
+      </svg>
     </div>
   )
 }
@@ -276,11 +301,6 @@ function SceneA({ desktop }: { desktop: boolean }) {
       <div className="absolute left-1/2 -translate-x-1/2" style={{ top: "-10%", width: "120%", height: 280, background: `radial-gradient(ellipse, ${HS(P, 0.16)}, transparent 70%)`, filter: "blur(8px)" }} />
       <svg className="absolute inset-0 h-full w-full" preserveAspectRatio="none">
         {stars.map((s, i) => <circle key={i} cx={`${s.x}%`} cy={`${s.y}%`} r={s.r} fill="#fff" opacity={0.5} />)}
-      </svg>
-      {/* silhueta de floresta distante */}
-      <svg viewBox="0 0 400 80" preserveAspectRatio="none" className="absolute bottom-0 left-0 w-full" style={{ height: 120, opacity: 0.5 }}>
-        <path d="M0 80 V46 l14 -16 l8 10 l12 -22 l10 14 l14 -20 l12 18 l16 -24 l12 20 l14 -14 l10 12 l16 -20 l12 16 l14 -10 l12 14 l16 -18 l12 16 l14 -12 l12 14 l18 -18 l12 18 l14 -10 l16 14 l12 -16 l14 18 V80 Z"
-          fill={HS("var(--grass-lo, 158 60% 28%)")} opacity="0.55" />
       </svg>
       {clouds.map((c, i) => <Cloud key={i} {...c} />)}
       <SparkleField count={desktop ? 14 : 8} />
@@ -508,10 +528,11 @@ function BossCastle({ x, y, g, unlocked, onOpen }: { x: number; y: number; g: Ge
   const roof = unlocked ? HS(WARN) : "#3a3550"
   return (
     <div style={{ position: "absolute", left: `${x}%`, top: y, width: D, height: D, transform: "translate(-50%,-50%)", zIndex: 11 }}>
-      <div style={{ position: "absolute", left: "50%", bottom: -8, transform: "translateX(-50%)", width: D * 0.8, height: 12, background: "rgba(0,0,0,0.3)", borderRadius: "50%", filter: "blur(3px)" }} />
+      {/* sombra de contato (apoiado no chão) */}
+      <div style={{ position: "absolute", left: "50%", bottom: -6, transform: "translateX(-50%)", width: D * 0.66, height: 11, background: "rgba(0,0,0,0.38)", borderRadius: "50%", filter: "blur(4px)" }} />
       {unlocked && <span style={{ position: "absolute", inset: -6, borderRadius: 20, border: `3px solid ${HS(WARN, 0.5)}`, animation: "j-ping 2s ease-out infinite" }} />}
       <button onClick={unlocked ? onOpen : undefined} disabled={!unlocked} title="Desafio final — Boss"
-        style={{ position: "relative", width: "100%", height: "100%", border: "none", background: "none", cursor: unlocked ? "pointer" : "not-allowed", padding: 0, animation: unlocked ? "j-bob 3s ease-in-out infinite" : "none" }}>
+        style={{ position: "relative", width: "100%", height: "100%", border: "none", background: "none", cursor: unlocked ? "pointer" : "not-allowed", padding: 0 }}>
         <svg width={D} height={D} viewBox="0 0 100 100">
           <rect x="14" y="40" width="20" height="50" fill={stone} />
           <rect x="66" y="40" width="20" height="50" fill={stone} />
@@ -537,11 +558,12 @@ function BossCastle({ x, y, g, unlocked, onOpen }: { x: number; y: number; g: Ge
 
 /* ───────────────────────── NAVI "Você" ───────────────────────── */
 function NaviWalker({ x, y, g, standR }: { x: number; y: number; g: Geom; standR: number }) {
-  const S = g.NODE * 0.74
+  const S = g.NODE * 0.72
   const r = standR || g.NODE * 0.5
+  // À direita do medalhão (não tapa o número nem a fita "Hoje", que ficam à esq./topo).
   return (
     <div style={{
-      position: "absolute", left: `${x}%`, top: y - r * 0.78, transform: "translate(-50%,-100%)",
+      position: "absolute", left: `${x}%`, top: y, transform: `translate(${r + 4}px, ${-S * 0.42}px)`,
       width: S, zIndex: 20, pointerEvents: "none",
       transition: "left .75s cubic-bezier(.5,0,.3,1), top .75s cubic-bezier(.5,0,.3,1)",
     }}>
