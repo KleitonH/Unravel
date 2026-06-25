@@ -223,9 +223,8 @@ function IslandWorldMap({
   const GROUND   = desktop ? 104 : 82
   const bossX    = nodeX(nodes.length, g.AMP)
   const bossY    = nodeY(nodes.length, g) + (desktop ? 8 : 6)
-  // base do desenho do castelo (~90% do SVG = +0.40·BOSS do centro) encosta
-  // no topo da grama; afunda só 2px pra "assentar".
-  const groundTop = bossY + g.BOSS * 0.40 - 2
+  // grama corta ~no meio vertical do castelo (metade de baixo enterrada).
+  const groundTop = bossY + g.BOSS * 0.05
   const mapHeight = groundTop + GROUND
 
   const points = useMemo(() => {
@@ -243,8 +242,12 @@ function IslandWorldMap({
   return (
     <div className="relative w-full overflow-hidden rounded-3xl border" style={{ height: mapHeight, borderColor: HS(BORD) }}>
       <SceneA desktop={desktop} />
-      <Ground top={groundTop} height={GROUND} />
       <PathLayer points={points} nodes={nodes} />
+      {/* castelo (corpo) ABAIXO da grama — ela corta a metade de baixo */}
+      <BossCastle g={g} x={bossX} y={bossY} unlocked={bossUnlocked} onOpen={onOpenBoss} />
+      <Ground top={groundTop} height={GROUND} />
+      {/* sombra + pílula do Boss ACIMA da grama */}
+      <BossFoot g={g} x={bossX} groundTop={groundTop} unlocked={bossUnlocked} />
       {nodes.map((node, i) => (
         <IslandNode
           key={node.contentId}
@@ -257,7 +260,6 @@ function IslandWorldMap({
           onOpen={onOpenNode}
         />
       ))}
-      <BossCastle g={g} x={bossX} y={bossY} unlocked={bossUnlocked} onOpen={onOpenBoss} />
       {naviPos && <NaviWalker x={naviPos.x} y={naviPos.y} g={g} standR={naviStandR} />}
     </div>
   )
@@ -271,7 +273,7 @@ function Ground({ top, height }: { top: number; height: number }) {
   for (let i = 0; i < teeth; i++) d += ` L ${i * step + step / 2} 2 L ${(i + 1) * step} 18`
   d += ` L ${w} 18 L ${w} 24 L 0 24 Z`
   return (
-    <div className="absolute left-0 right-0" style={{ top, height, zIndex: 2 }}>
+    <div className="absolute left-0 right-0" style={{ top, height, zIndex: 6 }}>
       {/* serrilhado da grama no topo */}
       <svg viewBox="0 0 1000 24" preserveAspectRatio="none" className="absolute left-0 w-full" style={{ top: -14, height: 18 }}>
         <path d={d} fill="#5ed080" />
@@ -529,9 +531,7 @@ function BossCastle({ x, y, g, unlocked, onOpen }: { x: number; y: number; g: Ge
   const stoneHi = unlocked ? "#a99cc9" : "#56507a"
   const roof = unlocked ? HS(WARN) : "#3a3550"
   return (
-    <div style={{ position: "absolute", left: `${x}%`, top: y, width: D, height: D, transform: "translate(-50%,-50%)", zIndex: 11 }}>
-      {/* sombra redonda na base, sobre a grama */}
-      <div style={{ position: "absolute", left: "50%", top: D * 0.9, transform: "translate(-50%,-50%)", width: D * 1.1, height: 24, background: "radial-gradient(ellipse, rgba(0,0,0,0.5) 35%, rgba(0,0,0,0) 72%)", borderRadius: "50%" }} />
+    <div style={{ position: "absolute", left: `${x}%`, top: y, width: D, height: D, transform: "translate(-50%,-50%)", zIndex: 4 }}>
       {unlocked && <span style={{ position: "absolute", inset: -6, borderRadius: 20, border: `3px solid ${HS(WARN, 0.5)}`, animation: "j-ping 2s ease-out infinite" }} />}
       <button onClick={unlocked ? onOpen : undefined} disabled={!unlocked} title="Desafio final — Boss"
         style={{ position: "relative", width: "100%", height: "100%", border: "none", background: "none", cursor: unlocked ? "pointer" : "not-allowed", padding: 0 }}>
@@ -553,8 +553,21 @@ function BossCastle({ x, y, g, unlocked, onOpen }: { x: number; y: number; g: Ge
         </svg>
         {unlocked && <span style={{ position: "absolute", top: -14, left: "50%", transform: "translateX(-50%)", fontSize: 20, animation: "j-bob-sm 2s ease-in-out infinite" }}>👑</span>}
       </button>
-      <span style={{ position: "absolute", left: "50%", top: D + 2, transform: "translateX(-50%)", whiteSpace: "nowrap", background: unlocked ? HS(WARN) : HS(POP), color: unlocked ? HS("var(--warning-foreground)") : HS(MUT), fontFamily: "var(--font-display, Syne), sans-serif", fontWeight: 800, fontSize: 11, padding: "3px 12px", borderRadius: 999, textTransform: "uppercase", letterSpacing: "0.06em", boxShadow: "0 3px 8px rgba(0,0,0,0.4)" }}>Boss</span>
     </div>
+  )
+}
+
+/* Sombra + pílula do Boss — renderizadas ACIMA da grama (a grama corta o
+ * corpo do castelo na metade; isto fica visível por cima). */
+function BossFoot({ x, groundTop, g, unlocked }: { x: number; groundTop: number; g: Geom; unlocked: boolean }) {
+  const D = g.BOSS
+  return (
+    <>
+      {/* sombra forte na linha da grama, indo até as bordas do castelo */}
+      <div style={{ position: "absolute", left: `${x}%`, top: groundTop + 2, transform: "translate(-50%,-50%)", width: D * 0.82, height: 18, background: "radial-gradient(ellipse, rgba(0,0,0,0.6) 60%, rgba(0,0,0,0) 82%)", borderRadius: "50%", zIndex: 7, pointerEvents: "none" }} />
+      {/* pílula "Boss" sobre a grama */}
+      <span style={{ position: "absolute", left: `${x}%`, top: groundTop + 22, transform: "translateX(-50%)", whiteSpace: "nowrap", zIndex: 8, background: unlocked ? HS(WARN) : HS(POP), color: unlocked ? HS("var(--warning-foreground)") : HS(MUT), fontFamily: "var(--font-display, Syne), sans-serif", fontWeight: 800, fontSize: 11, padding: "3px 12px", borderRadius: 999, textTransform: "uppercase", letterSpacing: "0.06em", boxShadow: "0 3px 8px rgba(0,0,0,0.4)" }}>Boss</span>
+    </>
   )
 }
 
