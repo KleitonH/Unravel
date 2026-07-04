@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react"
-import { Swords, Trophy, Loader2, Check, X, Heart, Timer } from "lucide-react"
+import { Swords, Trophy, Loader2, Check, X, Heart, Timer, Zap } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { useAuth } from "@/stores/auth"
@@ -10,8 +10,6 @@ import type { ArenaMatch, ArenaRound, ArenaRoundResult, ArenaCosmetic } from "@/
 import { useArenaMatch } from "./use-arena-match"
 
 type Phase = "connecting" | "intro" | "answering" | "waiting" | "reveal" | "finished"
-
-const MAX_PER_ROUND = 1000 // Base 500 + bônus de velocidade 500 (LiveQuizScoring)
 
 /**
  * Duelo da Arena em formato "VS": NAVI do usuário à esquerda, do adversário à
@@ -30,6 +28,7 @@ export function ArenaDuel({ matchId, onExit }: { matchId: number; onExit: () => 
   const [dmg, setDmg] = useState<{ me: number; opp: number } | null>(null)
 
   const [secsLeft, setSecsLeft] = useState<number | null>(null)
+  const [dcLeft, setDcLeft] = useState<number | null>(null) // relógio de reconexão do oponente que caiu
 
   const introDoneRef = useRef(false)
   const nextRoundRef = useRef<ArenaRound | null>(null)
@@ -43,7 +42,7 @@ export function ArenaDuel({ matchId, onExit }: { matchId: number; onExit: () => 
     setRound(r); setSelected(null); setReveal(null); setDmg(null); setPhase("answering")
   }
 
-  const { submit, timeUp } = useArenaMatch(matchId, {
+  const { submit, timeUp, claimAbandonment } = useArenaMatch(matchId, {
     onMatch: (m) => setMatch(m),
     onRoundStarted: (r) => {
       if (!introDoneRef.current) {
@@ -59,18 +58,10 @@ export function ArenaDuel({ matchId, onExit }: { matchId: number; onExit: () => 
     },
     onAnswerResult: (r) => { if (r.accepted && !r.roundResolved) setPhase("waiting") },
     onRoundResult: (r) => {
-      setMatch((m) => {
-        if (m) {
-          const iAmP1 = me === m.player1Id
-          const oldMy = iAmP1 ? m.score1 : m.score2
-          const oldOpp = iAmP1 ? m.score2 : m.score1
-          const newMy = iAmP1 ? r.score1 : r.score2
-          const newOpp = iAmP1 ? r.score2 : r.score1
-          setDmg({ opp: Math.max(0, newMy - oldMy), me: Math.max(0, newOpp - oldOpp) })
-          return { ...m, score1: r.score1, score2: r.score2 }
-        }
-        return m
-      })
+      // HP/dano/crítico agora vêm do servidor (modelo de dano).
+      setMatch((m) => (m ? { ...m, score1: r.score1, score2: r.score2, hp1: r.hp1, hp2: r.hp2, crit1: r.crit1, crit2: r.crit2 } : m))
+      const iAmP1 = me === match?.player1Id
+      setDmg({ me: iAmP1 ? r.damage1 : r.damage2, opp: iAmP1 ? r.damage2 : r.damage1 })
       setReveal(r); setPhase("reveal")
       if (timerRef.current) clearTimeout(timerRef.current)
       timerRef.current = setTimeout(() => {
@@ -79,8 +70,19 @@ export function ArenaDuel({ matchId, onExit }: { matchId: number; onExit: () => 
         if (nr) startRound(nr)
       }, 2100)
     },
-    onMatchFinished: (m) => { setMatch(m); setPhase("finished") },
+    onMatchFinished: (m) => { setMatch(m); setDcLeft(null); setPhase("finished") },
+    onOpponentLeft: (e) => setDcLeft(e.secondsToReturn ?? 30),
+    onOpponentReturned: () => setDcLeft(null),
   })
+
+  // Relógio de abandono: quando o oponente cai, conta 30s; ao zerar, reivindica a vitória.
+  useEffect(() => {
+    if (dcLeft === null) return
+    if (dcLeft <= 0) { void claimAbandonment(); return }
+    const t = setTimeout(() => setDcLeft((s) => (s === null ? null : s - 1)), 1000)
+    return () => clearTimeout(t)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dcLeft])
 
   useEffect(() => () => { if (timerRef.current) clearTimeout(timerRef.current) }, [])
 
@@ -119,28 +121,38 @@ export function ArenaDuel({ matchId, onExit }: { matchId: number; onExit: () => 
   const iAmP1 = me === match.player1Id
   const myName  = iAmP1 ? match.player1Name : (match.player2Name ?? "Você")
   const oppName = iAmP1 ? (match.player2Name ?? "Oponente") : match.player1Name
-  const myScore  = iAmP1 ? match.score1 : match.score2
-  const oppScore = iAmP1 ? match.score2 : match.score1
   const myApp  = appearanceFromEquipped(toEquipped(iAmP1 ? match.player1Cosmetics : match.player2Cosmetics))
   const oppApp = appearanceFromEquipped(toEquipped(iAmP1 ? match.player2Cosmetics : match.player1Cosmetics))
 
-  const maxHp = Math.max(1, match.totalRounds * MAX_PER_ROUND)
-  const myHp  = Math.round(100 * Math.max(0, 1 - oppScore / maxHp)) // inimigo me machuca
-  const oppHp = Math.round(100 * Math.max(0, 1 - myScore / maxHp))  // eu machuco o inimigo
+  const maxHp = Math.max(1, match.maxHp || 100)
+  const myHp  = Math.round(100 * Math.max(0, (iAmP1 ? match.hp1 : match.hp2) / maxHp))
+  const oppHp = Math.round(100 * Math.max(0, (iAmP1 ? match.hp2 : match.hp1) / maxHp))
+  const myCrit  = iAmP1 ? match.crit1 : match.crit2
+  const oppCrit = iAmP1 ? match.crit2 : match.crit1
 
   return (
     <div className="mx-auto max-w-2xl space-y-4">
       {/* Palco: NAVI ⟷ NAVI */}
       <div className="grid grid-cols-2 items-end gap-3 sm:grid-cols-[1fr_auto_1fr] sm:items-center">
-        <Fighter name={myName} you appearance={myApp} hpPct={myHp} score={myScore} dmg={dmg?.me} />
+        <Fighter name={myName} you appearance={myApp} hpPct={myHp} crit={myCrit} dmg={dmg?.me} />
         <div className="hidden flex-col items-center sm:flex">
           <Swords className="h-7 w-7 text-primary" />
           <span className="text-xs font-bold text-muted-foreground">
             {phase === "finished" ? "FIM" : phase === "intro" ? "VS" : `${Math.min(match.currentRoundIndex + 1, match.totalRounds)}/${match.totalRounds}`}
           </span>
         </div>
-        <Fighter name={oppName} appearance={oppApp} hpPct={oppHp} score={oppScore} dmg={dmg?.opp} mirror align="right" />
+        <Fighter name={oppName} appearance={oppApp} hpPct={oppHp} crit={oppCrit} dmg={dmg?.opp} mirror align="right" />
       </div>
+
+      {/* Oponente caiu — janela de 30s pra voltar, senão vitória por abandono */}
+      {dcLeft !== null && phase !== "finished" && (
+        <Card className="border-warning/40 bg-warning/5">
+          <CardContent className="flex items-center justify-center gap-2 py-3 text-sm">
+            <Timer className="h-4 w-4 text-warning" />
+            <span>O oponente caiu. Aguardando reconexão… <strong className="tabular-nums">{dcLeft}s</strong> — se não voltar, você vence.</span>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Centro: pergunta / estado */}
       {phase === "finished" ? (
@@ -220,9 +232,9 @@ function toEquipped(cos: ArenaCosmetic[] | undefined) {
 }
 
 function Fighter({
-  name, appearance, hpPct, score, you, mirror, align, dmg,
+  name, appearance, hpPct, crit = 0, you, mirror, align, dmg,
 }: {
-  name: string; appearance: NaviAppearance; hpPct: number; score: number
+  name: string; appearance: NaviAppearance; hpPct: number; crit?: number
   you?: boolean; mirror?: boolean; align?: "right"; dmg?: number
 }) {
   const hpColor = hpPct > 50 ? "bg-success" : hpPct > 25 ? "bg-warning" : "bg-destructive"
@@ -231,7 +243,7 @@ function Fighter({
       <div className="w-full max-w-[170px]">
         <div className={cn("mb-0.5 flex items-center justify-between gap-2 text-[11px]", align === "right" && "flex-row-reverse")}>
           <span className="truncate font-semibold">{name}{you && <span className="text-primary"> (você)</span>}</span>
-          <span className="tabular-nums text-muted-foreground">{score}</span>
+          <span className="tabular-nums text-muted-foreground">{hpPct}%</span>
         </div>
         <div className="flex items-center gap-1">
           <Heart className={cn("h-3 w-3 shrink-0", hpPct > 25 ? "text-destructive" : "text-destructive animate-pulse")} fill="currentColor" />
@@ -239,10 +251,17 @@ function Fighter({
             <div className={cn("h-full rounded-full transition-[width] duration-700", hpColor)} style={{ width: `${hpPct}%` }} />
           </div>
         </div>
+        {crit > 0 && (
+          <div className={cn("mt-0.5 flex items-center gap-0.5 text-warning", align === "right" && "flex-row-reverse")}
+            title={`Crítico: +${crit * 10} de dano no próximo golpe`}>
+            {Array.from({ length: Math.min(crit, 5) }).map((_, i) => <Zap key={i} className="h-3 w-3 fill-current" />)}
+            <span className="text-[10px] font-bold tabular-nums">+{crit * 10}</span>
+          </div>
+        )}
       </div>
       <div className="relative">
-        {dmg ? (
-          <span key={`${score}-${dmg}`} className="animate-pop-in absolute -top-1 left-1/2 z-10 -translate-x-1/2 text-lg font-extrabold text-destructive drop-shadow">
+        {dmg && dmg > 0 ? (
+          <span key={`${hpPct}-${dmg}`} className="animate-pop-in absolute -top-1 left-1/2 z-10 -translate-x-1/2 text-lg font-extrabold text-destructive drop-shadow">
             -{dmg}
           </span>
         ) : null}
@@ -257,14 +276,18 @@ function Fighter({
 function FinishedCard({ match, me, onExit }: { match: ArenaMatch; me?: string; onExit: () => void }) {
   const draw = !match.winnerId
   const iWon = match.winnerId === me
+  const ko = match.hp1 <= 0 || match.hp2 <= 0
+  const iAmP1 = me === match.player1Id
+  const myHp = iAmP1 ? match.hp1 : match.hp2
+  const oppHp = iAmP1 ? match.hp2 : match.hp1
   return (
     <Card className={cn("text-center", iWon ? "border-success/40 bg-success/5" : draw ? "" : "border-destructive/30 bg-destructive/5")}>
       <CardContent className="space-y-3 py-10">
         <Trophy className={cn("mx-auto h-14 w-14", iWon ? "text-success" : "text-muted-foreground")} />
         <h2 className="font-display text-2xl font-extrabold">
-          {draw ? "Empate! 🤝" : iWon ? "Você venceu! 🏆" : "Você perdeu 😿"}
+          {draw ? "Empate! 🤝" : iWon ? (ko ? "Nocaute! Você venceu 🏆" : "Você venceu! 🏆") : (ko ? "Nocauteado 😿" : "Você perdeu 😿")}
         </h2>
-        <p className="text-sm text-muted-foreground">Placar final: {match.score1} × {match.score2}</p>
+        <p className="text-sm text-muted-foreground">Vida final: {Math.max(0, myHp)} × {Math.max(0, oppHp)}</p>
         <div className="pt-2"><Button onClick={onExit}>Voltar à Arena</Button></div>
       </CardContent>
     </Card>

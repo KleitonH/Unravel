@@ -26,13 +26,38 @@ public sealed class ArenaHub(IArenaService arena) : Hub
         Context.User?.FindFirstValue(JwtRegisteredClaimNames.Sub)
         ?? Context.User?.FindFirstValue(ClaimTypes.NameIdentifier)!);
 
-    /// <summary>Entra na sala da partida e recebe o estado atual + a rodada vigente.</summary>
+    /// <summary>Entra na sala da partida e recebe o estado atual + a rodada vigente.
+    /// Se estava marcado como desconectado, limpa (voltou a tempo) e avisa o oponente.</summary>
     public async Task JoinMatch(int matchId)
     {
+        Context.Items["matchId"] = matchId;
         await Groups.AddToGroupAsync(Context.ConnectionId, Group(matchId));
+        await arena.ClearDisconnectAsync(matchId, UserId);
+        await Clients.OthersInGroup(Group(matchId)).SendAsync("OpponentReturned", new { matchId });
         await Clients.Caller.SendAsync("Match", await arena.GetMatchAsync(matchId));
         var round = await arena.CurrentRoundAsync(matchId);
         if (round is not null) await Clients.Caller.SendAsync("RoundStarted", round);
+    }
+
+    /// <summary>Cliente que ficou reivindica a vitória após os 30s de reconexão do
+    /// oponente. Idempotente no servidor (só encerra se a janela realmente estourou).</summary>
+    public async Task ClaimAbandonment(int matchId)
+    {
+        var r = await arena.ResolveAbandonmentAsync(matchId, DateTime.UtcNow);
+        if (r.Resolved)
+            await Clients.Group(Group(matchId)).SendAsync("MatchFinished", await arena.GetMatchAsync(matchId));
+    }
+
+    /// <summary>Ao cair, inicia a janela de 30s pro jogador voltar; avisa o oponente
+    /// pra ele mostrar o relógio e, ao fim, reivindicar a vitória por abandono.</summary>
+    public override async Task OnDisconnectedAsync(Exception? exception)
+    {
+        if (Context.Items.TryGetValue("matchId", out var mv) && mv is int matchId)
+        {
+            await arena.MarkDisconnectedAsync(matchId, UserId, DateTime.UtcNow);
+            await Clients.OthersInGroup(Group(matchId)).SendAsync("OpponentLeft", new { matchId, secondsToReturn = 30 });
+        }
+        await base.OnDisconnectedAsync(exception);
     }
 
     /// <summary>Envia a resposta da rodada. Quando os dois respondem, apura e

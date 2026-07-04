@@ -18,6 +18,13 @@ export type ArenaMatch = {
   secondsPerQuestion: number
   player1Cosmetics:   ArenaCosmetic[]
   player2Cosmetics:   ArenaCosmetic[]
+  hp1:                  number
+  hp2:                  number
+  crit1:                number
+  crit2:                number
+  maxHp:                number
+  disconnectedUserId:   string | null
+  disconnectSecondsLeft: number | null
 }
 
 export type ArenaRound = {
@@ -36,6 +43,13 @@ export type ArenaRoundResult = {
   score2:       number
   finished:     boolean
   winnerId:     string | null
+  hp1:          number
+  hp2:          number
+  damage1:      number
+  damage2:      number
+  crit1:        number
+  crit2:        number
+  critAwardedTo: string | null
 }
 
 export type ArenaRankingRow = {

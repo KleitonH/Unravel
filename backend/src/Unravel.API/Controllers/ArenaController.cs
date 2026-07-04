@@ -50,6 +50,7 @@ public class ArenaController(IArenaService arena, IHubContext<ArenaHub> hub) : C
         return r.Outcome switch
         {
             ArenaActionOutcome.Ok              => StatusCode(201, new { matchId = r.MatchId }),
+            ArenaActionOutcome.AlreadyInMatch  => Conflict(new { message = "Você já está em uma batalha. Volte pra ela antes de iniciar outra.", matchId = r.MatchId }),
             ArenaActionOutcome.CannotSelf      => BadRequest(new { message = "Você não pode desafiar a si mesmo." }),
             ArenaActionOutcome.OpponentNotFound=> NotFound(new { message = "Oponente não encontrado." }),
             ArenaActionOutcome.NoQuestions     => BadRequest(new { message = "Essa trilha não tem questões pra batalhar." }),

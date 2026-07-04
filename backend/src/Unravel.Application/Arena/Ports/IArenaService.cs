@@ -21,7 +21,14 @@ public record ArenaMatchDto(
     int     TotalRounds,
     int     SecondsPerQuestion,
     IReadOnlyList<ArenaCosmeticDto> Player1Cosmetics,
-    IReadOnlyList<ArenaCosmeticDto> Player2Cosmetics);
+    IReadOnlyList<ArenaCosmeticDto> Player2Cosmetics,
+    int     Hp1,
+    int     Hp2,
+    int     Crit1,
+    int     Crit2,
+    int     MaxHp,
+    Guid?   DisconnectedUserId,
+    int?    DisconnectSecondsLeft);
 
 /// <summary>Cosmético equipado de um jogador (pra montar o NAVI no duelo).</summary>
 public record ArenaCosmeticDto(string Slot, string AssetSlug);
@@ -41,13 +48,20 @@ public record ArenaRoundResultDto(
     int   Score1,
     int   Score2,
     bool  Finished,
-    Guid? WinnerId);
+    Guid? WinnerId,
+    int   Hp1,
+    int   Hp2,
+    int   Damage1,
+    int   Damage2,
+    int   Crit1,
+    int   Crit2,
+    Guid? CritAwardedTo);
 
 public record ArenaRankingRow(int Rank, Guid UserId, string DisplayName, int Points, int Wins, int Losses, int Draws);
 
 public record EnqueueResult(bool Matched, int? MatchId = null);
 
-public enum ArenaActionOutcome { Ok, NotFound, NotAuthorized, CannotSelf, NoQuestions, OpponentNotFound }
+public enum ArenaActionOutcome { Ok, NotFound, NotAuthorized, CannotSelf, NoQuestions, OpponentNotFound, AlreadyInMatch }
 
 public record ArenaActionResult(ArenaActionOutcome Outcome, int? MatchId = null);
 
@@ -89,4 +103,15 @@ public interface IArenaService
 
     /// <summary>Partidas ativas + desafios pendentes do usuário (pra UI/notificação).</summary>
     Task<IReadOnlyList<ArenaMatchDto>> MyOpenMatchesAsync(Guid userId, CancellationToken ct = default);
+
+    /// <summary>Marca que <paramref name="userId"/> caiu da partida (inicia a
+    /// janela de reconexão de 30s). No-op se a partida não estiver ativa.</summary>
+    Task MarkDisconnectedAsync(int matchId, Guid userId, DateTime now, CancellationToken ct = default);
+
+    /// <summary>Limpa o estado de desconexão quando o jogador volta a tempo.</summary>
+    Task ClearDisconnectAsync(int matchId, Guid userId, CancellationToken ct = default);
+
+    /// <summary>Se a janela de 30s estourou sem o jogador voltar, encerra a
+    /// partida com vitória de quem ficou (abandono). Idempotente.</summary>
+    Task<ArenaResolveResult> ResolveAbandonmentAsync(int matchId, DateTime now, CancellationToken ct = default);
 }

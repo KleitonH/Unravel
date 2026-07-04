@@ -20,6 +20,8 @@ type Handlers = {
   onOpponentAnswered?: (e: { roundIndex: number }) => void
   onRoundResult?:    (r: ArenaRoundResult) => void
   onMatchFinished?:  (m: ArenaMatch) => void
+  onOpponentLeft?:   (e: { matchId: number; secondsToReturn: number }) => void
+  onOpponentReturned?: (e: { matchId: number }) => void
 }
 
 /**
@@ -48,6 +50,8 @@ export function useArenaMatch(matchId: number, handlers: Handlers) {
     conn.on("OpponentAnswered",(e) => h.current.onOpponentAnswered?.(e))
     conn.on("RoundResult",     (r) => h.current.onRoundResult?.(r))
     conn.on("MatchFinished",   (m) => h.current.onMatchFinished?.(m))
+    conn.on("OpponentLeft",    (e) => h.current.onOpponentLeft?.(e))
+    conn.on("OpponentReturned",(e) => h.current.onOpponentReturned?.(e))
 
     conn.onreconnecting(() => setState(HubConnectionState.Reconnecting))
     conn.onreconnected(async () => {
@@ -79,5 +83,11 @@ export function useArenaMatch(matchId: number, handlers: Handlers) {
       ? connRef.current.invoke("TimeUp", matchId, roundIndex)
       : Promise.resolve()
 
-  return { state, submit, timeUp }
+  // Reivindica a vitória após os 30s de reconexão do oponente que caiu.
+  const claimAbandonment = () =>
+    connRef.current?.state === HubConnectionState.Connected
+      ? connRef.current.invoke("ClaimAbandonment", matchId)
+      : Promise.resolve()
+
+  return { state, submit, timeUp, claimAbandonment }
 }

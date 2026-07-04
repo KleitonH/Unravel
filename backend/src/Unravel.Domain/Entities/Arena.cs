@@ -32,6 +32,16 @@ public class ArenaMatch
     public DateTime?        CurrentRoundStartedAt { get; set; }
     public int              SecondsPerQuestion  { get; set; } = 25;
 
+    // ── HP / crítico (batalha por dano; vence por KO ou mais HP no teto) ──
+    public int Hp1   { get; set; } = 100; // vida do jogador 1
+    public int Hp2   { get; set; } = 100; // vida do jogador 2
+    public int Crit1 { get; set; }        // cargas de crítico acumuladas (P1) — reforçam o próximo golpe
+    public int Crit2 { get; set; }
+
+    // ── desconexão / abandono (30s pra voltar, senão vence quem ficou) ──
+    public Guid?     DisconnectedUserId { get; set; }
+    public DateTime? DisconnectedAt     { get; set; }
+
     public DateTime  CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime? StartedAt { get; set; }
     public DateTime? EndedAt   { get; set; }
@@ -59,6 +69,10 @@ public class ArenaRound
     public int? SelectedIndex2 { get; set; }
     public int? MsToAnswer2    { get; set; }
     public int  Points2        { get; set; }
+
+    // Dano sofrido por cada jogador nesta rodada (pro feedback do resultado).
+    public int Damage1 { get; set; }
+    public int Damage2 { get; set; }
 
     public ArenaMatch? Match { get; set; }
 }

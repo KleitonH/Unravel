@@ -20,13 +20,32 @@ public class ArenaService(ApplicationDbContext db, INotificationService notifica
     private const int DefaultSeconds = 25;
     private const int ExpiryGraceMs  = 1500; // folga antes de resolver por timeout
 
+    // ── batalha por dano ──
+    private const int MaxHp        = 100; // vida inicial
+    private const int HitDamage    = 20;  // dano-base de um golpe (acerto sobre quem não acertou)
+    private const int CritBonus    = 10;  // dano extra por carga de crítico (ambos acertam → +carga p/ o + rápido)
+    private const int ReconnectSec = 30;  // janela pra voltar após cair, senão o oponente vence
+
     public async Task<EnqueueResult> EnqueueAsync(Guid userId, int trailId, CancellationToken ct = default)
     {
+        // 1 batalha ativa por vez: se já houver, volta pra ela (não inicia outra).
+        var active = await db.ArenaMatch
+            .Where(m => (m.Player1Id == userId || m.Player2Id == userId) && m.Status == ArenaMatchStatus.Active)
+            .Select(m => (int?)m.Id).FirstOrDefaultAsync(ct);
+        if (active is int existing)
+        {
+            await RemoveQueueAsync(userId, ct);
+            await db.SaveChangesAsync(ct);
+            return new EnqueueResult(true, existing);
+        }
+
         // Candidatos esperando no mesmo tema, já com pontos de Arena (ranking)
-        // e XP (nível) — pra parear pelo mais próximo, não mais FIFO.
+        // e XP (nível) — pra parear pelo mais próximo, não mais FIFO. Ignora quem
+        // já está numa batalha ativa (fila residual).
         var candidates = await (
             from q in db.ArenaQueueEntry
             where q.TrailId == trailId && q.UserId != userId
+               && !db.ArenaMatch.Any(m => (m.Player1Id == q.UserId || m.Player2Id == q.UserId) && m.Status == ArenaMatchStatus.Active)
             join u in db.User on q.UserId equals u.Id
             join r in db.ArenaRanking on q.UserId equals r.UserId into rr
             from r in rr.DefaultIfEmpty()
@@ -92,6 +111,12 @@ public class ArenaService(ApplicationDbContext db, INotificationService notifica
     public async Task<ArenaActionResult> ChallengeAsync(Guid challengerId, Guid opponentId, int trailId, CancellationToken ct = default)
     {
         if (challengerId == opponentId) return new ArenaActionResult(ArenaActionOutcome.CannotSelf);
+
+        // 1 batalha ativa por vez pra quem desafia.
+        var mine = await db.ArenaMatch
+            .Where(m => (m.Player1Id == challengerId || m.Player2Id == challengerId) && m.Status == ArenaMatchStatus.Active)
+            .Select(m => (int?)m.Id).FirstOrDefaultAsync(ct);
+        if (mine is int active) return new ArenaActionResult(ArenaActionOutcome.AlreadyInMatch, active);
 
         var opponent = await db.User.AsNoTracking().FirstOrDefaultAsync(u => u.Id == opponentId && u.IsActive, ct);
         if (opponent is null) return new ArenaActionResult(ArenaActionOutcome.OpponentNotFound);
@@ -163,25 +188,72 @@ public class ArenaService(ApplicationDbContext db, INotificationService notifica
 
         var startedAt = match.CurrentRoundStartedAt ?? now;
         var ms        = (int)Math.Max(0, (now - startedAt).TotalMilliseconds);
-        // selectedIndex < 0 = "pulou / não sei" → 0 pontos.
-        var isCorrect = selectedIndex >= 0 && selectedIndex == round.CorrectIndex;
+        // selectedIndex < 0 = "pulou / não sei" (normaliza pra -1 = SKIP; -2 = TIMEOUT só na expiração).
+        var sel       = selectedIndex < 0 ? -1 : selectedIndex;
+        var isCorrect = sel >= 0 && sel == round.CorrectIndex;
         var points    = LiveQuizScoring.Points(isCorrect, ms, match.SecondsPerQuestion);
 
-        if (isP1) { round.SelectedIndex1 = selectedIndex; round.MsToAnswer1 = ms; round.Points1 = points; match.Score1 += points; }
-        else      { round.SelectedIndex2 = selectedIndex; round.MsToAnswer2 = ms; round.Points2 = points; match.Score2 += points; }
+        if (isP1) { round.SelectedIndex1 = sel; round.MsToAnswer1 = ms; round.Points1 = points; match.Score1 += points; }
+        else      { round.SelectedIndex2 = sel; round.MsToAnswer2 = ms; round.Points2 = points; match.Score2 += points; }
 
         var bothAnswered = round.SelectedIndex1 is not null && round.SelectedIndex2 is not null;
         var finished = false;
         if (bothAnswered)
-        {
-            var total = await db.ArenaRound.CountAsync(r => r.MatchId == matchId, ct);
-            var next  = match.CurrentRoundIndex + 1;
-            if (next >= total) { await FinishAsync(match, ct); finished = true; }
-            else { match.CurrentRoundIndex = next; match.CurrentRoundStartedAt = now; }
-        }
+            finished = await ResolveRoundAsync(match, round, now, ct);
 
         await db.SaveChangesAsync(ct);
         return new SubmitArenaResult(true, isCorrect, points, bothAnswered, finished, round.CorrectIndex);
+    }
+
+    private enum Rk { Correct, Wrong, Skip, Timeout }
+    private static Rk Outcome(int? sel, int correctIndex) => sel switch
+    {
+        null => Rk.Timeout,
+        -2   => Rk.Timeout,
+        -1   => Rk.Skip,
+        var s when s == correctIndex => Rk.Correct,
+        _    => Rk.Wrong,
+    };
+
+    /// <summary>Apura a rodada pelo modelo de dano/crítico e avança/encerra.
+    /// Regra: você toma dano se estourou o tempo OU se o oponente acertou e você
+    /// não. Ambos acertam → sem dano, +carga de crítico pro mais rápido. Cada
+    /// carga soma <see cref="CritBonus"/> ao próximo golpe (e zera ao usar).
+    /// Vence por KO (HP 0) ou, no teto de rodadas, por mais HP.</summary>
+    private async Task<bool> ResolveRoundAsync(ArenaMatch match, ArenaRound round, DateTime now, CancellationToken ct)
+    {
+        var o1 = Outcome(round.SelectedIndex1, round.CorrectIndex);
+        var o2 = Outcome(round.SelectedIndex2, round.CorrectIndex);
+
+        // Ambos acertam: ninguém toma dano; carga de crítico pro que respondeu primeiro.
+        if (o1 == Rk.Correct && o2 == Rk.Correct)
+        {
+            var m1 = round.MsToAnswer1 ?? int.MaxValue;
+            var m2 = round.MsToAnswer2 ?? int.MaxValue;
+            if (m1 < m2) match.Crit1++;
+            else if (m2 < m1) match.Crit2++;
+        }
+
+        // Dano ao P1
+        int dmg1 = 0, dmg2 = 0;
+        if (o2 == Rk.Correct && o1 != Rk.Correct) { dmg1 = HitDamage + CritBonus * match.Crit2; match.Crit2 = 0; }
+        else if (o1 == Rk.Timeout)                { dmg1 = HitDamage; }
+        // Dano ao P2
+        if (o1 == Rk.Correct && o2 != Rk.Correct) { dmg2 = HitDamage + CritBonus * match.Crit1; match.Crit1 = 0; }
+        else if (o2 == Rk.Timeout)                { dmg2 = HitDamage; }
+
+        match.Hp1 = Math.Max(0, match.Hp1 - dmg1);
+        match.Hp2 = Math.Max(0, match.Hp2 - dmg2);
+        round.Damage1 = dmg1;
+        round.Damage2 = dmg2;
+
+        var total = await db.ArenaRound.CountAsync(r => r.MatchId == match.Id, ct);
+        var next  = match.CurrentRoundIndex + 1;
+        var ko    = match.Hp1 <= 0 || match.Hp2 <= 0;
+        if (ko || next >= total) { await FinishByHpAsync(match, ct); return true; }
+        match.CurrentRoundIndex = next;
+        match.CurrentRoundStartedAt = now;
+        return false;
     }
 
     public async Task<ArenaResolveResult> ResolveExpiredRoundAsync(
@@ -199,17 +271,12 @@ public class ArenaService(ApplicationDbContext db, INotificationService notifica
         var round = await db.ArenaRound.FirstOrDefaultAsync(r => r.MatchId == matchId && r.OrderIndex == roundIndex, ct);
         if (round is null) return new ArenaResolveResult(false, false);
 
-        // Preenche "pulou" (0 pts) pra quem não respondeu.
+        // Quem não respondeu = TIMEOUT (-2) → toma dano na apuração.
         var limitMs = match.SecondsPerQuestion * 1000;
-        if (round.SelectedIndex1 is null) { round.SelectedIndex1 = -1; round.MsToAnswer1 = limitMs; round.Points1 = 0; }
-        if (round.SelectedIndex2 is null) { round.SelectedIndex2 = -1; round.MsToAnswer2 = limitMs; round.Points2 = 0; }
+        if (round.SelectedIndex1 is null) { round.SelectedIndex1 = -2; round.MsToAnswer1 = limitMs; round.Points1 = 0; }
+        if (round.SelectedIndex2 is null) { round.SelectedIndex2 = -2; round.MsToAnswer2 = limitMs; round.Points2 = 0; }
 
-        var total = await db.ArenaRound.CountAsync(r => r.MatchId == matchId, ct);
-        var next  = match.CurrentRoundIndex + 1;
-        var finished = false;
-        if (next >= total) { await FinishAsync(match, ct); finished = true; }
-        else { match.CurrentRoundIndex = next; match.CurrentRoundStartedAt = now; }
-
+        var finished = await ResolveRoundAsync(match, round, now, ct);
         await db.SaveChangesAsync(ct);
         return new ArenaResolveResult(true, finished);
     }
@@ -237,8 +304,18 @@ public class ArenaService(ApplicationDbContext db, INotificationService notifica
         var m = await db.ArenaMatch.AsNoTracking().FirstOrDefaultAsync(x => x.Id == matchId, ct);
         var r = await db.ArenaRound.AsNoTracking().FirstOrDefaultAsync(x => x.MatchId == matchId && x.OrderIndex == orderIndex, ct);
         if (m is null || r is null) return null;
+
+        // Crítico concedido nesta rodada: ambos acertaram → quem respondeu primeiro.
+        Guid? critTo = null;
+        if (Outcome(r.SelectedIndex1, r.CorrectIndex) == Rk.Correct && Outcome(r.SelectedIndex2, r.CorrectIndex) == Rk.Correct)
+        {
+            var m1 = r.MsToAnswer1 ?? int.MaxValue; var m2 = r.MsToAnswer2 ?? int.MaxValue;
+            if (m1 < m2) critTo = m.Player1Id; else if (m2 < m1) critTo = m.Player2Id;
+        }
+
         return new ArenaRoundResultDto(r.OrderIndex, r.CorrectIndex, m.Score1, m.Score2,
-            m.Status == ArenaMatchStatus.Finished, m.WinnerId);
+            m.Status == ArenaMatchStatus.Finished, m.WinnerId,
+            m.Hp1, m.Hp2, r.Damage1, r.Damage2, m.Crit1, m.Crit2, critTo);
     }
 
     public async Task<IReadOnlyList<ArenaRankingRow>> RankingAsync(int top, CancellationToken ct = default)
@@ -298,18 +375,69 @@ public class ArenaService(ApplicationDbContext db, INotificationService notifica
         return true;
     }
 
-    private async Task FinishAsync(ArenaMatch match, CancellationToken ct)
+    /// <summary>Encerra por KO (HP 0) ou no teto de rodadas (mais HP vence;
+    /// empate de HP desempata por cargas de crítico; senão empate real).</summary>
+    private async Task FinishByHpAsync(ArenaMatch match, CancellationToken ct)
     {
-        match.Status  = ArenaMatchStatus.Finished;
-        match.EndedAt = DateTime.UtcNow;
-        match.WinnerId = match.Score1 == match.Score2 ? null
-            : (match.Score1 > match.Score2 ? match.Player1Id : match.Player2Id);
+        Guid? winner;
+        if (match.Hp1 <= 0 && match.Hp2 <= 0) winner = null;              // duplo KO
+        else if (match.Hp2 <= 0)              winner = match.Player1Id;    // P2 nocauteado
+        else if (match.Hp1 <= 0)              winner = match.Player2Id;    // P1 nocauteado
+        else if (match.Hp1 != match.Hp2)      winner = match.Hp1 > match.Hp2 ? match.Player1Id : match.Player2Id;
+        else if (match.Crit1 != match.Crit2)  winner = match.Crit1 > match.Crit2 ? match.Player1Id : match.Player2Id;
+        else                                  winner = null;              // empate real
+        await SettleAsync(match, winner, ct);
+    }
+
+    /// <summary>Aplica status Finished + WinnerId e atualiza o ranking dos dois.</summary>
+    private async Task SettleAsync(ArenaMatch match, Guid? winner, CancellationToken ct)
+    {
+        match.Status   = ArenaMatchStatus.Finished;
+        match.EndedAt  = DateTime.UtcNow;
+        match.WinnerId = winner;
 
         var p1 = match.Player1Id;
         var p2 = match.Player2Id!.Value;
-        if (match.WinnerId is null) { await BumpAsync(p1, "draw", ct); await BumpAsync(p2, "draw", ct); }
-        else if (match.WinnerId == p1) { await BumpAsync(p1, "win", ct); await BumpAsync(p2, "loss", ct); }
+        if (winner is null) { await BumpAsync(p1, "draw", ct); await BumpAsync(p2, "draw", ct); }
+        else if (winner == p1) { await BumpAsync(p1, "win", ct); await BumpAsync(p2, "loss", ct); }
         else { await BumpAsync(p2, "win", ct); await BumpAsync(p1, "loss", ct); }
+    }
+
+    public async Task MarkDisconnectedAsync(int matchId, Guid userId, DateTime now, CancellationToken ct = default)
+    {
+        var m = await db.ArenaMatch.FirstOrDefaultAsync(x => x.Id == matchId, ct);
+        if (m is null || m.Status != ArenaMatchStatus.Active) return;
+        if (m.Player1Id != userId && m.Player2Id != userId) return;
+        // só marca se ninguém já está no relógio de abandono
+        if (m.DisconnectedUserId is null)
+        {
+            m.DisconnectedUserId = userId;
+            m.DisconnectedAt     = now;
+            await db.SaveChangesAsync(ct);
+        }
+    }
+
+    public async Task ClearDisconnectAsync(int matchId, Guid userId, CancellationToken ct = default)
+    {
+        var m = await db.ArenaMatch.FirstOrDefaultAsync(x => x.Id == matchId, ct);
+        if (m is null || m.DisconnectedUserId != userId) return;
+        m.DisconnectedUserId = null;
+        m.DisconnectedAt     = null;
+        await db.SaveChangesAsync(ct);
+    }
+
+    public async Task<ArenaResolveResult> ResolveAbandonmentAsync(int matchId, DateTime now, CancellationToken ct = default)
+    {
+        var m = await db.ArenaMatch.FirstOrDefaultAsync(x => x.Id == matchId, ct);
+        if (m is null || m.Status != ArenaMatchStatus.Active || m.DisconnectedUserId is not Guid gone || m.DisconnectedAt is not DateTime at)
+            return new ArenaResolveResult(false, false);
+        if ((now - at).TotalSeconds < ReconnectSec) return new ArenaResolveResult(false, false);
+
+        // Vence quem ficou (o que não desconectou).
+        var winner = m.Player1Id == gone ? m.Player2Id : m.Player1Id;
+        await SettleAsync(m, winner, ct);
+        await db.SaveChangesAsync(ct);
+        return new ArenaResolveResult(true, true);
     }
 
     private async Task BumpAsync(Guid userId, string result, CancellationToken ct)
@@ -330,9 +458,12 @@ public class ArenaService(ApplicationDbContext db, INotificationService notifica
         var p2Name = m.Player2Id is null ? null : await NameAsync(m.Player2Id.Value, ct);
         var p1Cos  = await CosmeticsAsync(m.Player1Id, ct);
         var p2Cos  = m.Player2Id is null ? new List<ArenaCosmeticDto>() : await CosmeticsAsync(m.Player2Id.Value, ct);
+        int? dcLeft = m.DisconnectedAt is DateTime at
+            ? Math.Max(0, ReconnectSec - (int)(DateTime.UtcNow - at).TotalSeconds)
+            : null;
         return new ArenaMatchDto(m.Id, m.Status.ToString(), m.TrailId, m.Player1Id, p1Name,
             m.Player2Id, p2Name, m.Score1, m.Score2, m.WinnerId, m.CurrentRoundIndex, totalRounds, m.SecondsPerQuestion,
-            p1Cos, p2Cos);
+            p1Cos, p2Cos, m.Hp1, m.Hp2, m.Crit1, m.Crit2, MaxHp, m.DisconnectedUserId, dcLeft);
     }
 
     /// <summary>Cosméticos equipados de um jogador, no slot do NAVI (pra render no duelo).</summary>
