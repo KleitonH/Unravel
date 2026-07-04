@@ -32,7 +32,7 @@ export function RegisterPage() {
   }
 
   return (
-    <div className="min-h-full grid place-items-center p-4 bg-gradient-to-br from-background via-background to-card">
+    <div className="min-h-dvh grid place-items-center p-4 py-8 bg-gradient-to-br from-background via-background to-card">
       <Card className="w-full max-w-md animate-fade-in">
         <CardHeader className="text-center space-y-2">
           <div className="text-4xl">💎</div>
