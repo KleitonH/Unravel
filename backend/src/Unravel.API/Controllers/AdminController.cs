@@ -704,13 +704,21 @@ public sealed class AdminController(
             .Select(g => new { g.Id, g.Prompt, g.BodyJson, g.Strategy, g.EstimatedDifficulty })
             .ToListAsync(ct);
 
+        // Bandeirinhas abertas por pergunta (badge de "aluno reportou").
+        var openFlags = await db.ChallengeFeedback.AsNoTracking()
+            .Where(f => f.ContentId == contentId && f.Status == FeedbackStatus.Aberto)
+            .GroupBy(f => f.GeneratedChallengeId)
+            .Select(g => new { ChallengeId = g.Key, Count = g.Count() })
+            .ToDictionaryAsync(x => x.ChallengeId, x => x.Count, ct);
+
         var items = rows.Select(g =>
         {
             var (options, correctIndex, explanation, shape, chunkIdx) = ParseChallengeBody(g.BodyJson);
             return new ContentQuestionDto(
                 g.Id, chunkIdx, g.Strategy.ToString(), shape, g.Prompt,
                 options, correctIndex, explanation, g.EstimatedDifficulty,
-                Authored: g.Strategy == ForgeStrategy.ModeratorAuthored);
+                Authored: g.Strategy == ForgeStrategy.ModeratorAuthored,
+                FlagsOpen: openFlags.GetValueOrDefault(g.Id, 0));
         }).ToList();
 
         return Ok(items);
@@ -857,6 +865,63 @@ public sealed class AdminController(
         challenge.IsActive = false;
         await db.SaveChangesAsync(ct);
         return NoContent();
+    }
+
+    // ─── Bandeirinhas — feedback de qualidade dos alunos ────────────────
+
+    /// <summary>
+    /// Histórico de bandeirinhas de uma pergunta: quem sinalizou, o tipo do
+    /// problema, o comentário e o status da triagem. Ordena Abertas primeiro
+    /// (o que o moderador precisa agir), depois por data desc.
+    /// </summary>
+    [HttpGet("questions/{challengeId:int}/feedback")]
+    public async Task<IActionResult> ListQuestionFeedback(
+        int challengeId,
+        [FromServices] ApplicationDbContext db,
+        CancellationToken ct)
+    {
+        var rows = await db.ChallengeFeedback.AsNoTracking()
+            .Where(f => f.GeneratedChallengeId == challengeId)
+            .Join(db.User.AsNoTracking(), f => f.UserId, u => u.Id, (f, u) => new { f, u.Name })
+            .OrderBy(x => x.f.Status)        // Aberto(0) antes de Revisado(1)/Descartado(2)
+            .ThenByDescending(x => x.f.CreatedAt)
+            .Select(x => new ChallengeFeedbackDto(
+                x.f.Id,
+                x.f.GeneratedChallengeId,
+                x.f.Reason.ToString(),
+                x.f.Comment,
+                x.f.Status.ToString(),
+                x.Name,
+                x.f.CreatedAt,
+                x.f.ReviewedAt))
+            .ToListAsync(ct);
+
+        return Ok(rows);
+    }
+
+    /// <summary>
+    /// Triagem: marca uma bandeirinha como <c>Revisado</c> (moderador agiu)
+    /// ou <c>Descartado</c> (improcedente). Registra quem revisou e quando.
+    /// Não permite "reabrir" (voltar pra Aberto) via este endpoint.
+    /// </summary>
+    [HttpPatch("feedback/{feedbackId:int}")]
+    public async Task<IActionResult> ResolveFeedback(
+        int feedbackId,
+        [FromBody] ResolveFeedbackRequest dto,
+        [FromServices] ApplicationDbContext db,
+        CancellationToken ct)
+    {
+        if (dto.Status != FeedbackStatus.Revisado && dto.Status != FeedbackStatus.Descartado)
+            return BadRequest(new { message = "Status deve ser Revisado ou Descartado." });
+
+        var feedback = await db.ChallengeFeedback.FirstOrDefaultAsync(f => f.Id == feedbackId, ct);
+        if (feedback is null) return NotFound();
+
+        feedback.Status           = dto.Status;
+        feedback.ReviewedByUserId = UserId();
+        feedback.ReviewedAt       = DateTime.UtcNow;
+        await db.SaveChangesAsync(ct);
+        return Ok(new { feedback.Id, status = feedback.Status.ToString(), feedback.ReviewedAt });
     }
 
     /// <summary>Serializa o BodyJson no MESMO schema do QuestionForgeWorker
@@ -1289,7 +1354,24 @@ public record ContentQuestionDto(
     int           CorrectIndex,
     string?       Explanation,
     double        EstimatedDifficulty,
-    bool          Authored);
+    bool          Authored,
+    int           FlagsOpen);   // bandeirinhas Abertas de alunos (0 = nenhuma)
+
+/// <summary>Feedback (bandeirinha) de um aluno sobre uma pergunta, pra
+/// histórico do moderador. <c>Reason</c>/<c>Status</c> vêm como string do
+/// enum pra UI não depender do valor numérico.</summary>
+public record ChallengeFeedbackDto(
+    int      Id,
+    int      GeneratedChallengeId,
+    string   Reason,
+    string?  Comment,
+    string   Status,
+    string   StudentName,
+    DateTime CreatedAt,
+    DateTime? ReviewedAt);
+
+/// <summary>PATCH de triagem: novo status (Revisado=1 ou Descartado=2).</summary>
+public record ResolveFeedbackRequest(FeedbackStatus Status);
 
 public record GoldDto(
     int       Id,

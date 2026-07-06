@@ -58,7 +58,32 @@ export type ContentQuestion = {
   explanation:         string | null
   estimatedDifficulty: number
   authored:            boolean
+  flagsOpen:           number   // bandeirinhas Abertas de alunos (0 = nenhuma)
 }
+
+/**
+ * Bandeirinha (feedback de qualidade) de um aluno sobre uma pergunta.
+ * `reason`/`status` chegam como string do enum do backend.
+ */
+export type ChallengeFeedback = {
+  id:                   number
+  generatedChallengeId: number
+  reason:               FeedbackReasonKey
+  comment:              string | null
+  status:               FeedbackStatusKey
+  studentName:          string
+  createdAt:            string
+  reviewedAt:           string | null
+}
+
+export type FeedbackReasonKey =
+  | "GabaritoErrado"
+  | "Ambigua"
+  | "MultiplaCorreta"
+  | "ForaDoConteudo"
+  | "Outro"
+
+export type FeedbackStatusKey = "Aberto" | "Revisado" | "Descartado"
 
 /**
  * PR 62b — saúde da geração por IA de um conteúdo. Quando recommendGold,

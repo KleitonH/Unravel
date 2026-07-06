@@ -10,6 +10,7 @@ import { toast } from "sonner"
 import { chaptersApi } from "@/api/chapters"
 import { challengePoolApi } from "@/api/challenge-pool"
 import { QuestionRenderer } from "@/components/quiz/question-renderer"
+import { FlagQuestionButton } from "@/components/quiz/flag-question-button"
 import { OutOfLivesCard } from "@/components/gamification/out-of-lives"
 import { useQuizLives } from "@/components/gamification/use-quiz-lives"
 import { Badge } from "@/components/ui/badge"
@@ -304,9 +305,13 @@ export function ChapteredQuizPage() {
               <span className="uppercase tracking-wider font-semibold">
                 📖 {chapter.title}
               </span>
-              <Badge variant="outline" className="text-[10px]">
-                Pergunta {state.questionIndex + 1} / {chapter.challenges.length}
-              </Badge>
+              <div className="flex items-center gap-1">
+                <Badge variant="outline" className="text-[10px]">
+                  Pergunta {state.questionIndex + 1} / {chapter.challenges.length}
+                </Badge>
+                {/* Bandeirinha: aluno reporta pergunta inadequada */}
+                <FlagQuestionButton challengeId={currentQ.id} />
+              </div>
             </div>
 
             <QuestionRenderer

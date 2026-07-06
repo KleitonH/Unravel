@@ -22,6 +22,7 @@ public partial class ApplicationDbContext(DbContextOptions<ApplicationDbContext>
     public DbSet<QuestionForgeJob>     QuestionForgeJob     => Set<QuestionForgeJob>();
     public DbSet<ModeratorGoldItem>    ModeratorGoldItem    => Set<ModeratorGoldItem>();
     public DbSet<UserSeenChallenge>    UserSeenChallenge    => Set<UserSeenChallenge>();
+    public DbSet<ChallengeFeedback>    ChallengeFeedback    => Set<ChallengeFeedback>();
     public DbSet<UserBossFight>            UserBossFight            => Set<UserBossFight>();
 
     // PR 52 — tokens "centímetros de lã" do moderador

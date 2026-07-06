@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useState } from "react"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import {
-  AlertTriangle, Bot, CheckCircle2, ChevronDown, ChevronRight,
-  Loader2, PenLine, Pencil, Sparkles, Trash2,
+  AlertTriangle, Bot, CheckCircle2, ChevronDown, ChevronRight, Flag,
+  Loader2, PenLine, Pencil, Sparkles, Trash2, X,
 } from "lucide-react"
 import { toast } from "sonner"
 import { chaptersApi } from "@/api/chapters"
+import { feedbackApi, FEEDBACK_REASON_LABELS } from "@/api/feedback"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -249,6 +250,7 @@ function QuestionRow({
   onEdit:    () => void
 }) {
   const qc = useQueryClient()
+  const [feedbackOpen, setFeedbackOpen] = useState(false)
   const deleteMutation = useMutation({
     mutationFn: () => chaptersApi.deleteQuestion(contentId, q.id),
     onSuccess: () => {
@@ -260,9 +262,12 @@ function QuestionRow({
   })
 
   return (
-    <li className="rounded border border-border/60 bg-popover/40 px-2.5 py-1.5">
+    <li className={cn(
+      "rounded border px-2.5 py-1.5",
+      q.flagsOpen > 0 ? "border-warning/50 bg-warning/5" : "border-border/60 bg-popover/40",
+    )}>
       <div className="flex items-start justify-between gap-2">
-        <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
+        <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground flex-wrap">
           {q.authored ? (
             <Badge variant="outline" className="text-[10px] border-primary/40 text-primary gap-1">
               <PenLine className="h-2.5 w-2.5" /> sua
@@ -274,6 +279,17 @@ function QuestionRow({
           )}
           {q.shape === "FillInTheBlank" && (
             <Badge variant="outline" className="text-[10px]">🧩 fill-blank</Badge>
+          )}
+          {q.flagsOpen > 0 && (
+            <button
+              type="button"
+              onClick={() => setFeedbackOpen(true)}
+              className="inline-flex items-center gap-1 rounded-full border border-warning/50 bg-warning/10 px-1.5 py-0.5 text-[10px] font-semibold text-warning hover:bg-warning/20"
+              title="Ver sinalizações de alunos"
+            >
+              <Flag className="h-2.5 w-2.5" />
+              {q.flagsOpen} {q.flagsOpen === 1 ? "sinalização" : "sinalizações"}
+            </button>
           )}
           <span>dif {Math.round(q.estimatedDifficulty * 100)}%</span>
         </div>
@@ -300,7 +316,144 @@ function QuestionRow({
       </div>
       <p className="text-xs mt-0.5 line-clamp-2">{q.prompt}</p>
       <p className="text-[11px] text-success mt-0.5">✓ {q.options[q.correctIndex]}</p>
+
+      {feedbackOpen && (
+        <QuestionFeedbackDialog
+          open
+          onClose={() => setFeedbackOpen(false)}
+          contentId={contentId}
+          challengeId={q.id}
+          prompt={q.prompt}
+        />
+      )}
     </li>
+  )
+}
+
+/**
+ * Histórico de bandeirinhas de uma pergunta. Lista quem sinalizou, o tipo
+ * do problema e o comentário; permite ao moderador triar cada uma como
+ * "Revisado" (agiu) ou "Descartado" (improcedente). Resolver uma atualiza
+ * o badge de contagem na lista de perguntas.
+ */
+function QuestionFeedbackDialog({
+  open, onClose, contentId, challengeId, prompt,
+}: {
+  open:        boolean
+  onClose:     () => void
+  contentId:   number
+  challengeId: number
+  prompt:      string
+}) {
+  const qc = useQueryClient()
+  const feedbackQuery = useQuery({
+    queryKey: ["admin", "question-feedback", challengeId],
+    queryFn:  () => feedbackApi.listForQuestion(challengeId),
+  })
+
+  const resolveMutation = useMutation({
+    mutationFn: ({ id, status }: { id: number; status: 1 | 2 }) =>
+      feedbackApi.resolve(id, status),
+    onSuccess: () => {
+      toast.success("Sinalização triada.")
+      qc.invalidateQueries({ queryKey: ["admin", "question-feedback", challengeId] })
+      // atualiza o badge de contagem na lista de perguntas
+      qc.invalidateQueries({ queryKey: ["admin", "content-questions", contentId] })
+    },
+    onError: () => toast.error("Falha ao triar."),
+  })
+
+  const items = feedbackQuery.data ?? []
+
+  return (
+    <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
+      <DialogContent className="max-w-lg">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <Flag className="h-5 w-5 text-warning" />
+            Sinalizações de alunos
+          </DialogTitle>
+          <DialogDescription className="line-clamp-2">{prompt}</DialogDescription>
+        </DialogHeader>
+
+        {feedbackQuery.isLoading && (
+          <div className="space-y-2">
+            {[1, 2].map((i) => <Skeleton key={i} className="h-16" />)}
+          </div>
+        )}
+
+        {feedbackQuery.data && items.length === 0 && (
+          <p className="text-sm text-muted-foreground py-4 text-center">
+            Nenhuma sinalização para esta pergunta.
+          </p>
+        )}
+
+        {items.length > 0 && (
+          <ul className="space-y-2 max-h-[50vh] overflow-y-auto">
+            {items.map((f) => {
+              const open = f.status === "Aberto"
+              return (
+                <li
+                  key={f.id}
+                  className={cn(
+                    "rounded-md border px-3 py-2 text-sm",
+                    open ? "border-warning/40 bg-warning/5" : "border-border/60 opacity-70",
+                  )}
+                >
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="font-medium">
+                      {FEEDBACK_REASON_LABELS[f.reason] ?? f.reason}
+                    </span>
+                    <Badge
+                      variant="outline"
+                      className={cn(
+                        "text-[10px]",
+                        f.status === "Aberto"    && "border-warning/50 text-warning",
+                        f.status === "Revisado"  && "border-success/50 text-success",
+                        f.status === "Descartado" && "border-muted-foreground/40 text-muted-foreground",
+                      )}
+                    >
+                      {f.status}
+                    </Badge>
+                  </div>
+                  {f.comment && (
+                    <p className="text-xs text-muted-foreground mt-1 italic">“{f.comment}”</p>
+                  )}
+                  <p className="text-[10px] text-muted-foreground mt-1">
+                    {f.studentName} · {new Date(f.createdAt).toLocaleDateString("pt-BR")}
+                  </p>
+                  {open && (
+                    <div className="flex gap-1.5 mt-2">
+                      <Button
+                        size="sm"
+                        className="h-7 text-xs"
+                        disabled={resolveMutation.isPending}
+                        onClick={() => resolveMutation.mutate({ id: f.id, status: 1 })}
+                      >
+                        <CheckCircle2 className="h-3.5 w-3.5 mr-1" /> Marcar revisado
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="h-7 text-xs"
+                        disabled={resolveMutation.isPending}
+                        onClick={() => resolveMutation.mutate({ id: f.id, status: 2 })}
+                      >
+                        <X className="h-3.5 w-3.5 mr-1" /> Descartar
+                      </Button>
+                    </div>
+                  )}
+                </li>
+              )
+            })}
+          </ul>
+        )}
+
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose}>Fechar</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   )
 }
 

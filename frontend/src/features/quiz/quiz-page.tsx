@@ -10,6 +10,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Skeleton } from "@/components/ui/skeleton"
 import { cn } from "@/lib/utils"
 import { QuestionRenderer } from "@/components/quiz/question-renderer"
+import { FlagQuestionButton } from "@/components/quiz/flag-question-button"
 import { OutOfLivesCard } from "@/components/gamification/out-of-lives"
 import { useQuizLives } from "@/components/gamification/use-quiz-lives"
 import type { PoolChallenge, SubmitPoolChallengeResponse } from "@/types/api"
@@ -136,11 +137,13 @@ export function QuizPage() {
           {current && (
             <Card>
               <CardContent className="pt-6 space-y-4">
-                <div className="flex gap-1.5 flex-wrap">
+                <div className="flex gap-1.5 flex-wrap items-center">
                   <StrategyBadge strategy={current.strategy} />
                   <Badge variant="outline" className="text-[10px]">
                     Dificuldade: {Math.round(current.estimatedDifficulty * 100)}%
                   </Badge>
+                  {/* Bandeirinha: aluno reporta pergunta inadequada */}
+                  <FlagQuestionButton challengeId={current.id} className="ml-auto" />
                 </div>
 
                 <QuestionRenderer
