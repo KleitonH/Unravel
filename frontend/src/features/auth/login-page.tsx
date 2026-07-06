@@ -35,7 +35,7 @@ export function LoginPage() {
     <div className="min-h-dvh grid place-items-center p-4 py-8 bg-gradient-to-br from-background via-background to-card">
       <Card className="w-full max-w-md animate-fade-in">
         <CardHeader className="text-center space-y-2">
-          <div className="text-4xl">💎</div>
+          <img src="/logo-novelo.svg" alt="Unravel" className="mx-auto h-14 w-14" />
           <CardTitle className="text-2xl">Bem-vindo de volta!</CardTitle>
           <CardDescription>Entre para continuar sua trilha</CardDescription>
         </CardHeader>

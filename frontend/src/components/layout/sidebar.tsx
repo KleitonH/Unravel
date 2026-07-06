@@ -36,7 +36,7 @@ export function Sidebar() {
         {/* Brand + toggle */}
         <div className="flex items-center justify-between px-3 py-4">
           <Link to="/dashboard" className="flex items-center gap-2">
-            <span className="text-2xl leading-none">💎</span>
+            <img src="/logo-novelo.svg" alt="Unravel" className="h-7 w-7 shrink-0" />
             {expanded && (
               <span className="font-display font-extrabold tracking-wider text-sm">
                 UNRAVEL
