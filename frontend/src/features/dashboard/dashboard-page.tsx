@@ -11,7 +11,7 @@ import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
 import { NaviFace } from "@/components/navi/navi-face"
-import { NoveloWidget } from "@/components/novelo/novelo-widget"
+import { DailyGoalsWidget } from "@/components/dashboard/daily-goals-widget"
 import { cn } from "@/lib/utils"
 import type { JourneyPlan, JourneyReason, Profile, StudentProfile, Trail } from "@/types/api"
 
@@ -128,8 +128,8 @@ export function DashboardPage() {
 
       <LeagueBanner />
 
-      {/* Novelo de Trilha — resumo das parcerias ativas (Ideia 1). */}
-      {profileQuery.data?.role === "Student" && <NoveloWidget />}
+      {/* Metas do dia — novelo + caixinha + como ganhar progresso. */}
+      {profileQuery.data?.role === "Student" && <DailyGoalsWidget />}
 
       {profileQuery.data?.role === "Student" && (
         <div className="grid gap-3 sm:grid-cols-2">
