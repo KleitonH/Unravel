@@ -91,8 +91,8 @@ export function OnboardingPage() {
     setLoading(true)
     try {
       const payload: { answers: LevelingAnswer[] } = {
-        answers: Array.from(answers.entries()).map(([topicId, selectedOptionIndex]) => ({
-          topicId, selectedOptionIndex,
+        answers: Array.from(answers.entries()).map(([challengeId, selectedOptionIndex]) => ({
+          challengeId, selectedOptionIndex,
         })),
       }
       const r = await onboardingApi.submit(Array.from(selected), payload)
@@ -184,7 +184,7 @@ export function OnboardingPage() {
               </CardHeader>
               <CardContent className="space-y-5">
                 {group.questions.map((q) => (
-                  <div key={q.topicId} className="space-y-2 pb-4 border-b border-border last:border-0 last:pb-0">
+                  <div key={q.challengeId} className="space-y-2 pb-4 border-b border-border last:border-0 last:pb-0">
                     <p className="text-sm font-medium">{q.prompt}</p>
                     <div className="flex gap-1.5 flex-wrap">
                       <Badge variant="secondary" className="text-[10px]">{q.contentTitle}</Badge>
@@ -192,14 +192,14 @@ export function OnboardingPage() {
                     </div>
                     <div className="space-y-1.5 pt-1">
                       {q.options.map((opt, i) => {
-                        const picked = answers.get(q.topicId) === i
+                        const picked = answers.get(q.challengeId) === i
                         return (
                           <button
                             key={i}
                             type="button"
                             onClick={() => {
                               const next = new Map(answers)
-                              next.set(q.topicId, i)
+                              next.set(q.challengeId, i)
                               setAnswers(next)
                             }}
                             className={cn(

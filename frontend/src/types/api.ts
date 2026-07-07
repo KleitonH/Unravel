@@ -70,6 +70,7 @@ export type JourneyPlan = {
 // ── Onboarding (PR 6) ───────────────────────────────────────────────
 
 export type LevelingQuestion = {
+  challengeId: number
   topicId: number
   contentId: number
   contentTitle: string
@@ -87,7 +88,7 @@ export type LevelingTrailGroup = {
 
 export type OnboardingTest = { trails: LevelingTrailGroup[] }
 
-export type LevelingAnswer = { topicId: number; selectedOptionIndex: number }
+export type LevelingAnswer = { challengeId: number; selectedOptionIndex: number }
 export type OnboardingSubmit = { answers: LevelingAnswer[] }
 
 export type TrailLevelEstimate = {

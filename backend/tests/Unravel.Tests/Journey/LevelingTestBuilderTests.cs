@@ -1,113 +1,115 @@
-using Unravel.Application.Forge.Ports;
+using System.Text.Json;
 using Unravel.Application.Journey.Onboarding;
 using Unravel.Domain.Entities;
-using Unravel.Infrastructure.Forge;
-using Unravel.Infrastructure.Forge.Strategies;
-using Unravel.Infrastructure.Knowledge;
+using Unravel.Domain.Forge;
 
 namespace Unravel.Tests.Journey;
 
 public class LevelingTestBuilderTests
 {
-    private readonly GraphBuilder _graphBuilder = new(new RakeKeywordExtractor(), new DifficultyScorer());
+    private readonly LevelingTestBuilder _builder = new();
 
-    private LevelingTestBuilder CreateBuilder()
-    {
-        var distractors = new DistractorPicker();
-        var strategies = new IChallengeStrategy[]
+    private static Content C(int id, string title) =>
+        new() { Id = id, TrailId = 1, Order = id, Title = title, Body = "corpo", Level = DifficultyLevel.Intermediate, IsActive = true };
+
+    private static GeneratedChallenge GC(int id, int contentId, double difficulty, int correctIndex = 0) =>
+        new()
         {
-            new ClozeStrategy(distractors),
-            new DefinitionStrategy(distractors),
-            new TrueFalseStrategy(distractors),
+            Id = id, ContentId = contentId, TopicId = contentId, TrailId = 1,
+            Strategy = ForgeStrategy.LlmGrounded, Prompt = $"Pergunta {id}?",
+            EstimatedDifficulty = difficulty, IsActive = true,
+            BodyJson = JsonSerializer.Serialize(new
+            {
+                options = new[] { "A", "B", "C", "D" }, correctIndex, explanation = (string?)null,
+            }),
         };
-        var forge = new ChallengeForge(strategies, graphCache: null!);
-        return new LevelingTestBuilder(forge);
+
+    // Trilha com 8 conteúdos, 1 pergunta cada, dificuldades espalhadas.
+    private static (List<GeneratedChallenge>, Dictionary<int, Content>) RichTrail()
+    {
+        var challenges = new List<GeneratedChallenge>();
+        var contents   = new Dictionary<int, Content>();
+        for (var i = 1; i <= 8; i++)
+        {
+            challenges.Add(GC(id: i, contentId: i, difficulty: i / 8.0));
+            contents[i] = C(i, $"Conteúdo {i}");
+        }
+        return (challenges, contents);
     }
 
-    private static Content C(int id, int order, string title, string body, DifficultyLevel level = DifficultyLevel.Intermediate) =>
-        new() { Id = id, TrailId = 1, Order = order, Title = title, Body = body, Level = level, IsActive = true };
-
-    private List<Content> RichTrail() => new()
+    [Fact]
+    public void Build_CapsAtQuestionsPerTrail_AndSpreadsByDifficulty()
     {
-        C(1, 1, "Variáveis",  "Variáveis em JavaScript guardam valores primitivos como strings e números. " +
-                              "Usam let, const ou var para declaração com escopos distintos.", DifficultyLevel.Beginner),
-        C(2, 2, "Funções",    "Funções em JavaScript encapsulam blocos de código reutilizáveis. " +
-                              "Aceitam parâmetros, retornam valores e podem ser passadas como argumentos.", DifficultyLevel.Beginner),
-        C(3, 3, "Objetos",    "Objetos JavaScript agrupam dados e comportamentos em pares chave-valor. " +
-                              "Permitem composição flexível e acesso via dot notation ou brackets.", DifficultyLevel.Intermediate),
-        C(4, 4, "Promises",   "Promises representam valores assíncronos que serão resolvidos no futuro. " +
-                              "Encadeiam via then/catch e podem ser combinadas com Promise.all.", DifficultyLevel.Intermediate),
-        C(5, 5, "Closures",   "Closures em JavaScript são funções que capturam variáveis do escopo léxico externo. " +
-                              "Permitem encapsulamento e padrões como factory functions e currying.", DifficultyLevel.Advanced),
-        C(6, 6, "Generators", "Generators permitem pausar e retomar execução com yield. " +
-                              "Usados para iteradores customizados e fluxos de dados assíncronos.", DifficultyLevel.Advanced),
-    };
+        var (challenges, contents) = RichTrail();
+
+        var drafts = _builder.Build(challenges, contents);
+
+        Assert.Equal(LevelingTestBuilder.QuestionsPerTrail, drafts.Count); // 6 de 8
+        var difficulties = drafts.Select(d => d.Draft.EstimatedDifficulty).ToList();
+        Assert.True(difficulties.Max() - difficulties.Min() >= 0.3,
+            $"esperava amplitude de dificuldade; obtive [{string.Join(",", difficulties.Select(x => x.ToString("F2")))}]");
+        // resultado ordenado do fácil ao difícil
+        Assert.True(difficulties.SequenceEqual(difficulties.OrderBy(x => x)));
+    }
 
     [Fact]
-    public void Build_PicksTopicsSpreadByDifficulty()
+    public void Build_SingleContentTrail_StillYieldsFullTest()
     {
-        var builder = CreateBuilder();
-        var graph   = _graphBuilder.Build(1, RichTrail());
-        var contents = RichTrail().ToDictionary(c => c.Id);
+        // Conteúdo único com 10 perguntas (como PHP Avançado): deve render 6.
+        var challenges = Enumerable.Range(1, 10)
+            .Select(i => GC(id: i, contentId: 99, difficulty: i / 10.0))
+            .ToList();
+        var contents = new Dictionary<int, Content> { [99] = C(99, "Artigão") };
 
-        var drafts = builder.Build(graph, contents);
+        var drafts = _builder.Build(challenges, contents);
 
-        Assert.NotEmpty(drafts);
-        Assert.True(drafts.Count <= LevelingTestBuilder.QuestionsPerTrail);
-
-        // A distribuição deve cobrir um espectro razoável de difficulty.
-        // Não exigimos "fácil/médio/difícil" exato (varia com o scorer);
-        // exigimos que os topics escolhidos cubram pelo menos 30% da
-        // amplitude possível.
-        var difficulties = drafts.Select(d => d.Topic.DifficultyScore).ToList();
-        var spread       = difficulties.Max() - difficulties.Min();
-        Assert.True(spread >= 0.15,
-            $"esperava amplitude >= 0.15 de difficulty; obtive {spread:F3} para [{string.Join(",", difficulties.Select(x=>x.ToString("F2")))}]");
+        Assert.Equal(LevelingTestBuilder.QuestionsPerTrail, drafts.Count);
+        Assert.All(drafts, d => Assert.Equal(99, d.Content.Id));
     }
 
     [Fact]
     public void Build_IsDeterministic()
     {
-        var builder = CreateBuilder();
-        var graph   = _graphBuilder.Build(1, RichTrail());
-        var contents = RichTrail().ToDictionary(c => c.Id);
+        var (challenges, contents) = RichTrail();
 
-        var a = builder.Build(graph, contents);
-        var b = builder.Build(graph, contents);
+        var a = _builder.Build(challenges, contents);
+        var b = _builder.Build(challenges, contents);
 
         Assert.Equal(a.Count, b.Count);
         for (var i = 0; i < a.Count; i++)
         {
-            Assert.Equal(a[i].Topic.Id, b[i].Topic.Id);
+            Assert.Equal(a[i].ChallengeId, b[i].ChallengeId);
             Assert.Equal(a[i].Draft.Prompt, b[i].Draft.Prompt);
-            Assert.Equal(a[i].Draft.CorrectIndex, b[i].Draft.CorrectIndex);
         }
     }
 
     [Fact]
-    public void Build_EmptyGraph_ReturnsEmpty()
+    public void Build_EmptyInput_ReturnsEmpty()
+        => Assert.Empty(_builder.Build(Array.Empty<GeneratedChallenge>(), new Dictionary<int, Content>()));
+
+    [Fact]
+    public void Build_FewerThanQuota_ReturnsAll()
     {
-        var builder = CreateBuilder();
-        var emptyGraph = _graphBuilder.Build(1, Array.Empty<Content>());
+        var challenges = new List<GeneratedChallenge> { GC(1, 1, 0.2), GC(2, 2, 0.6) };
+        var contents   = new Dictionary<int, Content> { [1] = C(1, "T1"), [2] = C(2, "T2") };
 
-        var drafts = builder.Build(emptyGraph, new Dictionary<int, Content>());
-
-        Assert.Empty(drafts);
+        var drafts = _builder.Build(challenges, contents);
+        Assert.Equal(2, drafts.Count);
     }
 
     [Fact]
-    public void Build_FewerTopicsThanQuota_ReturnsAllOfThem()
+    public void Build_PrefersContentDiversity()
     {
-        var builder = CreateBuilder();
-        var smallTrail = new List<Content>
-        {
-            C(1, 1, "T1", "Variáveis em JavaScript guardam valores como strings e números."),
-            C(2, 2, "T2", "Funções JavaScript encapsulam blocos reutilizáveis aceitando parâmetros."),
-        };
-        var graph    = _graphBuilder.Build(1, smallTrail);
-        var contents = smallTrail.ToDictionary(c => c.Id);
+        // 2 conteúdos: A com 5 perguntas, B com 5. Espera 3 de cada (round-robin).
+        var challenges = new List<GeneratedChallenge>();
+        for (var i = 1; i <= 5; i++)  challenges.Add(GC(i,      contentId: 1, difficulty: i / 10.0));
+        for (var i = 1; i <= 5; i++)  challenges.Add(GC(100 + i, contentId: 2, difficulty: i / 10.0));
+        var contents = new Dictionary<int, Content> { [1] = C(1, "A"), [2] = C(2, "B") };
 
-        var drafts = builder.Build(graph, contents);
-        Assert.True(drafts.Count <= 2);
+        var drafts = _builder.Build(challenges, contents);
+
+        Assert.Equal(6, drafts.Count);
+        Assert.Equal(3, drafts.Count(d => d.Content.Id == 1));
+        Assert.Equal(3, drafts.Count(d => d.Content.Id == 2));
     }
 }

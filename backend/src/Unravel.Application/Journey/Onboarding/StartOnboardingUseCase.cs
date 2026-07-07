@@ -1,5 +1,6 @@
 using Unravel.Application.Journey.Ports;
 using Unravel.Domain.Entities;
+using Unravel.Domain.Forge;
 
 namespace Unravel.Application.Journey.Onboarding;
 
@@ -19,18 +20,15 @@ namespace Unravel.Application.Journey.Onboarding;
 /// </summary>
 public sealed class StartOnboardingUseCase
 {
-    private readonly IOnboardingReadModel  _readModel;
-    private readonly IKnowledgeGraphCache  _graphCache;
-    private readonly LevelingTestBuilder   _builder;
+    private readonly IOnboardingReadModel _readModel;
+    private readonly LevelingTestBuilder  _builder;
 
     public StartOnboardingUseCase(
         IOnboardingReadModel readModel,
-        IKnowledgeGraphCache graphCache,
         LevelingTestBuilder  builder)
     {
-        _readModel  = readModel;
-        _graphCache = graphCache;
-        _builder    = builder;
+        _readModel = readModel;
+        _builder   = builder;
     }
 
     public async Task<OnboardingTestResponse?> ExecuteAsync(
@@ -43,35 +41,33 @@ public sealed class StartOnboardingUseCase
         if (await _readModel.UserHasAnyMasteryAsync(userId, request.TrailIds, ct))
             throw new InvalidOperationException("Onboarding já realizado para alguma das trilhas selecionadas.");
 
-        var trails = await _readModel.GetTrailsByIdsAsync(request.TrailIds, ct);
+        var trails   = await _readModel.GetTrailsByIdsAsync(request.TrailIds, ct);
         var validIds = trails.Select(t => t.Id).ToHashSet();
 
-        // Reusa contents já carregados se o read model devolver junto;
-        // por simplicidade, lemos só nomes aqui e pegamos contents indiretamente
-        // via grafo (Topic.ContentId).
-        var contentsByTrail     = await _readModel.GetContentsForTrailsAsync(validIds, ct);
-        var challengesByContent = await _readModel.GetLevelingChallengesForTrailsAsync(validIds, ct);
+        var contentsByTrail   = await _readModel.GetContentsForTrailsAsync(validIds, ct);
+        var challengesByTrail = await _readModel.GetLevelingChallengesForTrailsAsync(validIds, ct);
 
         var groups = new List<LevelingTrailGroup>();
         foreach (var trail in trails)
         {
-            var graph = await _graphCache.GetOrBuildAsync(trail.Id, ct);
-            if (graph.Topics.Count == 0) continue;
+            var trailChallenges = challengesByTrail.GetValueOrDefault(trail.Id, Array.Empty<GeneratedChallenge>());
+            if (trailChallenges.Count == 0) continue;
 
-            var contents = contentsByTrail.GetValueOrDefault(trail.Id, Array.Empty<Content>())
+            var contentsById = contentsByTrail.GetValueOrDefault(trail.Id, Array.Empty<Content>())
                 .ToDictionary(c => c.Id);
 
-            var drafts = _builder.Build(graph, contents, challengesByContent);
+            var drafts = _builder.Build(trailChallenges, contentsById);
             if (drafts.Count == 0) continue;
 
             var questions = drafts.Select(d => new LevelingQuestion(
-                TopicId:          d.Topic.Id,
+                ChallengeId:      d.ChallengeId,
+                TopicId:          d.TopicId,
                 ContentId:        d.Content.Id,
                 ContentTitle:     d.Content.Title,
                 Strategy:         d.Draft.Strategy.ToString(),
                 Prompt:           d.Draft.Prompt,
                 Options:          d.Draft.Options,
-                DifficultyTarget: Math.Round(d.Topic.DifficultyScore, 4))).ToList();
+                DifficultyTarget: Math.Round(d.Draft.EstimatedDifficulty, 4))).ToList();
 
             groups.Add(new LevelingTrailGroup(trail.Id, trail.Name, questions));
         }
@@ -91,9 +87,9 @@ public interface IOnboardingReadModel
         IReadOnlyCollection<int> trailIds, CancellationToken ct = default);
 
     /// <summary>Perguntas do pipeline forte (LlmGrounded/ModeratorAuthored)
-    /// já geradas para os conteúdos das trilhas, agrupadas por ContentId e
-    /// ordenadas por Id (determinístico). Fonte do teste de nivelamento —
-    /// reusamos a alta qualidade do pipeline em vez de gerar template na hora.</summary>
+    /// já geradas para as trilhas, agrupadas por <b>TrailId</b> e ordenadas
+    /// por Id (determinístico). Fonte do teste de nivelamento — reusamos a
+    /// alta qualidade do pipeline em vez de gerar template na hora.</summary>
     Task<IReadOnlyDictionary<int, IReadOnlyList<Unravel.Domain.Forge.GeneratedChallenge>>> GetLevelingChallengesForTrailsAsync(
         IReadOnlyCollection<int> trailIds, CancellationToken ct = default);
 

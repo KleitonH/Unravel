@@ -61,7 +61,7 @@ public sealed class OnboardingReadModel : IOnboardingReadModel
             .ToListAsync(ct);
 
         return rows
-            .GroupBy(gc => gc.ContentId)
+            .GroupBy(gc => gc.TrailId)
             .ToDictionary(
                 g => g.Key,
                 g => (IReadOnlyList<Unravel.Domain.Forge.GeneratedChallenge>)g.ToList());

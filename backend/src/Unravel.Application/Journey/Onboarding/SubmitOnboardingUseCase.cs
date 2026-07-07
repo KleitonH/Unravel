@@ -1,7 +1,7 @@
-using Unravel.Application.Forge.Ports;
 using Unravel.Application.Journey.Ports;
 using Unravel.Domain.Entities;
-using Unravel.Domain.Knowledge;
+using Unravel.Domain.Forge;
+using Unravel.Domain.Knowledge;   // MasteryScoring
 
 namespace Unravel.Application.Journey.Onboarding;
 
@@ -17,21 +17,18 @@ namespace Unravel.Application.Journey.Onboarding;
 /// </summary>
 public sealed class SubmitOnboardingUseCase
 {
-    private readonly IOnboardingReadModel    _readModel;
-    private readonly IKnowledgeGraphCache    _graphCache;
-    private readonly LevelingTestBuilder     _builder;
-    private readonly IMasteryRepository      _masteryRepo;
-    private readonly IUserTrailEnroller      _enroller;
+    private readonly IOnboardingReadModel _readModel;
+    private readonly LevelingTestBuilder  _builder;
+    private readonly IMasteryRepository   _masteryRepo;
+    private readonly IUserTrailEnroller   _enroller;
 
     public SubmitOnboardingUseCase(
         IOnboardingReadModel readModel,
-        IKnowledgeGraphCache graphCache,
         LevelingTestBuilder  builder,
         IMasteryRepository   masteryRepo,
         IUserTrailEnroller   enroller)
     {
         _readModel   = readModel;
-        _graphCache  = graphCache;
         _builder     = builder;
         _masteryRepo = masteryRepo;
         _enroller    = enroller;
@@ -46,12 +43,12 @@ public sealed class SubmitOnboardingUseCase
         if (trailIds.Count == 0)
             throw new ArgumentException("trailIds vazio.", nameof(trailIds));
 
-        var answersByTopic = request.Answers.ToDictionary(a => a.TopicId, a => a.SelectedOptionIndex);
+        var answersByChallenge = request.Answers.ToDictionary(a => a.ChallengeId, a => a.SelectedOptionIndex);
 
-        var trails              = await _readModel.GetTrailsByIdsAsync(trailIds, ct);
-        var validIds            = trails.Select(t => t.Id).ToList();
-        var contentsByTrail     = await _readModel.GetContentsForTrailsAsync(validIds, ct);
-        var challengesByContent = await _readModel.GetLevelingChallengesForTrailsAsync(validIds, ct);
+        var trails            = await _readModel.GetTrailsByIdsAsync(trailIds, ct);
+        var validIds          = trails.Select(t => t.Id).ToList();
+        var contentsByTrail   = await _readModel.GetContentsForTrailsAsync(validIds, ct);
+        var challengesByTrail = await _readModel.GetLevelingChallengesForTrailsAsync(validIds, ct);
 
         var allMasteries = new List<Mastery>();
         var estimates    = new List<TrailLevelEstimate>();
@@ -60,32 +57,41 @@ public sealed class SubmitOnboardingUseCase
 
         foreach (var trail in trails)
         {
-            var graph = await _graphCache.GetOrBuildAsync(trail.Id, ct);
-            if (graph.Topics.Count == 0) continue;
+            var trailChallenges = challengesByTrail.GetValueOrDefault(trail.Id, Array.Empty<GeneratedChallenge>());
+            if (trailChallenges.Count == 0) continue;
 
-            var contents = contentsByTrail.GetValueOrDefault(trail.Id, Array.Empty<Content>())
+            var contentsById = contentsByTrail.GetValueOrDefault(trail.Id, Array.Empty<Content>())
                 .ToDictionary(c => c.Id);
 
-            var drafts = _builder.Build(graph, contents, challengesByContent);
+            var drafts = _builder.Build(trailChallenges, contentsById);
             if (drafts.Count == 0) continue;
 
-            var outcomesForTrail = new List<(int TopicId, double Outcome, double Difficulty)>();
+            // Uma resposta por pergunta (ChallengeId). Guarda por topic pra
+            // (a) semear a Mastery e (b) estimar o nível ponderando por dificuldade.
+            var outcomesForTrail = new List<(double Outcome, double Difficulty)>();
+            var outcomesByTopic  = new Dictionary<int, List<double>>();
             foreach (var d in drafts)
             {
-                if (!answersByTopic.TryGetValue(d.Topic.Id, out var selected)) continue;
-                var correct = selected == d.Draft.CorrectIndex;
-                outcomesForTrail.Add((d.Topic.Id, correct ? 1.0 : 0.0, d.Topic.DifficultyScore));
-
-                // Inicializa Mastery do topic com 1 tentativa registrada.
-                var initial = Mastery.Initial(userId, d.Topic.Id, trail.Id, now);
-                var updated = MasteryScoring.Apply(initial, correct ? 1.0 : 0.0, now);
-                allMasteries.Add(updated);
+                if (!answersByChallenge.TryGetValue(d.ChallengeId, out var selected)) continue;
+                var outcome = selected == d.Draft.CorrectIndex ? 1.0 : 0.0;
+                outcomesForTrail.Add((outcome, d.Draft.EstimatedDifficulty));
+                (outcomesByTopic.TryGetValue(d.TopicId, out var l) ? l : outcomesByTopic[d.TopicId] = new()).Add(outcome);
             }
 
             if (outcomesForTrail.Count == 0) continue;
 
-            // Estimativa do nível: média ponderada pela dificuldade dos topics
-            // testados (acertar topic difícil pesa mais que acertar topic fácil).
+            // Semeia UMA Mastery por topic com a média dos acertos naquele topic
+            // (várias perguntas podem cair no mesmo conteúdo/topic).
+            foreach (var (topicId, outs) in outcomesByTopic)
+            {
+                var avg     = outs.Average();
+                var initial = Mastery.Initial(userId, topicId, trail.Id, now);
+                var updated = MasteryScoring.Apply(initial, avg, now);
+                allMasteries.Add(updated);
+            }
+
+            // Estimativa do nível: média ponderada pela dificuldade das perguntas
+            // (acertar pergunta difícil pesa mais que acertar pergunta fácil).
             var weightSum = outcomesForTrail.Sum(x => x.Difficulty);
             var weighted  = weightSum > 0
                 ? outcomesForTrail.Sum(x => x.Outcome * x.Difficulty) / weightSum

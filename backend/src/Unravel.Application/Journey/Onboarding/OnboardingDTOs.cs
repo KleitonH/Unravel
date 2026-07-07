@@ -17,13 +17,14 @@ public sealed record LevelingTrailGroup(
     IReadOnlyList<LevelingQuestion> Questions);
 
 public sealed record LevelingQuestion(
+    int                  ChallengeId,            // identidade da pergunta (o submit responde por este id)
     int                  TopicId,
     int                  ContentId,
     string               ContentTitle,
     string               Strategy,
     string               Prompt,
     IReadOnlyList<string> Options,
-    double               DifficultyTarget        // a dificuldade alvo do topic — útil para a UI
+    double               DifficultyTarget        // dificuldade estimada da pergunta — útil para a UI
 );
 
 // ── Submit ───────────────────────────────────────────────────────────
@@ -31,10 +32,11 @@ public sealed record LevelingQuestion(
 public sealed record OnboardingSubmitRequest(
     IReadOnlyList<LevelingAnswer> Answers);
 
-/// <summary>Resposta a uma das perguntas do teste. O cliente devolve o
-/// índice escolhido (o gabarito vive no servidor).</summary>
+/// <summary>Resposta a uma das perguntas do teste. Identificada pelo
+/// <c>ChallengeId</c> (várias perguntas podem vir do mesmo conteúdo/topic,
+/// então a chave é a pergunta, não o topic). O gabarito vive no servidor.</summary>
 public sealed record LevelingAnswer(
-    int TopicId,
+    int ChallengeId,
     int SelectedOptionIndex);
 
 public sealed record OnboardingResultResponse(
