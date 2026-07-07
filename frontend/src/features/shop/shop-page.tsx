@@ -289,7 +289,7 @@ export function ShopPage() {
 
   return (
     <div style={{ fontFamily: SANS, color: T.text }}
-      className="flex flex-col lg:flex-row h-[calc(100dvh-5rem)] lg:h-dvh overflow-hidden">
+      className="flex flex-col lg:flex-row h-full overflow-hidden">
       {/* stage */}
       <div ref={stageRef} className="relative flex flex-col overflow-hidden flex-1 lg:flex-[1.55]" style={{ background: T.bg, minHeight: 0 }}>
         <ShopScene />

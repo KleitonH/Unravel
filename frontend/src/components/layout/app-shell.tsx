@@ -14,14 +14,19 @@ import { TopHeader } from "./top-header"
  *
  * Padding-bottom em mobile pra compensar a altura da bottom-nav
  * + safe-area-inset (iPhones com home indicator).
+ *
+ * O shell tem altura fixa de viewport (`h-dvh` + `overflow-hidden`): o
+ * documento nunca rola. Quem rola é o `<main>` (`overflow-y-auto`) — assim
+ * o header fica sempre visível e páginas "app-like" (ex: Loja) podem usar
+ * `h-full` e rolar só internamente, sem arrastar a página inteira.
  */
 export function AppShell({ children }: { children: ReactNode }) {
   return (
-    <div className="min-h-full flex flex-col bg-background">
+    <div className="h-dvh flex flex-col bg-background overflow-hidden">
       <Sidebar />
-      <div className="flex-1 lg:pl-[72px] flex flex-col min-w-0">
+      <div className="flex-1 lg:pl-[72px] flex flex-col min-w-0 min-h-0">
         <TopHeader />
-        <main className="flex-1 pb-20 lg:pb-0">
+        <main className="flex-1 min-h-0 overflow-y-auto pb-20 lg:pb-0">
           {children}
         </main>
       </div>

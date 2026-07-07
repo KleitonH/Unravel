@@ -65,7 +65,7 @@ function Lazy({ Component }: { Component: React.ComponentType }) {
         </div>
       </div>
     }>
-      <div className="animate-page-in">
+      <div className="animate-page-in h-full">
         <Component />
       </div>
     </Suspense>
