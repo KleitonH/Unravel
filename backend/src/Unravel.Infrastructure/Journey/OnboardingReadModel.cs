@@ -43,6 +43,30 @@ public sealed class OnboardingReadModel : IOnboardingReadModel
                 g => (IReadOnlyList<Content>)g.OrderBy(c => c.Order).ToList());
     }
 
+    public async Task<IReadOnlyDictionary<int, IReadOnlyList<Unravel.Domain.Forge.GeneratedChallenge>>> GetLevelingChallengesForTrailsAsync(
+        IReadOnlyCollection<int> trailIds, CancellationToken ct = default)
+    {
+        if (trailIds.Count == 0)
+            return new Dictionary<int, IReadOnlyList<Unravel.Domain.Forge.GeneratedChallenge>>();
+
+        // Só o pipeline forte: LlmGrounded (7) e ModeratorAuthored (8). Ordena
+        // por Id p/ escolha determinística (start e submit pegam a mesma).
+        var rows = await _db.GeneratedChallenge
+            .AsNoTracking()
+            .Where(gc => trailIds.Contains(gc.TrailId)
+                      && gc.IsActive
+                      && (gc.Strategy == Unravel.Domain.Forge.ForgeStrategy.LlmGrounded
+                       || gc.Strategy == Unravel.Domain.Forge.ForgeStrategy.ModeratorAuthored))
+            .OrderBy(gc => gc.Id)
+            .ToListAsync(ct);
+
+        return rows
+            .GroupBy(gc => gc.ContentId)
+            .ToDictionary(
+                g => g.Key,
+                g => (IReadOnlyList<Unravel.Domain.Forge.GeneratedChallenge>)g.ToList());
+    }
+
     public Task<bool> UserHasAnyMasteryAsync(
         Guid userId, IReadOnlyCollection<int> trailIds, CancellationToken ct = default)
         => _db.Mastery

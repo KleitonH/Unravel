@@ -49,7 +49,8 @@ public sealed class StartOnboardingUseCase
         // Reusa contents já carregados se o read model devolver junto;
         // por simplicidade, lemos só nomes aqui e pegamos contents indiretamente
         // via grafo (Topic.ContentId).
-        var contentsByTrail = await _readModel.GetContentsForTrailsAsync(validIds, ct);
+        var contentsByTrail     = await _readModel.GetContentsForTrailsAsync(validIds, ct);
+        var challengesByContent = await _readModel.GetLevelingChallengesForTrailsAsync(validIds, ct);
 
         var groups = new List<LevelingTrailGroup>();
         foreach (var trail in trails)
@@ -60,7 +61,7 @@ public sealed class StartOnboardingUseCase
             var contents = contentsByTrail.GetValueOrDefault(trail.Id, Array.Empty<Content>())
                 .ToDictionary(c => c.Id);
 
-            var drafts = _builder.Build(graph, contents);
+            var drafts = _builder.Build(graph, contents, challengesByContent);
             if (drafts.Count == 0) continue;
 
             var questions = drafts.Select(d => new LevelingQuestion(
@@ -87,6 +88,13 @@ public interface IOnboardingReadModel
         IReadOnlyCollection<int> trailIds, CancellationToken ct = default);
 
     Task<IReadOnlyDictionary<int, IReadOnlyList<Content>>> GetContentsForTrailsAsync(
+        IReadOnlyCollection<int> trailIds, CancellationToken ct = default);
+
+    /// <summary>Perguntas do pipeline forte (LlmGrounded/ModeratorAuthored)
+    /// já geradas para os conteúdos das trilhas, agrupadas por ContentId e
+    /// ordenadas por Id (determinístico). Fonte do teste de nivelamento —
+    /// reusamos a alta qualidade do pipeline em vez de gerar template na hora.</summary>
+    Task<IReadOnlyDictionary<int, IReadOnlyList<Unravel.Domain.Forge.GeneratedChallenge>>> GetLevelingChallengesForTrailsAsync(
         IReadOnlyCollection<int> trailIds, CancellationToken ct = default);
 
     Task<bool> UserHasAnyMasteryAsync(

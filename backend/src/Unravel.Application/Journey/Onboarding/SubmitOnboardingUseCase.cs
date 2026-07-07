@@ -48,8 +48,10 @@ public sealed class SubmitOnboardingUseCase
 
         var answersByTopic = request.Answers.ToDictionary(a => a.TopicId, a => a.SelectedOptionIndex);
 
-        var trails           = await _readModel.GetTrailsByIdsAsync(trailIds, ct);
-        var contentsByTrail  = await _readModel.GetContentsForTrailsAsync(trails.Select(t => t.Id).ToList(), ct);
+        var trails              = await _readModel.GetTrailsByIdsAsync(trailIds, ct);
+        var validIds            = trails.Select(t => t.Id).ToList();
+        var contentsByTrail     = await _readModel.GetContentsForTrailsAsync(validIds, ct);
+        var challengesByContent = await _readModel.GetLevelingChallengesForTrailsAsync(validIds, ct);
 
         var allMasteries = new List<Mastery>();
         var estimates    = new List<TrailLevelEstimate>();
@@ -64,7 +66,7 @@ public sealed class SubmitOnboardingUseCase
             var contents = contentsByTrail.GetValueOrDefault(trail.Id, Array.Empty<Content>())
                 .ToDictionary(c => c.Id);
 
-            var drafts = _builder.Build(graph, contents);
+            var drafts = _builder.Build(graph, contents, challengesByContent);
             if (drafts.Count == 0) continue;
 
             var outcomesForTrail = new List<(int TopicId, double Outcome, double Difficulty)>();

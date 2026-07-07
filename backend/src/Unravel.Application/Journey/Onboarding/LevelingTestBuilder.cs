@@ -1,4 +1,4 @@
-using Unravel.Application.Forge.Ports;
+using System.Text.Json;
 using Unravel.Domain.Entities;
 using Unravel.Domain.Forge;
 using Unravel.Domain.Knowledge;
@@ -21,38 +21,81 @@ namespace Unravel.Application.Journey.Onboarding;
 /// </summary>
 public sealed class LevelingTestBuilder
 {
-    private readonly IChallengeForge _forge;
-
-    public LevelingTestBuilder(IChallengeForge forge) => _forge = forge;
-
     /// <summary>Quantas perguntas por trilha. Conservador de propósito:
     /// onboarding longo aumenta abandono. 5 é o sweet spot empírico de
     /// produtos comparáveis (Duolingo arranca em 5-10).</summary>
     public const int QuestionsPerTrail = 5;
 
+    /// <summary>
+    /// Monta o teste de nivelamento REUSANDO as perguntas do pipeline forte
+    /// (LlmGrounded/ModeratorAuthored) já geradas para os conteúdos da trilha,
+    /// em vez de gerar template na hora. Amostra topics distribuídos por
+    /// dificuldade (topic.Id == content.Id neste modelo) e, para cada um, pega
+    /// a primeira pergunta ativa do conteúdo (determinístico por Id → start e
+    /// submit escolhem a mesma).
+    /// </summary>
     public IReadOnlyList<LevelingDraft> Build(
         KnowledgeGraph graph,
-        IReadOnlyDictionary<int, Content> contentsByTopicId)
+        IReadOnlyDictionary<int, Content> contentsByTopicId,
+        IReadOnlyDictionary<int, IReadOnlyList<GeneratedChallenge>> challengesByContentId)
     {
         if (graph.Topics.Count == 0) return Array.Empty<LevelingDraft>();
 
-        var sampled = SampleByDifficulty(graph.Topics, QuestionsPerTrail);
+        // Amostra apenas topics cujo conteúdo TEM pergunta do pipeline forte —
+        // assim não perdemos slots com topics sem cobertura.
+        var covered = graph.Topics
+            .Where(t => contentsByTopicId.ContainsKey(t.Id)
+                     && challengesByContentId.TryGetValue(t.Id, out var cs) && cs.Count > 0)
+            .ToList();
+        if (covered.Count == 0) return Array.Empty<LevelingDraft>();
+
+        var sampled = SampleByDifficulty(covered, QuestionsPerTrail);
 
         var drafts = new List<LevelingDraft>();
+        var used   = new HashSet<int>();
         foreach (var topic in sampled)
         {
-            if (!contentsByTopicId.TryGetValue(topic.Id, out var content)) continue;
+            var content = contentsByTopicId[topic.Id];
+            var pool    = challengesByContentId[content.Id];
 
-            // targetUserMastery = topic.difficulty - 0.15 → zona proximal centrada
-            // na dificuldade do próprio topic. Assim a pergunta servida bate com
-            // o nível pretendido para sondar.
-            var poolTarget = Math.Clamp(topic.DifficultyScore - 0.15, 0.05, 0.85);
-            var pool = _forge.Build(content, graph, targetCount: 1, targetUserMastery: poolTarget);
-            if (pool.Count == 0) continue;
+            var challenge = pool.FirstOrDefault(c => !used.Contains(c.Id));
+            if (challenge is null) continue;
 
-            drafts.Add(new LevelingDraft(topic, content, pool[0]));
+            var draft = ToDraft(challenge, topic);
+            if (draft is null) continue;
+
+            used.Add(challenge.Id);
+            drafts.Add(new LevelingDraft(topic, content, draft));
         }
         return drafts;
+    }
+
+    /// <summary>Converte uma GeneratedChallenge persistida no draft usado pelo
+    /// onboarding (parseia options/correctIndex do BodyJson). Retorna null se
+    /// o corpo estiver malformado — o topic é então pulado.</summary>
+    private static GeneratedChallengeDraft? ToDraft(GeneratedChallenge gc, Topic topic)
+    {
+        try
+        {
+            using var doc = JsonDocument.Parse(gc.BodyJson);
+            var root = doc.RootElement;
+            var options = root.GetProperty("options").EnumerateArray()
+                .Select(e => e.GetString() ?? "").ToList();
+            var correctIndex = root.GetProperty("correctIndex").GetInt32();
+            string? explanation = root.TryGetProperty("explanation", out var ex) ? ex.GetString() : null;
+            if (options.Count < 2 || correctIndex < 0 || correctIndex >= options.Count) return null;
+
+            return new GeneratedChallengeDraft(
+                SourceTopicId:       topic.Id,
+                SourceContentId:     gc.ContentId,
+                Strategy:            gc.Strategy,
+                Prompt:              gc.Prompt,
+                Options:             options,
+                CorrectIndex:        correctIndex,
+                Explanation:         explanation,
+                EstimatedDifficulty: gc.EstimatedDifficulty);
+        }
+        catch (JsonException) { return null; }
     }
 
     /// <summary>Seleciona até <paramref name="count"/> topics distribuídos
