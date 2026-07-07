@@ -3,7 +3,6 @@ import { Check, Loader2, UserPlus, X, Trophy, AlertTriangle } from "lucide-react
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Progress } from "@/components/ui/progress"
 import { Skeleton } from "@/components/ui/skeleton"
 import { useAuth } from "@/stores/auth"
 import { partnershipsApi, type Partnership } from "@/api/partnerships"
@@ -138,7 +137,7 @@ function PartnershipCard({ p, me, onLeave }: { p: Partnership; me?: string; onLe
 
   return (
     <Card className={cn(myTurn && "border-primary/40 bg-primary/5")}>
-      <CardContent className="space-y-3 py-4">
+      <CardContent className="space-y-4 py-4">
         <div className="flex items-center justify-between gap-2">
           <div className="min-w-0">
             <p className="font-semibold truncate">{p.partnerName}</p>
@@ -152,16 +151,39 @@ function PartnershipCard({ p, me, onLeave }: { p: Partnership; me?: string; onLe
 
         {y && (
           <>
+            {/* Cena do novelo: desliza entre você e o parceiro conforme a vez. */}
+            <div className="flex items-center gap-2">
+              <Side label="Você" here={myTurn} />
+              <div className="relative h-16 flex-1">
+                <div className="absolute inset-x-3 top-1/2 -translate-y-1/2 border-t-2 border-dashed border-primary/30" />
+                <div
+                  className="absolute top-1/2 -translate-y-1/2 transition-[left] duration-700 ease-out"
+                  style={{ left: myTurn ? "0px" : "calc(100% - 60px)" }}
+                >
+                  <YarnBall pct={pct} active={myTurn} tangled={y.state === "Tangled"} dropped={y.state === "Dropped"} />
+                </div>
+              </div>
+              <Side label={p.partnerName} here={!myTurn} />
+            </div>
+
+            {/* Ciclos do novelo */}
+            <div className="flex items-center justify-center gap-1.5">
+              {Array.from({ length: y.totalCycles }).map((_, i) => (
+                <span
+                  key={i}
+                  className={cn("h-2 w-2 rounded-full transition-colors", i < y.cyclesCompleted ? "bg-primary" : "bg-border")}
+                />
+              ))}
+              <span className="ml-1 text-[11px] tabular-nums text-muted-foreground">ciclo {y.cyclesCompleted}/{y.totalCycles}</span>
+            </div>
+
             <div className="flex items-center justify-between text-xs">
               <span className={cn("font-medium", myTurn ? "text-primary" : "text-muted-foreground")}>
                 {myTurn ? "🧶 O novelo está com você — cumpra a meta!" : "Aguardando seu parceiro cumprir a meta…"}
               </span>
-              <span className="tabular-nums text-muted-foreground">ciclo {y.cyclesCompleted}/{y.totalCycles}</span>
+              <span className="tabular-nums text-muted-foreground">meta do dia: {Math.min(y.progress, y.dailyGoal)}/{y.dailyGoal}</span>
             </div>
-            <Progress value={pct} />
-            <p className="text-right text-[11px] text-muted-foreground tabular-nums">
-              meta do dia: {Math.min(y.progress, y.dailyGoal)}/{y.dailyGoal}
-            </p>
+
             {y.state === "Tangled" && (
               <p className="flex items-center gap-1 text-[11px] text-warning">
                 <AlertTriangle className="h-3 w-3" /> Novelo enrolado — cumpra a meta hoje pra não deixar cair!
@@ -171,5 +193,71 @@ function PartnershipCard({ p, me, onLeave }: { p: Partnership; me?: string; onLe
         )}
       </CardContent>
     </Card>
+  )
+}
+
+/** Avatar de ponta (você / parceiro). Destacado quando o novelo está com ele. */
+function Side({ label, here }: { label: string; here: boolean }) {
+  const initials = label === "Você"
+    ? "EU"
+    : label.trim().split(/\s+/).map((w) => w[0]).slice(0, 2).join("").toUpperCase()
+  return (
+    <div className="flex w-12 shrink-0 flex-col items-center gap-1">
+      <div className={cn(
+        "grid h-10 w-10 place-items-center rounded-full border-2 text-[11px] font-bold transition-colors",
+        here ? "border-primary bg-primary/15 text-primary" : "border-border bg-muted/30 text-muted-foreground",
+      )}>
+        {initials}
+      </div>
+      <span className="max-w-[3rem] truncate text-[10px] text-muted-foreground">{label}</span>
+    </div>
+  )
+}
+
+/**
+ * Novelo de lã em SVG. O anel externo mostra a meta do dia; conforme ela
+ * enche, o novelo "desenrola". Gira devagar quando é a sua vez; muda de cor
+ * quando enrolado/caído. (Ideia 1 — representação visual animada.)
+ */
+function YarnBall({ pct, active, tangled, dropped }: { pct: number; active: boolean; tangled?: boolean; dropped?: boolean }) {
+  const r = 40
+  const c = 2 * Math.PI * r
+  const off = c * (1 - Math.min(1, Math.max(0, pct / 100)))
+  const bodyClass = dropped ? "fill-destructive" : tangled ? "fill-warning" : "fill-primary"
+  const ringClass = dropped ? "stroke-destructive" : tangled ? "stroke-warning" : "stroke-primary"
+
+  return (
+    <div className="relative h-[60px] w-[60px]">
+      {active && <div className="absolute inset-1 rounded-full bg-primary/30 blur-md animate-pulse" />}
+      <svg viewBox="0 0 100 100" className="relative h-full w-full">
+        {/* trilho do anel */}
+        <circle cx="50" cy="50" r={r} className="fill-none stroke-border" strokeWidth="7" />
+        {/* progresso da meta do dia */}
+        <circle
+          cx="50" cy="50" r={r}
+          className={cn("fill-none", ringClass)}
+          strokeWidth="7" strokeLinecap="round"
+          strokeDasharray={c} strokeDashoffset={off}
+          transform="rotate(-90 50 50)"
+          style={{ transition: "stroke-dashoffset .6s ease" }}
+        />
+        {/* corpo do novelo (gira devagar quando ativo) */}
+        <g
+          className={cn(active && "animate-[spin_16s_linear_infinite]")}
+          style={{ transformBox: "fill-box", transformOrigin: "center" }}
+        >
+          <circle cx="50" cy="50" r="27" className={bodyClass} />
+          <g className="stroke-white/45" strokeWidth="2.2" fill="none" strokeLinecap="round">
+            <ellipse cx="50" cy="50" rx="27" ry="12" transform="rotate(25 50 50)" />
+            <ellipse cx="50" cy="50" rx="27" ry="12" transform="rotate(-25 50 50)" />
+            <ellipse cx="50" cy="50" rx="12" ry="27" transform="rotate(20 50 50)" />
+            <path d="M32 42 Q50 34 68 44" />
+            <path d="M32 58 Q50 66 68 56" />
+          </g>
+          {/* pontinha de linha */}
+          <path d="M74 58 q10 6 6 16" className="stroke-white/50" strokeWidth="2.2" fill="none" strokeLinecap="round" />
+        </g>
+      </svg>
+    </div>
   )
 }
