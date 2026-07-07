@@ -61,8 +61,11 @@ export function Sidebar() {
                 <Link
                   to={item.to}
                   className={cn(
-                    "group flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium",
+                    "group flex items-center gap-3 rounded-md py-2 text-sm font-medium",
                     "transition-colors hover:bg-accent/10",
+                    // Recolhido: ícone centralizado no rail. Expandido: alinhado
+                    // à esquerda com padding pro label respirar.
+                    expanded ? "px-3" : "justify-center px-0",
                     active
                       ? "bg-primary/15 text-primary"
                       : "text-muted-foreground hover:text-foreground",
