@@ -60,7 +60,7 @@ export function ContentStudyPage() {
   const isCompleted = myProgress?.status === "Completed"
 
   return (
-    <div className="p-6 lg:p-10 max-w-3xl mx-auto space-y-5">
+    <div className="p-6 lg:p-10 max-w-5xl mx-auto space-y-5">
       <Button asChild variant="ghost" size="sm" className="-ml-2">
         <Link
           to="/jornada/$trailId"

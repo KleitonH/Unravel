@@ -57,7 +57,7 @@ export function ContentPracticePage() {
   })
 
   return (
-    <div className="p-6 lg:p-10 max-w-2xl mx-auto space-y-6">
+    <div className="p-6 lg:p-10 max-w-5xl mx-auto space-y-6">
       <Button asChild variant="ghost" size="sm" className="-ml-2">
         <Link to="/contents/$contentId" params={{ contentId }}>
           <ChevronLeft className="h-4 w-4 mr-1" />
@@ -74,7 +74,8 @@ export function ContentPracticePage() {
           : <p className="text-sm text-muted-foreground">{contentQuery.data?.title}</p>}
       </header>
 
-      <div className="space-y-3">
+      {/* Desktop: 3 cartas verticais lado a lado; mobile: empilhadas. */}
+      <div className="grid gap-4 sm:grid-cols-3">
         {MODES.map((m) => (
           <Card
             key={m.key}
@@ -83,31 +84,32 @@ export function ContentPracticePage() {
             onClick={() => navigate({ to: m.to, params: { contentId } })}
             onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); navigate({ to: m.to, params: { contentId } }) } }}
             className={cn(
-              "group flex items-center gap-4 p-4 cursor-pointer transition-all",
-              "hover:border-primary/50 hover:bg-card focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
+              "group flex flex-col p-5 cursor-pointer transition-all min-h-[13rem]",
+              "hover:border-primary/50 hover:-translate-y-0.5 hover:shadow-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
               m.recommended && "border-primary/40 bg-primary/5",
             )}
           >
-            <div className={cn(
-              "grid place-items-center h-12 w-12 shrink-0 rounded-full bg-foreground/5",
-              m.accent,
-            )}>
-              <m.Icon className="h-6 w-6" />
-            </div>
-
-            <div className="min-w-0 flex-1">
-              <div className="flex items-center gap-2">
-                <h2 className="font-semibold">{m.title}</h2>
-                {m.recommended && (
-                  <Badge variant="outline" className="text-[10px] border-primary/50 text-primary">
-                    Recomendado
-                  </Badge>
-                )}
+            <div className="flex items-start justify-between">
+              <div className={cn(
+                "grid place-items-center h-12 w-12 shrink-0 rounded-full bg-foreground/5",
+                m.accent,
+              )}>
+                <m.Icon className="h-6 w-6" />
               </div>
-              <p className="text-sm text-muted-foreground mt-0.5">{m.subtitle}</p>
+              {m.recommended && (
+                <Badge variant="outline" className="text-[10px] border-primary/50 text-primary">
+                  Recomendado
+                </Badge>
+              )}
             </div>
 
-            <ChevronRight className="h-5 w-5 text-muted-foreground shrink-0 transition-transform group-hover:translate-x-0.5" />
+            <h2 className="mt-3 font-semibold text-lg">{m.title}</h2>
+            <p className="text-sm text-muted-foreground mt-1 flex-1">{m.subtitle}</p>
+
+            <div className="mt-4 flex items-center text-sm font-medium text-primary">
+              Escolher
+              <ChevronRight className="h-4 w-4 ml-1 transition-transform group-hover:translate-x-0.5" />
+            </div>
           </Card>
         ))}
       </div>
