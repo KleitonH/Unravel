@@ -36,6 +36,7 @@ public sealed class SubmitPoolChallengeUseCase
     private readonly IUserGamificationGateway       _gamification;
     private readonly IUserSeenChallengeRepository?  _seen;
     private readonly ITrailProgressService?         _progress;
+    private readonly IActivitySink?                 _activity;
 
     public SubmitPoolChallengeUseCase(
         IGeneratedChallengeRepository generated,
@@ -47,6 +48,7 @@ public sealed class SubmitPoolChallengeUseCase
         _gamification = gamification;
         _seen         = null;
         _progress     = null;
+        _activity     = null;
     }
 
     /// <summary>PR 37 — construtor que recebe o <see cref="IUserSeenChallengeRepository"/>
@@ -74,6 +76,21 @@ public sealed class SubmitPoolChallengeUseCase
         : this(generated, mastery, gamification, seen)
     {
         _progress = progress;
+    }
+
+    /// <summary>Construtor "completo" — inclui o <see cref="IActivitySink"/> pra
+    /// alimentar as missões diárias (responder/acertar). É o que o DI resolve
+    /// em produção; os anteriores ficam pra testes que não dependem de missões.</summary>
+    public SubmitPoolChallengeUseCase(
+        IGeneratedChallengeRepository generated,
+        IMasteryRepository            mastery,
+        IUserGamificationGateway      gamification,
+        IUserSeenChallengeRepository  seen,
+        ITrailProgressService         progress,
+        IActivitySink                 activity)
+        : this(generated, mastery, gamification, seen, progress)
+    {
+        _activity = activity;
     }
 
     public async Task<SubmitPoolChallengeResponse?> ExecuteAsync(
@@ -126,6 +143,16 @@ public sealed class SubmitPoolChallengeUseCase
                 // Submit já foi gravado; perder o sinal de progresso é tolerável.
                 // (Log estruturado fica no service que tem ILogger injetado.)
             }
+        }
+
+        // 6) Missões diárias — cada submit = "respondeu"; acerto = "acertou".
+        //    O engine avança as missões do dia e, ao fechar uma, credita novelo
+        //    + caixinha. Contrato do sink é best-effort (nunca lança).
+        if (_activity is not null)
+        {
+            await _activity.RecordAsync(userId, Domain.Gamification.ActivityKind.QuizAnswered, 1, now, ct);
+            if (isCorrect)
+                await _activity.RecordAsync(userId, Domain.Gamification.ActivityKind.QuizCorrect, 1, now, ct);
         }
 
         // Telemetria PR 19

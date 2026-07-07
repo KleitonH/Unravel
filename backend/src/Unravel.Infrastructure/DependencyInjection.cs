@@ -62,6 +62,14 @@ public static class DependencyInjection
         services.AddScoped<IMasteryRepository, MasteryRepository>();
         services.AddSingleton<ITopicResolver, KeywordTopicResolver>();
 
+        // Missões diárias — mesma instância serve o write-path (IActivitySink)
+        // e a leitura (IDailyQuestService).
+        services.AddScoped<Gamification.DailyQuestEngine>();
+        services.AddScoped<Application.Gamification.Ports.IActivitySink>(
+            sp => sp.GetRequiredService<Gamification.DailyQuestEngine>());
+        services.AddScoped<Application.Gamification.Ports.IDailyQuestService>(
+            sp => sp.GetRequiredService<Gamification.DailyQuestEngine>());
+
         // PR 63 — loja cosmética (catálogo/compra/equip).
         services.AddScoped<Application.Gamification.Ports.ICosmeticShopService,
                            Gamification.CosmeticShopService>();

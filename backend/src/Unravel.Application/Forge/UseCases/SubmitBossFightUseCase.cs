@@ -37,6 +37,7 @@ public sealed class SubmitBossFightUseCase
     private readonly IUserSeenChallengeRepository  _seen;
     private readonly IMasteryRepository            _mastery;
     private readonly IUserGamificationGateway      _gamification;
+    private readonly IActivitySink?                _activity;
 
     public SubmitBossFightUseCase(
         IBossFightRepository          repo,
@@ -50,6 +51,21 @@ public sealed class SubmitBossFightUseCase
         _seen          = seen;
         _mastery       = mastery;
         _gamification  = gamification;
+        _activity      = null;
+    }
+
+    /// <summary>Construtor "completo" — inclui o <see cref="IActivitySink"/> pra
+    /// alimentar a missão diária de Boss. É o que o DI resolve em produção.</summary>
+    public SubmitBossFightUseCase(
+        IBossFightRepository          repo,
+        IGeneratedChallengeRepository generatedRepo,
+        IUserSeenChallengeRepository  seen,
+        IMasteryRepository            mastery,
+        IUserGamificationGateway      gamification,
+        IActivitySink                 activity)
+        : this(repo, generatedRepo, seen, mastery, gamification)
+    {
+        _activity = activity;
     }
 
     public async Task<BossFightResultResponse?> ExecuteAsync(
@@ -129,6 +145,11 @@ public sealed class SubmitBossFightUseCase
             Stars: isFirstWin ? 1 : 0,
             LifeDelta: 0);
         await _gamification.ApplyAsync(userId, rewards, now, ct);
+
+        // Missão diária de Boss — o engine credita novelo + caixinha se a missão
+        // "Enfrente 1 Boss" estiver no dia. Best-effort (o sink nunca lança).
+        if (_activity is not null)
+            await _activity.RecordAsync(userId, ActivityKind.BossFought, 1, now, ct);
 
         return new BossFightResultResponse(
             TrailId:        trail.Id,

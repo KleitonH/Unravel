@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Unravel.Domain.Entities;
 using Unravel.Domain.Forge;
+using Unravel.Domain.Gamification;
 using Unravel.Domain.Knowledge;
 using Unravel.Domain.Tokens;
 
@@ -24,6 +25,9 @@ public partial class ApplicationDbContext(DbContextOptions<ApplicationDbContext>
     public DbSet<UserSeenChallenge>    UserSeenChallenge    => Set<UserSeenChallenge>();
     public DbSet<ChallengeFeedback>    ChallengeFeedback    => Set<ChallengeFeedback>();
     public DbSet<UserBossFight>            UserBossFight            => Set<UserBossFight>();
+
+    // Missões diárias (daily quests) — progresso do aluno por dia
+    public DbSet<UserDailyQuest>           UserDailyQuest           => Set<UserDailyQuest>();
 
     // PR 52 — tokens "centímetros de lã" do moderador
     public DbSet<ModeratorTokenBalance>    ModeratorTokenBalance    => Set<ModeratorTokenBalance>();
