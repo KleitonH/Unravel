@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query"
 import { Link, useNavigate, useParams } from "@tanstack/react-router"
 import MarkdownPreview from "@uiw/react-markdown-preview"
-import { Activity, Check, ChevronLeft, Play, Sparkles } from "lucide-react"
+import { Check, ChevronLeft, ChevronRight, Play, Sparkles } from "lucide-react"
 import { api } from "@/api/client"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -136,35 +136,17 @@ export function ContentStudyPage() {
                   : `Responda ${contentQuery.data.challengesRequired} desafios deste conteúdo pra desbloquear a próxima ilha do mapa.`}
               </CardDescription>
             </CardHeader>
-            <CardContent className="flex flex-wrap gap-2">
-              {/* PR 60-b — "Estudar guiado" é o padrão (Opção A). Aluno
-                  estuda capítulo → pratica → próximo. Modelo Duolingo,
-                  evita decoreba no quiz embaralhado. */}
+            <CardContent>
+              {/* A escolha do modo de prática (guiado / rápido / adaptativo)
+                  vive numa tela dedicada de cards — o aluno decide COMO
+                  praticar depois de ler o conteúdo. */}
               <Button
                 size="lg"
-                onClick={() => navigate({ to: "/study/$contentId", params: { contentId } })}
+                onClick={() => navigate({ to: "/contents/$contentId/practice", params: { contentId } })}
               >
                 <Play className="h-4 w-4 mr-1" />
-                {isCompleted ? "Revisar capítulos" : "Estudar guiado"}
-              </Button>
-              {/* Modo antigo: pra quem já estudou e quer revisão rápida */}
-              <Button
-                size="lg"
-                variant="outline"
-                onClick={() => navigate({ to: "/quiz/$contentId", params: { contentId } })}
-                title="Responde todas perguntas embaralhadas, sem fase de estudo"
-              >
-                Quiz rápido
-              </Button>
-              {/* PR 42 — modo CAT */}
-              <Button
-                size="lg"
-                variant="outline"
-                onClick={() => navigate({ to: "/quiz/$contentId/adaptive", params: { contentId } })}
-                title="Algoritmo adaptativo: próxima pergunta calibrada pelo seu desempenho na sessão"
-              >
-                <Activity className="h-4 w-4 mr-1" />
-                Modo adaptativo
+                {isCompleted ? "Praticar de novo" : "Praticar"}
+                <ChevronRight className="h-4 w-4 ml-1" />
               </Button>
             </CardContent>
           </Card>

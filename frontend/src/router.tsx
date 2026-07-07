@@ -29,6 +29,7 @@ const ProfilePage    = lazy(() => import("@/features/profile/profile-page").then
 const OnboardingPage = lazy(() => import("@/features/onboarding/onboarding-page").then((m) => ({ default: m.OnboardingPage })))
 const JornadaPage      = lazy(() => import("@/features/trail-map/trail-map-page").then((m) => ({ default: m.TrailMapPage })))
 const ContentStudyPage = lazy(() => import("@/features/content-study/content-study-page").then((m) => ({ default: m.ContentStudyPage })))
+const ContentPracticePage = lazy(() => import("@/features/content-study/content-practice-page").then((m) => ({ default: m.ContentPracticePage })))
 const QuizPage         = lazy(() => import("@/features/quiz/quiz-page").then((m) => ({ default: m.QuizPage })))
 const AdaptiveQuizPage = lazy(() => import("@/features/quiz/adaptive-quiz-page").then((m) => ({ default: m.AdaptiveQuizPage })))
 const LiveQuizPlayerPage = lazy(() => import("@/features/live-quiz/live-quiz-player").then((m) => ({ default: m.LiveQuizPlayer })))
@@ -129,6 +130,7 @@ const trailsDiscoverRoute = createRoute({ getParentRoute: () => authedLayoutRout
 const onboardingRoute = createRoute({ getParentRoute: () => authedLayoutRoute, path: "/onboarding",       component: () => <Lazy Component={OnboardingPage} /> })
 const jornadaRoute      = createRoute({ getParentRoute: () => authedLayoutRoute, path: "/jornada/$trailId",   component: () => <Lazy Component={JornadaPage} /> })
 const contentStudyRoute = createRoute({ getParentRoute: () => authedLayoutRoute, path: "/contents/$contentId", component: () => <Lazy Component={ContentStudyPage} /> })
+const contentPracticeRoute = createRoute({ getParentRoute: () => authedLayoutRoute, path: "/contents/$contentId/practice", component: () => <Lazy Component={ContentPracticePage} /> })
 const quizRoute            = createRoute({ getParentRoute: () => authedLayoutRoute, path: "/quiz/$contentId",            component: () => <Lazy Component={QuizPage} /> })
 const adaptiveQuizRoute    = createRoute({ getParentRoute: () => authedLayoutRoute, path: "/quiz/$contentId/adaptive",   component: () => <Lazy Component={AdaptiveQuizPage} /> })
 const studyRoute           = createRoute({ getParentRoute: () => authedLayoutRoute, path: "/study/$contentId",           component: () => <Lazy Component={ChapteredQuizPage} /> })
@@ -161,6 +163,7 @@ const routeTree = rootRoute.addChildren([
     onboardingRoute,
     jornadaRoute,
     contentStudyRoute,
+    contentPracticeRoute,
     quizRoute,
     adaptiveQuizRoute,
     studyRoute,
