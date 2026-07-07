@@ -157,7 +157,9 @@ export function DashboardPage() {
             {enrolled.map((trail, i) => (
               // PR 27: stagger ~80ms entre cards. Cap em 6 pra não criar
               // "wave" muito longa quando o user tiver 10+ trilhas.
-              <div key={trail.id} className="animate-pop-in" style={{ animationDelay: `${Math.min(i, 6) * 80}ms` }}>
+              // h-full: a célula do grid estica; o wrapper precisa repassar
+              // essa altura pro Card (senão cada card fica só com a do conteúdo).
+              <div key={trail.id} className="animate-pop-in h-full" style={{ animationDelay: `${Math.min(i, 6) * 80}ms` }}>
                 <TrailCard
                   trail={trail}
                   plan={journeyQueries[i].data ?? null}
@@ -317,7 +319,7 @@ function TrailCard({ trail, plan, loading }: { trail: Trail; plan: JourneyPlan |
 
   return (
     <Card
-      className="border-l-4 hover:border-l-primary transition-colors"
+      className="flex h-full flex-col border-l-4 hover:border-l-primary transition-colors"
       style={{ borderLeftColor: trail.accentColor }}
     >
       <CardHeader>
@@ -376,7 +378,7 @@ function TrailCard({ trail, plan, loading }: { trail: Trail; plan: JourneyPlan |
         )}
       </CardContent>
 
-      <CardFooter className="justify-end gap-2">
+      <CardFooter className="mt-auto justify-end gap-2">
         {/* PR 37 — atalho "Treinar fraquezas". Visível em toda trilha
             inscrita (backend decide se há fraqueza real e responde
             no_weaknesses se não houver). Variant ghost pra não competir
