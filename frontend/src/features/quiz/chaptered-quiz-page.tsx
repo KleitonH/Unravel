@@ -409,7 +409,7 @@ export function ChapteredQuizPage() {
 
 function PageShell({ children }: { children: React.ReactNode }) {
   return (
-    <div className="p-6 lg:p-10 max-w-4xl mx-auto space-y-5">
+    <div className="p-6 lg:p-10 max-w-5xl mx-auto space-y-5">
       <Button asChild variant="ghost" size="sm" className="-ml-2">
         <Link to="/trails">
           <ChevronLeft className="h-4 w-4 mr-1" />
