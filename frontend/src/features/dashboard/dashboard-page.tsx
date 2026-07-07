@@ -331,9 +331,9 @@ function TrailCard({ trail, plan, loading }: { trail: Trail; plan: JourneyPlan |
         </div>
       </CardHeader>
 
-      {/* Altura fixa com rolagem: mantém todos os cards da grade com a mesma
-          altura, independente de a trilha ter 1 ou 2 itens no plano do dia. */}
-      <CardContent className="space-y-2 h-[4.75rem] overflow-y-auto">
+      {/* Sempre 2 slots (sem rolagem): quando a trilha tem só 1 item do dia,
+          o segundo vira um espaço vazio pra todos os cards ficarem iguais. */}
+      <CardContent className="space-y-2 min-h-[4.75rem]">
         {loading ? (
           <><Skeleton className="h-4 w-2/3" /><Skeleton className="h-3 w-full" /></>
         ) : plan ? (
@@ -355,6 +355,12 @@ function TrailCard({ trail, plan, loading }: { trail: Trail; plan: JourneyPlan |
                   >
                     {REASON_LABEL[item.reason]}
                   </Badge>
+                </li>
+              ))}
+              {/* Preenche até 2 slots com espaço vazio (mesma altura da linha). */}
+              {Array.from({ length: Math.max(0, 2 - plan.today.slice(0, 2).length) }).map((_, i) => (
+                <li key={`ph-${i}`} aria-hidden className="px-2.5 py-1.5 border border-transparent">
+                  <span className="text-sm">&nbsp;</span>
                 </li>
               ))}
             </ul>
