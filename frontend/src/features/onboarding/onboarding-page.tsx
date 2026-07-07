@@ -60,8 +60,8 @@ export function OnboardingPage() {
       setTest(t)
       setStep("test")
     } catch (e) {
-      const msg = (e as { response?: { data?: { message?: string } } })?.response?.data?.message
-      toast.error(msg ?? "Não foi possível iniciar (talvez já feito).")
+      const data = (e as { response?: { data?: { error?: string; message?: string } } })?.response?.data
+      toast.error(data?.error ?? data?.message ?? "Não foi possível iniciar (talvez já feito).")
     } finally {
       setLoading(false)
     }
