@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
 import { cn } from "@/lib/utils"
+import { invalidateSocialProgress } from "@/lib/invalidate-social"
 import { QuestionRenderer } from "@/components/quiz/question-renderer"
 import { UserNavi } from "@/components/navi/user-navi"
 import type { BossFightAnswer, BossFightResultResponse } from "@/types/api"
@@ -58,6 +59,7 @@ export function BossFightPage() {
       qc.invalidateQueries({ queryKey: ["profile", "me"] })
       qc.invalidateQueries({ queryKey: ["trail-map", trailIdNum] })
       qc.invalidateQueries({ queryKey: ["mastery", trailIdNum] })
+      invalidateSocialProgress(qc)
       if (r.passed) toast.success(`Boss derrotado! ${r.score}/${r.totalQuestions}`)
       else          toast.error(`${r.score}/${r.totalQuestions} — tente novamente`)
     },

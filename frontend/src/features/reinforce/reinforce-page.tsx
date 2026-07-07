@@ -6,6 +6,7 @@ import {
   Brain, Check, ChevronLeft, ChevronRight, Clock, Coins, Heart, Sparkles, Star, Target, X,
 } from "lucide-react"
 import { challengePoolApi } from "@/api/challenge-pool"
+import { invalidateSocialProgress } from "@/lib/invalidate-social"
 import { journeyApi } from "@/api/journey"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -89,6 +90,7 @@ export function ReinforcePage() {
       }
       setAnswers((prev) => new Map(prev).set(challenge.id, state))
       qc.invalidateQueries({ queryKey: ["profile", "me"] })
+      invalidateSocialProgress(qc)
 
       if (r.isCorrect && (r.xpEarned > 0 || r.coinsEarned > 0)) {
         toast.success(`+${r.xpEarned} XP · +${r.coinsEarned} 🪙${r.starsEarned > 0 ? ` · +${r.starsEarned} ⭐` : ""}`)

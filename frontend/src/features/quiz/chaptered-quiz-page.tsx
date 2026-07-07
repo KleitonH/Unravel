@@ -9,6 +9,7 @@ import {
 import { toast } from "sonner"
 import { chaptersApi } from "@/api/chapters"
 import { challengePoolApi } from "@/api/challenge-pool"
+import { invalidateSocialProgress } from "@/lib/invalidate-social"
 import { QuestionRenderer } from "@/components/quiz/question-renderer"
 import { FlagQuestionButton } from "@/components/quiz/flag-question-button"
 import { OutOfLivesCard } from "@/components/gamification/out-of-lives"
@@ -172,6 +173,7 @@ export function ChapteredQuizPage() {
       })
       // Invalida profile pra Hero do dashboard atualizar
       qc.invalidateQueries({ queryKey: ["profile", "me"] })
+      invalidateSocialProgress(qc)
       // Toast rico
       if (r.isCorrect && (r.xpEarned > 0 || r.coinsEarned > 0)) {
         toast.success(`+${r.xpEarned} XP · +${r.coinsEarned} 🪙${r.starsEarned > 0 ? ` · +${r.starsEarned} ⭐` : ""}`)

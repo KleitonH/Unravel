@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
 import { cn } from "@/lib/utils"
+import { invalidateSocialProgress } from "@/lib/invalidate-social"
 import { QuestionRenderer } from "@/components/quiz/question-renderer"
 import { OutOfLivesCard } from "@/components/gamification/out-of-lives"
 import { useQuizLives } from "@/components/gamification/use-quiz-lives"
@@ -112,6 +113,7 @@ export function AdaptiveQuizPage() {
       })
       qc.invalidateQueries({ queryKey: ["profile", "me"] })
       qc.invalidateQueries({ queryKey: ["trail-map"] })
+      invalidateSocialProgress(qc)
       if (r.isCorrect && (r.xpEarned > 0)) {
         toast.success(`+${r.xpEarned} XP · +${r.coinsEarned} 🪙`)
       } else if (!r.isCorrect && r.lifeDelta < 0) {

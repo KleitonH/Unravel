@@ -4,6 +4,7 @@ import { useNavigate, useParams } from "@tanstack/react-router"
 import { toast } from "sonner"
 import { Check, ChevronLeft, ChevronRight, Coins, Heart, Star, X } from "lucide-react"
 import { challengePoolApi } from "@/api/challenge-pool"
+import { invalidateSocialProgress } from "@/lib/invalidate-social"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -78,6 +79,7 @@ export function QuizPage() {
       // PR 26: invalida o profile pro Hero do dashboard atualizar XP/streak/vidas
       // no próximo render. Não esperamos o refetch (não é UI crítica do quiz).
       qc.invalidateQueries({ queryKey: ["profile", "me"] })
+      invalidateSocialProgress(qc)
 
       // Toast com ganhos
       if (r.isCorrect && (r.xpEarned > 0 || r.coinsEarned > 0)) {
