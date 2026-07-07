@@ -331,7 +331,9 @@ function TrailCard({ trail, plan, loading }: { trail: Trail; plan: JourneyPlan |
         </div>
       </CardHeader>
 
-      <CardContent className="space-y-2">
+      {/* Altura fixa com rolagem: mantém todos os cards da grade com a mesma
+          altura, independente de a trilha ter 1 ou 2 itens no plano do dia. */}
+      <CardContent className="space-y-2 h-[4.75rem] overflow-y-auto">
         {loading ? (
           <><Skeleton className="h-4 w-2/3" /><Skeleton className="h-3 w-full" /></>
         ) : plan ? (
