@@ -1,7 +1,6 @@
 import { useState } from "react"
 import { Link, useRouterState } from "@tanstack/react-router"
-import { ChevronRight, LogOut } from "lucide-react"
-import { Avatar, AvatarFallback } from "@/components/ui/avatar"
+import { ChevronRight } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Separator } from "@/components/ui/separator"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
@@ -18,9 +17,7 @@ import { useAuth } from "@/stores/auth"
 export function Sidebar() {
   const [expanded, setExpanded] = useState(false)
   const { pathname } = useRouterState({ select: (s) => s.location })
-  const user        = useAuth((s) => s.user)
   const isModerator = useAuth((s) => s.isModerator())
-  const logout      = useAuth((s) => s.logout)
 
   const visible = navItems.filter((i) => !i.requires || (i.requires === "Moderator" && isModerator))
 
@@ -87,56 +84,7 @@ export function Sidebar() {
             })}
           </ul>
         </nav>
-
-        <Separator />
-
-        {/* User footer */}
-        <div className="p-3">
-          {expanded ? (
-            <div className="flex items-center gap-3">
-              <Avatar className="h-9 w-9">
-                <AvatarFallback>{initials(user?.name)}</AvatarFallback>
-              </Avatar>
-              <div className="flex-1 min-w-0">
-                <p className="truncate text-sm font-medium">{user?.name ?? "—"}</p>
-                <p className="truncate text-xs text-muted-foreground">{user?.email}</p>
-              </div>
-              <Button variant="ghost" size="icon" onClick={logout} aria-label="Sair">
-                <LogOut className="h-4 w-4" />
-              </Button>
-            </div>
-          ) : (
-            <div className="flex flex-col items-center gap-2">
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Avatar className="h-9 w-9">
-                    <AvatarFallback>{initials(user?.name)}</AvatarFallback>
-                  </Avatar>
-                </TooltipTrigger>
-                <TooltipContent side="right">{user?.name ?? "—"}</TooltipContent>
-              </Tooltip>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button variant="ghost" size="icon" onClick={logout} aria-label="Sair">
-                    <LogOut className="h-4 w-4" />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent side="right">Sair</TooltipContent>
-              </Tooltip>
-            </div>
-          )}
-        </div>
       </aside>
     </TooltipProvider>
   )
-}
-
-function initials(name?: string | null) {
-  if (!name) return "?"
-  return name
-    .trim()
-    .split(/\s+/)
-    .map((p) => p[0]?.toUpperCase() ?? "")
-    .slice(0, 2)
-    .join("")
 }
