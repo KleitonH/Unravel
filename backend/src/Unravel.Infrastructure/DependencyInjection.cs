@@ -39,6 +39,7 @@ public static class DependencyInjection
         services.AddScoped<IUserRepository, UserRepository>();
         services.AddScoped<IRefreshTokenRepository, RefreshTokenRepository>();
         services.AddScoped<IPasswordHasher, BcryptPasswordHasher>();
+        services.AddScoped<IModeratorInviteValidator, Auth.ModeratorInviteValidator>();
         services.AddScoped<ITokenService, JwtTokenService>();
 
         services.AddScoped<CreateUserUseCase>();

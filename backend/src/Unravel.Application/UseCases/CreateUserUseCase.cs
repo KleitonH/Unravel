@@ -11,7 +11,8 @@ namespace Unravel.Application.UseCases;
 public class CreateUserUseCase(
     IUserRepository userRepository,
     IPasswordHasher passwordHasher,
-    IWelcomeGiftService welcomeGift)
+    IWelcomeGiftService welcomeGift,
+    IModeratorInviteValidator inviteValidator)
 {
     public async Task<UserResponse> ExecuteAsync(CreateUserRequest request, CancellationToken cancellationToken = default)
     {
@@ -20,8 +21,15 @@ public class CreateUserUseCase(
         if (await userRepository.ExistsByEmailAsync(email, cancellationToken))
             throw new DomainException($"A user with email '{request.Email}' already exists.");
 
+        // Cadastro como Educador (Moderator) exige código de convite válido —
+        // barra escalonamento de privilégio. Sem "moderator" pedido, é aluno.
+        var wantsModerator = string.Equals(request.Role?.Trim(), "moderator", StringComparison.OrdinalIgnoreCase);
+        if (wantsModerator && !inviteValidator.IsValid(request.InviteCode))
+            throw new DomainException("Código de convite de educador inválido.");
+
         var passwordHash = passwordHasher.Hash(request.Password);
         var user = User.Create(request.Name, email, passwordHash);
+        if (wantsModerator) user.Role = Role.Moderator;
 
         await userRepository.AddAsync(user, cancellationToken);
 

@@ -19,7 +19,13 @@ export type AuthResponse = {
 }
 
 export type LoginRequest    = { email: string; password: string }
-export type RegisterRequest = { name: string; email: string; password: string }
+export type RegisterRequest = {
+  name: string
+  email: string
+  password: string
+  role?: "student" | "moderator"   // "moderator" exige inviteCode; ausente = aluno
+  inviteCode?: string
+}
 
 // ── Trails ──────────────────────────────────────────────────────────
 
