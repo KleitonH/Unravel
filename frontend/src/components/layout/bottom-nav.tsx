@@ -14,7 +14,7 @@ export function BottomNav() {
 
   return (
     <nav
-      className="fixed bottom-0 inset-x-0 z-40 lg:hidden flex items-stretch border-t border-border bg-card/95 backdrop-blur"
+      className="shrink-0 z-40 lg:hidden flex items-stretch border-t border-border bg-card/95 backdrop-blur"
       style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
       aria-label="Navegação principal"
     >

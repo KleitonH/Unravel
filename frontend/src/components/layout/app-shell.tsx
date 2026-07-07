@@ -12,13 +12,14 @@ import { TopHeader } from "./top-header"
  * No topo da coluna fica a <TopHeader> global (vidas/nível/ofensiva/moedas
  * + notificações + perfil com o rosto do NAVI), sticky — sempre visível.
  *
- * Padding-bottom em mobile pra compensar a altura da bottom-nav
- * + safe-area-inset (iPhones com home indicator).
- *
  * O shell tem altura fixa de viewport (`h-dvh` + `overflow-hidden`): o
  * documento nunca rola. Quem rola é o `<main>` (`overflow-y-auto`) — assim
  * o header fica sempre visível e páginas "app-like" (ex: Loja) podem usar
  * `h-full` e rolar só internamente, sem arrastar a página inteira.
+ *
+ * A BottomNav (mobile) é um item de fluxo (não `fixed`): o `<main>` termina
+ * exatamente no topo dela, sem gap nem padding de compensação. O safe-area
+ * inset vem do próprio componente.
  */
 export function AppShell({ children }: { children: ReactNode }) {
   return (
@@ -26,7 +27,7 @@ export function AppShell({ children }: { children: ReactNode }) {
       <Sidebar />
       <div className="flex-1 lg:pl-[72px] flex flex-col min-w-0 min-h-0">
         <TopHeader />
-        <main className="flex-1 min-h-0 overflow-y-auto pb-20 lg:pb-0">
+        <main className="flex-1 min-h-0 overflow-y-auto">
           {children}
         </main>
       </div>
