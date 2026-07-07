@@ -10,6 +10,45 @@ public static class GamificationSeeder
         await SeedBadgesAsync(db);
         await SeedChallengesAsync(db);
         await SeedCosmeticsAsync(db);
+        await SeedMestreSetAsync(db);
+    }
+
+    /// <summary>Slugs do set "Mestre dos Gatos" (brinde de pré-registro).
+    /// Cada peça vive num slot distinto do NAVI (Accessory/Hat/Fur/Expression),
+    /// então o visual completo pode ser equipado de uma vez.</summary>
+    public static readonly string[] MestreSetSlugs = { "manto-mestre", "grisalhos-mestre", "mestre", "sereno" };
+
+    // Set "Mestre dos Gatos" — concedido a cada novo cadastro (ver
+    // WelcomeGiftService). NÃO é comprável (LockedReason preenchido); só chega
+    // como brinde. Seed idempotente por slug: roda sempre e insere só o que
+    // faltar, para funcionar também em bancos já semeados.
+    private static async Task SeedMestreSetAsync(ApplicationDbContext db)
+    {
+        NaviCosmetic Gift(string slug, string name, CosmeticType type, string desc) => new()
+        {
+            AssetSlug = slug, Name = name, Type = type, Rarity = CosmeticRarity.Exclusive,
+            IsExclusive = true, LockedReason = "Brinde de pré-registro — set Mestre dos Gatos",
+            Description = desc,
+        };
+
+        var set = new[]
+        {
+            Gift("manto-mestre",     "Manto do Mestre dos Gatos",    CosmeticType.Accessory,  "Vestes vermelhas com debrum branco e medalhão dourado. As roupas do lendário Mestre dos Gatos."),
+            Gift("grisalhos-mestre", "Grisalhos do Mestre dos Gatos", CosmeticType.Hat,        "Os tufos brancos laterais que só a sabedoria dos anos concede."),
+            Gift("mestre",           "Pelagem do Mestre dos Gatos",  CosmeticType.Fur,        "Pelagem prateada e serena, digna de um ancião dos felinos."),
+            Gift("sereno",           "Semblante do Mestre dos Gatos", CosmeticType.Expression, "O olhar tranquilo de quem já viu muitas trilhas."),
+        };
+
+        var existing = await db.NaviCosmetic
+            .Where(c => MestreSetSlugs.Contains(c.AssetSlug))
+            .Select(c => c.AssetSlug)
+            .ToListAsync();
+
+        var missing = set.Where(c => !existing.Contains(c.AssetSlug)).ToList();
+        if (missing.Count == 0) return;
+
+        db.NaviCosmetic.AddRange(missing);
+        await db.SaveChangesAsync();
     }
 
     // PR 63 — catálogo da Loja (Toca do NAVI). AssetSlug = valor consumido

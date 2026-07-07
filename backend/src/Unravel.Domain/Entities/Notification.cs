@@ -18,6 +18,7 @@ public enum NotificationType
     PartnershipRequest  = 12, // convite de Parceria (Novelo / Parceiro de Trilha)
     PartnershipAccepted = 13, // parceiro aceitou o convite
     YarnPassed          = 14, // o novelo passou pra você (ou novelo concluído)
+    Welcome             = 15, // brinde de boas-vindas / pré-registro (set Mestre dos Gatos)
 }
 
 public class Notification

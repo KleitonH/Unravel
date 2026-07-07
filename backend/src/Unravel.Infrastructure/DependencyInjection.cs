@@ -64,6 +64,9 @@ public static class DependencyInjection
         // PR 63 — loja cosmética (catálogo/compra/equip).
         services.AddScoped<Application.Gamification.Ports.ICosmeticShopService,
                            Gamification.CosmeticShopService>();
+        // Brinde de pré-registro — set "Mestre dos Gatos" no cadastro.
+        services.AddScoped<Application.Gamification.Ports.IWelcomeGiftService,
+                           Gamification.WelcomeGiftService>();
 
         // UC34 — recarga temporal de vidas (+1/h até o teto). Hosted service
         // (cron) registrado em Program.cs.

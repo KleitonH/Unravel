@@ -10,8 +10,8 @@
 import { useId } from "react"
 import { assetForSlug, zForAccessory, Z } from "./navi-assets"
 
-export type NaviFur = "preto" | "cinza" | "laranja" | "branco" | "dourado"
-export type NaviMood = "neutral" | "happy" | "sad" | "excited"
+export type NaviFur = "preto" | "cinza" | "laranja" | "branco" | "dourado" | "mestre"
+export type NaviMood = "neutral" | "happy" | "sad" | "excited" | "sereno"
 
 type FurPalette = {
   hi: string; base: string; lo: string
@@ -46,6 +46,12 @@ const FUR: Record<NaviFur, FurPalette> = {
     belly: "#ffeec2", tuft: "#ffe093", earIn: "#fff0c2",
     stripe: null, eye: "#6fe08a", eyeHi: "#caffda", nose: "#e8607e", whisker: "#fff6da",
   },
+  // Pelagem do Mestre dos Gatos — prateada/creme, tom de ancião.
+  mestre: {
+    hi: "#efe7da", base: "#d8cbb6", lo: "#b6a689",
+    belly: "#f7f2e8", tuft: "#e7ded0", earIn: "#f0a39c",
+    stripe: null, eye: "#7fe39a", eyeHi: "#d8ffe6", nose: "#e8879a", whisker: "#f4efe4",
+  },
 }
 
 /** Compat com consumidores antigos do formato {body,shade,ear}. */
@@ -54,8 +60,8 @@ export const NAVI_FUR: Record<NaviFur, { body: string; shade: string; ear: strin
     (Object.keys(FUR) as NaviFur[]).map((k) => [k, { body: FUR[k].base, shade: FUR[k].lo, ear: FUR[k].earIn }]),
   ) as Record<NaviFur, { body: string; shade: string; ear: string }>
 
-export const NAVI_HATS = ["cartola", "bone", "headset", "antenas", "coroa"] as const
-export const NAVI_ACCS = ["gravata", "jaleco", "capa", "mochila"] as const
+export const NAVI_HATS = ["cartola", "bone", "headset", "antenas", "coroa", "grisalhos-mestre"] as const
+export const NAVI_ACCS = ["gravata", "jaleco", "capa", "mochila", "manto-mestre"] as const
 
 const ink = "#0e0a1e"
 
@@ -197,6 +203,13 @@ function FaceSvg({ fur, mood, z }: { fur: NaviFur; mood: NaviMood; z: number }) 
           <circle cx="78" cy="82" r="1.3" fill="#fff" opacity="0.8" /><circle cx="116" cy="82" r="1.3" fill="#fff" opacity="0.8" />
         </g>
       )
+    if (mood === "sereno")
+      // Olhos serenos, semicerrados — o olhar tranquilo do Mestre.
+      return (
+        <g stroke={ink} strokeWidth="4" strokeLinecap="round" fill="none">
+          <path d="M72 82 q9 -6 17 0" /><path d="M111 82 q9 -6 17 0" />
+        </g>
+      )
     return (
       <g>
         <ellipse cx="81" cy="81" rx="8.4" ry="10.4" fill={`url(#${gEye})`} /><ellipse cx="119" cy="81" rx="8.4" ry="10.4" fill={`url(#${gEye})`} />
@@ -217,6 +230,8 @@ function FaceSvg({ fur, mood, z }: { fur: NaviFur; mood: NaviMood; z: number }) 
       )
     if (mood === "sad")
       return <path d="M92 103 q8 -7 16 0" stroke={ink} strokeWidth="3" fill="none" strokeLinecap="round" />
+    if (mood === "sereno")
+      return <path d="M92 99 q8 5 16 0" stroke={ink} strokeWidth="2.8" fill="none" strokeLinecap="round" />
     return (
       <g stroke={ink} strokeWidth="2.6" fill="none" strokeLinecap="round">
         <path d="M100 95 v5" /><path d="M100 100 q-5.5 4.5 -10 1" /><path d="M100 100 q5.5 4.5 10 1" />
@@ -285,6 +300,23 @@ function AccessorySvg({ slug, z }: { slug: string; z: number }) {
           <circle cx="100" cy="120" r="4.2" fill="#c23fce" />
         </g>
       )}
+      {slug === "manto-mestre" && (
+        <g>
+          {/* manto vermelho sobre o tronco */}
+          <path d="M59 150 q0 -34 41 -34 q41 0 41 34 l5 45 q-46 17 -92 0 Z" fill="#c1272d" />
+          <path d="M59 150 q0 -34 41 -34 q16 0 27 8 l-5 67 q-35 6 -61 -8 Z" fill="#e0464f" opacity="0.32" />
+          <path d="M70 191 q30 12 60 0 l1 4 q-31 13 -62 0 Z" fill="#8f1d22" opacity="0.55" />
+          {/* debrum branco em V (gola) + faixa central */}
+          <path d="M100 117 l-21 12 l4.5 8 l16.5 -9 l16.5 9 l4.5 -8 Z" fill="#f4f1ea" />
+          <path d="M100 127 v67" stroke="#efe9dd" strokeWidth="5.5" />
+          <path d="M100 127 v67" stroke="#cdbf9e" strokeWidth="1.4" opacity="0.6" />
+          {/* cordão + medalhão dourado com pedra âmbar */}
+          <path d="M87 129 q13 9 26 0" fill="none" stroke="#e8c95a" strokeWidth="2.2" />
+          <circle cx="100" cy="150" r="7.6" fill="#f4c948" stroke="#c99a1e" strokeWidth="1.6" />
+          <circle cx="100" cy="150" r="3.6" fill="#e8722e" />
+          <circle cx="98" cy="148" r="1.3" fill="#ffd98a" opacity="0.9" />
+        </g>
+      )}
     </svg>
   )
 }
@@ -338,6 +370,18 @@ function HatSvg({ slug, z }: { slug: string; z: number }) {
           <circle cx="100" cy="10" r="4.8" fill="#ed54f2" /><circle cx="98" cy="8" r="1.6" fill="#fff" opacity="0.8" />
           <circle cx="135" cy="17" r="4" fill="#ed54f2" /><circle cx="133.5" cy="15.5" r="1.4" fill="#fff" opacity="0.8" />
           <circle cx="100" cy="42.5" r="2.6" fill="#38db8c" />
+        </g>
+      )}
+      {slug === "grisalhos-mestre" && (
+        <g>
+          {/* tufos brancos laterais (cabelos do ancião) */}
+          <path d="M58 64 q-15 5 -13 27 q6 -6 13 -6 q-5 8 0 17 q7 -8 13 -6 q-6 -19 -3 -35 Z" fill="#eef0f2" />
+          <path d="M58 64 q-15 5 -13 27 q6 -6 13 -6 q-5 8 0 17 q7 -8 13 -6 q-6 -19 -3 -35 Z" fill="#ffffff" opacity="0.45" />
+          <path d="M142 64 q15 5 13 27 q-6 -6 -13 -6 q5 8 0 17 q-7 -8 -13 -6 q6 -19 3 -35 Z" fill="#eef0f2" />
+          <path d="M142 64 q15 5 13 27 q-6 -6 -13 -6 q5 8 0 17 q-7 -8 -13 -6 q6 -19 3 -35 Z" fill="#ffffff" opacity="0.45" />
+          {/* sobrancelhas grisalhas fartas */}
+          <path d="M64 60 q11 -6 22 -1" stroke="#e7e9ec" strokeWidth="3.4" fill="none" strokeLinecap="round" />
+          <path d="M114 59 q11 -5 22 1" stroke="#e7e9ec" strokeWidth="3.4" fill="none" strokeLinecap="round" />
         </g>
       )}
     </svg>
